@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "launches": [
+    {
+      "id": "cbf9a11c7d6a6564c4afec2f89958f7269389cf41de63ad9a8ee5fdbb0a35e59",
+      "contractAddress": "cbf9a11c7d6a6564c4afec2f89958f7269389cf41de63ad9a8ee5fdbb0a35e59",
+      "metadata": {
+        "name": null,
+        "ticker": null,
+        "imageUrl": null,
+        "description": null
+      },
+      "config": {
+        "inventoryAtoms": "600",
+        "reservePriceAtoms": "8",
+        "depositLotAtoms": "5000",
+        "commitWindowSeconds": 480,
+        "openWindowSeconds": 3600
+      },
+      "phase": "settled",
+      "createdAt": "2026-09-26T12:42:38.714Z",
+      "metadataAnchored": false,
+      "metadataCommitmentHex": null,
+      "artworkBytesAnchored": false,
+      "evidenceSource": "recorded-local-devnet-evidence",
+      "receipts": {
+        "deploy": {
+          "txId": "00bc01102440a7c62a949570f4003bb4630eec54d1f6d67d97fad83413f54839e3",
+          "transactionHash": "5949e9dfa51cf89cb4962e2e8d07ebde23ec46d857c16116c32d43181aca81a4",
+          "blockHeight": 9380
+        },
+        "mint": {
+          "txId": "000fa664d13ba2b1ad670f2a3d26901289bbcee74a54527039e08ddf34b16a000f",
+          "transactionHash": "d50c5345bef13c50c4ae887e4295d657929f89970aa8405608f6b6737dd9dcaa",
+          "blockHeight": 9383
+        },
+        "fund": {
+          "txId": "00a0254b9ab1a6d3d31588c4333efe0cf8c41337090caf4abb24b4da5fe143d61a",
+          "transactionHash": "5bb9d6acc899862217ab921539da973847c43744c82840a19ec4d7ea823b7476",
+          "blockHeight": 9387
+        }
+      },
+      "settlement": {
+        "clearingPriceAtoms": "10",
+        "allocationsAtoms": [
+          "300",
+          "300",
+          "0",
+          "0"
+        ],
+        "refundsAtoms": [
+          "2000",
+          "2000",
+          "5000",
+          "5000"
+        ],
+        "tokenClaimed": [
+          true,
+          true,
+          false,
+          false
+        ],
+        "refundClaimed": [
+          true,
+          true,
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "ca338d2e2f2fd96a86985492ca8a63a4c9f3e2bbbbf2825706fc9faab496e6c2",
+      "contractAddress": "ca338d2e2f2fd96a86985492ca8a63a4c9f3e2bbbbf2825706fc9faab496e6c2",
+      "metadata": {
+        "name": "Midnight Moth Test",
+        "ticker": "MOTH",
+        "imageUrl": null,
+        "description": "A valueless test token created to verify the Fair Launch Create flow."
+      },
+      "config": {
+        "inventoryAtoms": "400",
+        "reservePriceAtoms": "5",
+        "depositLotAtoms": "5000",
+        "commitWindowSeconds": 900,
+        "openWindowSeconds": 3600
+      },
+      "phase": "commit",
+      "createdAt": "2026-09-26T13:45:51.137Z",
+      "commitDeadlineUnixSeconds": "1790431183",
+      "openDeadlineUnixSeconds": "1790434783",
+      "metadataAnchored": true,
+      "metadataCommitmentHex": "136c72da8883ad418e882c76fb7a8e9a17a736185d6f607b2b4446f9530c569a",
+      "artworkBytesAnchored": false,
+      "evidenceSource": "verified-local-devnet-create",
+      "receipts": {
+        "deploy": {
+          "txId": "001cf5ed026cc5910b0686c5880b9e530352c28443ba8a6f19dca49cfc85ecd6c8",
+          "transactionHash": "234b7f5c3ee23d371cfbb97560fc417559426a69cfa237d7bf5d7bc1ba133c7e",
+          "blockHeight": 10117
+        },
+        "mint": {
+          "txId": "00ad5d4f4f27a6cb255163ac9f6b7da59cfbcd22eeb6354fec5b6f258dfcadc782",
+          "transactionHash": "f1f87f337860addd9a8e4033814ac198e95b1b308660a2bcaf77a725e92c7ec5",
+          "blockHeight": 10121
+        },
+        "fund": {
+          "txId": "00098903697384960e7f3b71710238e69c47d46909e72eacdaf8d60544dd6ef4ab",
+          "transactionHash": "427348b7f8056320c0490b764b4fa24e6261b37bb2b1666f370543c94d7179be",
+          "blockHeight": 10125
+        }
+      }
+    },
+    {
+      "id": "db83759a261e04a603a801b1447be7e73f518b2272c7f4168506dfd87028824e",
+      "contractAddress": "db83759a261e04a603a801b1447be7e73f518b2272c7f4168506dfd87028824e",
+      "metadata": {
+        "name": "Night Bloom Test",
+        "ticker": "BLOOM",
+        "imageUrl": null,
+        "description": "A second browser-created, valueless Local Devnet launch."
+      },
+      "config": {
+        "inventoryAtoms": "200",
+        "reservePriceAtoms": "4",
+        "depositLotAtoms": "5000",
+        "commitWindowSeconds": 900,
+        "openWindowSeconds": 3600
+      },
+      "phase": "commit",
+      "createdAt": "2026-09-26T13:52:33.098Z",
+      "commitDeadlineUnixSeconds": "1790431593",
+      "openDeadlineUnixSeconds": "1790435193",
+      "metadataAnchored": true,
+      "metadataCommitmentHex": "a22e935bf05abf3b9c375c34dae8306dfa2411406b66080cf200ec5e34f6c217",
+      "artworkBytesAnchored": false,
+      "evidenceSource": "verified-local-devnet-create",
+      "receipts": {
+        "deploy": {
+          "txId": "00c8f98ac15d95ec4ea1dde46bf9c35a4536fdd53aa4e2c120bac9b68a8d26f497",
+          "transactionHash": "0a13dfb81379a514845e746edbe621a9c74df97783308ac6f1baad69ca5ba346",
+          "blockHeight": 10185
+        },
+        "mint": {
+          "txId": "0000a7c8059d319b8c90c8191a69c4fb71057adec0babdf978767538ba819545b4",
+          "transactionHash": "5d5ec86af107066bf91ec80d83816e1acdda40ee69df2ad8d749c750d550f351",
+          "blockHeight": 10188
+        },
+        "fund": {
+          "txId": "00821b4f7c293c0ef0291cdd02647804eaf9cb8ee3275b05c94aa3806d74daab80",
+          "transactionHash": "17da4f98f4ba32b99b855b9f309bebbb5dbbaa28b9897bfbd2eeed39796608e5",
+          "blockHeight": 10192
+        }
+      }
+    }
+  ]
+}
