@@ -6,7 +6,7 @@
 
 ## 제품 문장
 
-**VeilIntent는 구매자가 이미 잠근 테스트 자금을 AI agent의 제한된 권한으로 지출할 때, 공개되지 않은 최대 허용 가격·총액·상대방 조건을 Compact가 검사하고 허용된 판매자에게만 지급하는 정책 기반 결제 원형이다.** 이번 MVP는 구매한 토큰이나 상품의 인도까지 보장하는 원자적 교환소가 아니다.
+**VeilIntent는 판매자의 공개 견적을 구매자의 숨긴 최대 허용 가격·총액과 Compact로 대조하고, 허용된 경우 계약에 잠긴 테스트 자금을 그 판매자에게 실제 지급하는 결제 원형이다.** 제한된 agent 권한은 이 검증을 실행하는 한 방법이다. 이번 MVP는 구매한 토큰이나 상품의 인도까지 보장하는 원자적 교환소가 아니다. 이전 Midnight 수상작과의 겹침·차이는 [별도 비교](veil-intent-competitive-positioning.md)에 기록했다.
 
 [Midnight의 agentic intent 글](https://midnight.network/blog/midnight-city-simulation-live)은 실행 전 의도와 조건이 전략적 정보가 될 수 있다는 문제를 직접 다룬다. 해커톤 피칭의 연결점은 이 공식 메시지와 **조건을 숨긴 채 지출 규칙을 증명하는 실제 체인 거래**다. 다만 `VeilIntent`라는 이름은 [기존 PyPI 패키지 설명](https://pypi.org/project/veil-privacy/)에 이미 등장하므로 현재는 작업명으로 취급하고 제출 전 명칭 충돌을 확인한다.
 

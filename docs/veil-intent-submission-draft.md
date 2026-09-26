@@ -4,7 +4,9 @@
 
 ## Team / Project Name
 
-VeilIntent — Private Policy-Bound Payments on Midnight
+VeilIntent — Private Quote Approval and Shielded Payment on Midnight
+
+**One-line description:** A public seller quote is proven below a hidden buyer ceiling, then paid from shielded test escrow with buyer change returned.
 
 ## Participation Type / Affiliation / Name / Contact
 
@@ -18,7 +20,7 @@ https://github.com/diveyreadytodive-star/veil-intent
 
 ## Project Overview
 
-AI agent에게 지갑 전체 권한을 주지 않으면서 구매를 맡기려면, 지출 조건을 누가 강제하는지가 중요합니다. 한편 최대 허용 가격과 예산을 온체인에 공개하면 판매자와 관찰자가 구매자의 협상 한도를 알 수 있습니다. VeilIntent는 구매자가 테스트 자금을 계약에 맡기고 agent에게 한 intent에 한정된 권한을 부여합니다. 판매자는 실제 수량과 가격의 견적을 제출하고, agent 측 prover는 공개하지 않은 최대 단가·총액 조건에 그 견적이 맞는지 Compact proof로 검증합니다. 승인된 견적만 허가된 판매자가 자기 shielded 지갑으로 청구할 수 있고, 구매자는 남은 자금을 별도로 회수합니다.
+판매자가 공개 견적을 내더라도 구매자의 **최대 허용 가격과 예산**까지 공개할 필요는 없습니다. 그러나 견적이 승인된 상한 안이고 실제 대금이 허가된 판매자에게 갔다는 사실은 검증 가능해야 합니다. VeilIntent는 구매자가 고정 테스트 자금을 계약에 맡긴 뒤, 판매자가 수량·단가 견적을 제출하면 구매자 측 제한 agent 역할이 원래 비공개 intent 조건과 맞는지 Compact로 증명합니다. 통과한 견적의 금액만 판매자가 자기 shielded 지갑으로 청구하고, 구매자는 잔액을 별도로 회수합니다. Agent 승인 회로에는 구매자 지갑 seed가 필요하지 않지만, 이번 테스트 runner에서 운영상 키 분리까지 입증한 것은 아닙니다.
 
 이번 해커톤 MVP는 구매자 1명, 허가 판매자 1명, 견적 1개, 가치 없는 단일 테스트 결제 토큰을 사용합니다. 공개 고정 예치액은 150, 실제 견적 지급은 100, 구매자 잔액은 50입니다. **Local Devnet에서 배포·예치·견적·비공개 정책 승인·판매자 청구·구매자 잔액 청구까지 실제 확정**했고, 거래 7건과 최종 계약 상태를 별도 인덱서 조회로 확인했습니다. 두 테스트 지갑도 별도 프로세스에서 다시 동기화해 seller 100, buyer 50 잔고를 확인했습니다. [증거 JSON](../spikes/veil-intent/docs/evidence/local-devnet-veil-intent.json).
 
