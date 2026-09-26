@@ -1,4 +1,14 @@
-# SILENCE — Private Perps on Midnight
+# VeilIntent — private policy-bound payments on Midnight
+
+**Pivot branch `codex/veil-intent`; valueless Local Devnet prototype, not a live payment or asset-exchange service.** A buyer locks a standardized public 150-unit test-token lot, an approved seller posts a public quote of 100, and a limited agent capability proves that the quote satisfies the buyer's private per-intent price and budget limits. The seller claims 100 in its own shielded wallet; the buyer separately claims the 50-unit remainder. The max limits are generated per run and stored only in protected local test state. Actual quote, lot, deadline, settlement status, and later recipient disclosures remain observable.
+
+The [Compact spike](spikes/veil-intent/README.md) compiles seven proof circuits and passes 14 simulator/recovery tests. One [actual Local Devnet flow](spikes/veil-intent/docs/evidence/local-devnet-veil-intent.json) finalized deploy/mint/intent/quote/approval/two claims at blocks 4222–4246. Its seven receipts and final ledger were independently re-queried, and separate buyer/seller wallet readback confirmed 50/100 test units. This proves a **one-to-one policy-gated payment** with valueless assets. It does not prove goods delivery, an atomic token swap, a reusable multi-intent mandate, independent agent key isolation, Preprod, or a browser trading flow. See [scope and acceptance decisions](docs/veil-intent-implementation-decisions.md).
+
+The original SILENCE work below is preserved as reusable research. Its receipts are not VeilIntent completion evidence.
+
+---
+
+# SILENCE — Private Perps on Midnight (archived pivot source)
 
 **Experimental hackathon prototype. Test assets only. Not a live trading venue.**
 

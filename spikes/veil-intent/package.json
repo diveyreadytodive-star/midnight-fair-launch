@@ -1,0 +1,12 @@
+{
+  "name": "veil-intent-spike",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "typecheck": "tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --allowImportingTsExtensions --skipLibCheck --types node tests/veil_intent.test.ts tests/recovery-guard.test.ts tests/runner-lock.test.ts scripts/recovery-guard.ts scripts/runner-lock.ts scripts/test-local-chain.ts",
+    "test:chain": "node --import tsx scripts/test-local-chain.ts",
+    "test": "npm run compile && npm run typecheck && node --import tsx --test tests/*.test.ts"
+  }
+}

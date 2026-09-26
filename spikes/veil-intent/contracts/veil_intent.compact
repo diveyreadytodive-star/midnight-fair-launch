@@ -1,0 +1,431 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+type Wide = Uint<128>;
+
+export struct IntentTerms {
+  quantity: Amount;
+  maxUnitPriceTicks: Amount;
+  maxTotalSpendAtoms: Amount;
+  expiresAt: Amount;
+  nonce: Bytes32;
+}
+
+export struct SellerQuote {
+  seller: ZswapCoinPublicKey;
+  quantity: Amount;
+  unitPriceTicks: Amount;
+}
+
+export struct BuyerTarget {
+  recipient: ZswapCoinPublicKey;
+  salt: Bytes32;
+}
+
+struct SecretPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  contractAddress: Bytes32;
+  secret: Bytes32;
+}
+
+struct RecipientPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  contractAddress: Bytes32;
+  recipient: ZswapCoinPublicKey;
+}
+
+struct IntentPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  escrowLotAtoms: Amount;
+  buyerIdentityCommitment: Bytes32;
+  agentIdentityCommitment: Bytes32;
+  buyerRecipientCommitment: Bytes32;
+  approvedSellerIdentityCommitment: Bytes32;
+  approvedSellerCommitment: Bytes32;
+  terms: IntentTerms;
+}
+
+struct QuotePayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  seller: ZswapCoinPublicKey;
+  quantity: Amount;
+  unitPriceTicks: Amount;
+  totalAtoms: Amount;
+}
+
+struct Division {
+  quotient: Wide;
+  remainder: Wide;
+}
+
+witness quotientRemainder(numerator: Wide, denominator: Wide): Division;
+
+export ledger networkDomain: Bytes32;
+export ledger intentCommitment: Bytes32;
+export ledger buyerIdentityCommitment: Bytes32;
+export ledger agentIdentityCommitment: Bytes32;
+export ledger buyerRecipientCommitment: Bytes32;
+export ledger approvedSellerIdentityCommitment: Bytes32;
+export ledger approvedSellerCommitment: Bytes32;
+export ledger intentDeadline: Amount;
+export ledger publicQuoteSellerCommitment: Bytes32;
+export ledger publicQuoteQuantity: Amount;
+export ledger publicQuoteUnitPriceTicks: Amount;
+export ledger publicQuoteTotalAtoms: Amount;
+export ledger buyerEscrowCoin: QualifiedShieldedCoinInfo;
+export ledger buyerRemainderCoin: QualifiedShieldedCoinInfo;
+export ledger buyerRemainderClaimable: Boolean;
+export ledger intentOpen: Boolean;
+export ledger quoteSubmitted: Boolean;
+export ledger quoteApproved: Boolean;
+export ledger intentExecuted: Boolean;
+export ledger intentCancelled: Boolean;
+
+constructor(networkDomain_: Bytes32) {
+  networkDomain = disclose(networkDomain_);
+  intentDeadline = 0;
+  publicQuoteQuantity = 0;
+  publicQuoteUnitPriceTicks = 0;
+  publicQuoteTotalAtoms = 0;
+  buyerRemainderClaimable = false;
+  intentOpen = false;
+  quoteSubmitted = false;
+  quoteApproved = false;
+  intentExecuted = false;
+  intentCancelled = false;
+}
+
+export pure circuit testTokenDomain(): Bytes32 {
+  return pad(32, "veil-intent:test-payment:v1");
+}
+
+export pure circuit deriveAgentIdentityCommitment(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  agentSecret: Bytes32
+): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "veil-intent:agent:v1"),
+    contractAddress: contractAddress,
+    secret: agentSecret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+export pure circuit deriveSellerIdentityCommitment(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  sellerSecret: Bytes32
+): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "veil-intent:seller:v1"),
+    contractAddress: contractAddress,
+    secret: sellerSecret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+circuit deriveBuyerIdentityCommitment(buyerSecret: Bytes32): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain,
+    purposeDomain: pad(32, "veil-intent:buyer:v1"),
+    contractAddress: kernel.self().bytes,
+    secret: buyerSecret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+circuit deriveAgentCapability(agentSecret: Bytes32): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain,
+    purposeDomain: pad(32, "veil-intent:agent:v1"),
+    contractAddress: kernel.self().bytes,
+    secret: agentSecret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+circuit deriveSellerCapability(sellerSecret: Bytes32): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain,
+    purposeDomain: pad(32, "veil-intent:seller:v1"),
+    contractAddress: kernel.self().bytes,
+    secret: sellerSecret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+circuit commitRecipient(
+  purposeDomain: Bytes32,
+  recipient: ZswapCoinPublicKey,
+  salt: Bytes32
+): Bytes32 {
+  const payload = RecipientPayload{
+    networkDomain: networkDomain,
+    purposeDomain: purposeDomain,
+    contractAddress: kernel.self().bytes,
+    recipient: recipient
+  };
+  return persistentCommit<RecipientPayload>(payload, salt);
+}
+
+circuit computeIntentCommitment(
+  buyerIdentity: Bytes32,
+  agentIdentity: Bytes32,
+  buyerRecipient: Bytes32,
+  approvedSellerIdentity: Bytes32,
+  approvedSeller: Bytes32,
+  terms: IntentTerms,
+  intentSalt: Bytes32
+): Bytes32 {
+  const payload = IntentPayload{
+    networkDomain: networkDomain,
+    contractAddress: kernel.self().bytes,
+    escrowLotAtoms: 150,
+    buyerIdentityCommitment: buyerIdentity,
+    agentIdentityCommitment: agentIdentity,
+    buyerRecipientCommitment: buyerRecipient,
+    approvedSellerIdentityCommitment: approvedSellerIdentity,
+    approvedSellerCommitment: approvedSeller,
+    terms: terms
+  };
+  return persistentCommit<IntentPayload>(payload, intentSalt);
+}
+
+circuit ceilDiv(numerator: Wide, denominator: Wide): Wide {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.quotient <= numerator, "INVALID_DIVISION_QUOTIENT");
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    (division.quotient as Field) * (denominator as Field) +
+      (division.remainder as Field) == (numerator as Field),
+    "INVALID_DIVISION_WITNESS"
+  );
+  if (division.remainder == 0) return division.quotient;
+  return (division.quotient + 1) as Wide;
+}
+
+export circuit mintTestCoin(value: Amount, nonce: Bytes32): ShieldedCoinInfo {
+  assert(value > 0, "TEST_COIN_AMOUNT_ZERO");
+  return mintShieldedToken(
+    testTokenDomain(),
+    disclose(value),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+export circuit createIntent(
+  coin: ShieldedCoinInfo,
+  terms: IntentTerms,
+  intentSalt: Bytes32,
+  buyerSecret: Bytes32,
+  agentIdentity: Bytes32,
+  approvedSellerIdentity: Bytes32,
+  approvedSeller: ZswapCoinPublicKey,
+  approvedSellerSalt: Bytes32,
+  buyerTarget: BuyerTarget
+): [] {
+  assert(!intentOpen && !intentExecuted && !intentCancelled, "INTENT_ALREADY_CREATED");
+  assert(coin.value == 150, "INVALID_ESCROW_LOT");
+  assert(coin.color == tokenType(testTokenDomain(), kernel.self()), "INVALID_PAYMENT_TOKEN");
+  assert(terms.quantity > 0 && terms.quantity <= 1000000, "INVALID_QUANTITY");
+  assert(terms.maxUnitPriceTicks > 0 && terms.maxUnitPriceTicks <= 1000000000000, "INVALID_MAX_UNIT_PRICE");
+  assert(terms.maxTotalSpendAtoms > 0 && terms.maxTotalSpendAtoms < coin.value, "MAX_BUDGET_MUST_BE_BELOW_PUBLIC_ESCROW");
+  assert(terms.expiresAt > 0 && terms.expiresAt <= 4000000000, "INVALID_INTENT_DEADLINE");
+  assert(blockTimeLt(disclose(terms.expiresAt)), "INTENT_DEADLINE_NOT_FUTURE");
+
+  const buyerIdentity = deriveBuyerIdentityCommitment(buyerSecret);
+  const buyerRecipient = commitRecipient(pad(32, "veil-intent:buyer-recipient:v1"), buyerTarget.recipient, buyerTarget.salt);
+  const sellerCommitment = commitRecipient(pad(32, "veil-intent:approved-seller:v1"), approvedSeller, approvedSellerSalt);
+  receiveShielded(disclose(coin));
+  buyerEscrowCoin.writeCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  buyerIdentityCommitment = disclose(buyerIdentity);
+  agentIdentityCommitment = disclose(agentIdentity);
+  buyerRecipientCommitment = disclose(buyerRecipient);
+  approvedSellerIdentityCommitment = disclose(approvedSellerIdentity);
+  approvedSellerCommitment = disclose(sellerCommitment);
+  intentDeadline = disclose(terms.expiresAt);
+  intentCommitment = disclose(computeIntentCommitment(buyerIdentity, agentIdentity, buyerRecipient, approvedSellerIdentity, sellerCommitment, terms, intentSalt));
+  intentOpen = disclose(true);
+  return [];
+}
+
+export circuit submitQuote(
+  quote: SellerQuote,
+  sellerSecret: Bytes32,
+  sellerTarget: BuyerTarget
+): [] {
+  assert(intentOpen, "INTENT_NOT_OPEN");
+  assert(blockTimeLt(disclose(intentDeadline)), "INTENT_EXPIRED");
+  assert(!quoteSubmitted, "QUOTE_ALREADY_SUBMITTED");
+  assert(deriveSellerCapability(sellerSecret) == approvedSellerIdentityCommitment, "UNAUTHORIZED_SELLER");
+  assert(
+    commitRecipient(pad(32, "veil-intent:approved-seller:v1"), quote.seller, sellerTarget.salt) == approvedSellerCommitment,
+    "SELLER_NOT_APPROVED"
+  );
+  assert(
+    commitRecipient(pad(32, "veil-intent:approved-seller:v1"), sellerTarget.recipient, sellerTarget.salt) == approvedSellerCommitment,
+    "SELLER_RECIPIENT_MISMATCH"
+  );
+  assert(quote.quantity > 0 && quote.quantity <= 1000000, "INVALID_QUOTE_QUANTITY");
+  assert(quote.unitPriceTicks > 0 && quote.unitPriceTicks <= 1000000000000, "INVALID_QUOTE_PRICE");
+
+  const totalWide = ceilDiv(
+    ((quote.quantity as Field) * (quote.unitPriceTicks as Field)) as Wide,
+    1000000
+  );
+  assert(totalWide <= 150, "QUOTE_TOTAL_OUT_OF_RANGE");
+  const total = totalWide as Amount;
+  assert(total > 0 && total <= 150, "QUOTE_EXCEEDS_ESCROW");
+
+  const quotePayload = QuotePayload{
+    networkDomain: networkDomain,
+    contractAddress: kernel.self().bytes,
+    seller: quote.seller,
+    quantity: quote.quantity,
+    unitPriceTicks: quote.unitPriceTicks,
+    totalAtoms: total
+  };
+  publicQuoteSellerCommitment = disclose(persistentHash<QuotePayload>(quotePayload));
+  publicQuoteQuantity = disclose(quote.quantity);
+  publicQuoteUnitPriceTicks = disclose(quote.unitPriceTicks);
+  publicQuoteTotalAtoms = disclose(total);
+  quoteSubmitted = disclose(true);
+  return [];
+}
+
+export circuit approveQuote(
+  terms: IntentTerms,
+  intentSalt: Bytes32,
+  agentSecret: Bytes32
+): [] {
+  assert(intentOpen, "INTENT_NOT_OPEN");
+  assert(quoteSubmitted, "NO_SELLER_QUOTE");
+  assert(!quoteApproved, "QUOTE_ALREADY_APPROVED");
+  assert(blockTimeLt(disclose(intentDeadline)), "INTENT_EXPIRED");
+  assert(deriveAgentCapability(agentSecret) == agentIdentityCommitment, "UNAUTHORIZED_AGENT");
+  assert(
+    computeIntentCommitment(
+      buyerIdentityCommitment,
+      agentIdentityCommitment,
+      buyerRecipientCommitment,
+      approvedSellerIdentityCommitment,
+      approvedSellerCommitment,
+      terms,
+      intentSalt
+    ) == intentCommitment,
+    "INTENT_COMMITMENT_MISMATCH"
+  );
+  assert(publicQuoteQuantity == terms.quantity, "QUOTE_QUANTITY_MISMATCH");
+  assert(publicQuoteUnitPriceTicks <= terms.maxUnitPriceTicks, "QUOTE_PRICE_EXCEEDS_MAX");
+  const recomputedTotal = ceilDiv(
+    ((publicQuoteQuantity as Field) * (publicQuoteUnitPriceTicks as Field)) as Wide,
+    1000000
+  );
+  assert(recomputedTotal == (publicQuoteTotalAtoms as Wide), "QUOTE_TOTAL_MISMATCH");
+  assert(publicQuoteTotalAtoms <= terms.maxTotalSpendAtoms, "QUOTE_EXCEEDS_PRIVATE_BUDGET");
+  quoteApproved = disclose(true);
+  return [];
+}
+
+export circuit sellerClaimPayout(
+  sellerSecret: Bytes32,
+  sellerTarget: BuyerTarget
+): [] {
+  assert(intentOpen, "INTENT_NOT_OPEN");
+  assert(quoteSubmitted && quoteApproved, "QUOTE_NOT_APPROVED");
+  assert(!intentExecuted, "INTENT_ALREADY_EXECUTED");
+  assert(deriveSellerCapability(sellerSecret) == approvedSellerIdentityCommitment, "UNAUTHORIZED_SELLER");
+  assert(
+    commitRecipient(pad(32, "veil-intent:approved-seller:v1"), sellerTarget.recipient, sellerTarget.salt) == approvedSellerCommitment,
+    "SELLER_RECIPIENT_MISMATCH"
+  );
+  const sent = sendShielded(
+    buyerEscrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(sellerTarget.recipient)),
+    disclose(publicQuoteTotalAtoms)
+  );
+  if (sent.change.is_some) {
+    buyerRemainderCoin.writeCoin(disclose(sent.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    buyerRemainderClaimable = disclose(true);
+  } else {
+    assert(publicQuoteTotalAtoms == buyerEscrowCoin.value, "UNEXPECTED_ESCROW_CHANGE");
+    buyerRemainderClaimable = disclose(false);
+  }
+  intentOpen = disclose(false);
+  intentExecuted = disclose(true);
+  return [];
+}
+
+export circuit claimBuyerRemainder(
+  buyerSecret: Bytes32,
+  buyerTarget: BuyerTarget
+): [] {
+  assert(intentExecuted, "INTENT_NOT_EXECUTED");
+  assert(buyerRemainderClaimable, "NO_BUYER_REMAINDER");
+  assert(deriveBuyerIdentityCommitment(buyerSecret) == buyerIdentityCommitment, "NOT_INTENT_BUYER");
+  assert(
+    commitRecipient(pad(32, "veil-intent:buyer-recipient:v1"), buyerTarget.recipient, buyerTarget.salt) == buyerRecipientCommitment,
+    "BUYER_RECIPIENT_MISMATCH"
+  );
+  const remainder = buyerRemainderCoin;
+  const sent = sendShielded(
+    remainder,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(buyerTarget.recipient)),
+    disclose(remainder.value)
+  );
+  assert(!sent.change.is_some, "UNEXPECTED_BUYER_REFUND_CHANGE");
+  buyerRemainderClaimable = disclose(false);
+  return [];
+}
+
+export circuit cancelIntent(
+  terms: IntentTerms,
+  intentSalt: Bytes32,
+  buyerSecret: Bytes32,
+  buyerTarget: BuyerTarget
+): [] {
+  assert(intentOpen, "INTENT_NOT_OPEN");
+  assert(!quoteApproved, "APPROVED_QUOTE_CANNOT_BE_CANCELLED");
+  assert(deriveBuyerIdentityCommitment(buyerSecret) == buyerIdentityCommitment, "NOT_INTENT_BUYER");
+  assert(
+    computeIntentCommitment(
+      buyerIdentityCommitment,
+      agentIdentityCommitment,
+      buyerRecipientCommitment,
+      approvedSellerIdentityCommitment,
+      approvedSellerCommitment,
+      terms,
+      intentSalt
+    ) == intentCommitment,
+    "INTENT_COMMITMENT_MISMATCH"
+  );
+  assert(
+    commitRecipient(pad(32, "veil-intent:buyer-recipient:v1"), buyerTarget.recipient, buyerTarget.salt) == buyerRecipientCommitment,
+    "BUYER_RECIPIENT_MISMATCH"
+  );
+  returnBuyerEscrow(buyerTarget.recipient);
+  intentOpen = disclose(false);
+  intentCancelled = disclose(true);
+  return [];
+}
+
+circuit returnBuyerEscrow(recipient: ZswapCoinPublicKey): [] {
+  const sent = sendShielded(
+    buyerEscrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(150)
+  );
+  assert(!sent.change.is_some, "UNEXPECTED_CANCEL_CHANGE");
+}
