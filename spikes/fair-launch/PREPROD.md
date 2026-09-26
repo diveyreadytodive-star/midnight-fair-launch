@@ -7,10 +7,13 @@ From the repository root, read-only checks are:
 ```sh
 node --import tsx scripts/check-preprod-wallet.ts
 node --import tsx scripts/register-preprod-dust.ts
+node --import tsx scripts/register-preprod-dust.ts --reconcile
 node --import tsx spikes/fair-launch/scripts/deploy-preprod-demo.ts
 ```
 
-The first prints a bounded wallet-sync snapshot and clearly marks whether the shielded, unshielded, and DUST parts are complete. It never submits a transaction. The second checks Preprod chain identity, re-queries the two earlier unconfirmed DUST registration identifiers, waits for unshielded sync, and estimates a registration fee only after the SDK finishes DUST sync. Its preflight may take a long time on a newly scanned wallet. The third checks Preprod RPC/indexer, the local proof server, Compact artifacts, and a fixed valueless token configuration without reading the seed or submitting anything.
+The first prints a bounded wallet-sync snapshot and clearly marks whether the shielded, unshielded, and DUST parts are complete. It never submits a transaction. The second checks Preprod chain identity, re-queries the two earlier unconfirmed DUST registration identifiers, waits for unshielded sync, and estimates a registration fee only after the SDK finishes DUST sync. Its preflight may take a long time on a newly scanned wallet. The final command checks Preprod RPC/indexer, the local proof server, Compact artifacts, and a fixed valueless token configuration without reading the seed or submitting anything.
+
+The `--reconcile` variant is read-only: it checks all protected prior attempt identifiers against the public indexer without starting a wallet or re-sending a transaction. A missing indexed result is not permission to erase a pending lock or submit a duplicate; inspect the manifest and wallet UTXO status too.
 
 The registration script's `--execute` mode exists for the development wallet only. It creates a one-shot protected lock/manifest under `.local`, waits for enough generated DUST to pay the registration fee, persists the transaction identifier before submission, and then requires an indexer-confirmed receipt. An ambiguous submission retains its lock and `submission-unconfirmed` state. Never delete the lock, manifest, or earlier attempt files to retry; reconcile them first.
 

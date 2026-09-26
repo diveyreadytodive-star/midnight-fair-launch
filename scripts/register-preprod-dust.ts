@@ -17,6 +17,7 @@ const INDEXER = 'https://indexer.preprod.midnight.network/api/v4/graphql';
 const PREPROD_RPC = 'https://rpc.preprod.midnight.network';
 const localDirectory = resolve('.local');
 const execute = process.argv.includes('--execute');
+const reconcile = process.argv.includes('--reconcile');
 let stage = 'preflight';
 
 type WalletFile = { readonly network?: unknown; readonly seedHex?: unknown; readonly unshieldedAddress?: unknown };
@@ -58,8 +59,24 @@ async function assertPreprodEndpoints(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  if (process.argv.some((argument) => argument.startsWith('--') && argument !== '--execute')) throw new Error('Unknown flag.');
+  if ((execute && reconcile) || process.argv.some((argument) => argument.startsWith('--') && argument !== '--execute' && argument !== '--reconcile')) throw new Error('Unknown or conflicting flag.');
   await assertPreprodEndpoints();
+  if (reconcile) {
+    const names = (await readdir(localDirectory)).filter((name) => /^preprod-dust-registration(?:-first-unconfirmed|-attempt-[\w-]+)?\.json$/.test(name));
+    const records = [];
+    for (const name of names) {
+      const record = JSON.parse(await readFile(resolve(localDirectory, name), 'utf8')) as { status?: unknown; transactionIdentifier?: unknown };
+      const id = record.transactionIdentifier;
+      records.push({
+        file: name,
+        savedStatus: typeof record.status === 'string' ? record.status : 'unknown',
+        transactionIdentifier: typeof id === 'string' && /^[0-9a-fA-F]{66}$/.test(id) ? id : null,
+        indexed: typeof id === 'string' && /^[0-9a-fA-F]{66}$/.test(id) ? await indexerHasTransaction(id) : null,
+      });
+    }
+    process.stdout.write(JSON.stringify({ network: 'preprod', mode: 'read-only-reconcile', records }) + '\n');
+    return;
+  }
   const priorIds = await priorIdentifiers();
   const found = await Promise.all(priorIds.map(indexerHasTransaction));
   if (found.some(Boolean)) throw new Error('A previous registration is indexed; inspect its state instead of submitting again.');
