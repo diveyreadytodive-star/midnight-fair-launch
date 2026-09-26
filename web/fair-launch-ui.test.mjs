@@ -71,6 +71,17 @@ test('Create request uses the backend metadata/config schema and converts minute
   assert.ok(buildCreateRequest({ name: 'Test', ticker: 'TEST', imageUrl: 'http://example.com/x.png', inventoryAtoms: 600, reservePriceAtoms: 8, depositLotAtoms: 5000, commitWindowMinutes: 5, openWindowMinutes: 60 }).errors.length > 0);
 });
 
+test('Create validation follows the selected English locale', () => {
+  const result = buildCreateRequest({
+    name: '', ticker: 'BAD TICKER', imageUrl: 'http://example.com/x.png', description: '',
+    inventoryAtoms: '0', reservePriceAtoms: '', depositLotAtoms: '5000', commitWindowMinutes: '1', openWindowMinutes: '60',
+  }, 'en');
+  assert.ok(result.errors.some((error) => error.includes('Enter a token name')));
+  assert.ok(result.errors.some((error) => error.includes('Image URL must use HTTPS')));
+  assert.ok(result.errors.some((error) => error.includes('Commit window must be at least 5 minutes')));
+  assert.equal(result.errors.some((error) => /[가-힣]/.test(error)), false);
+});
+
 test('the UI exposes read-only evidence and keeps wallet actions disabled in markup', () => {
   const html = readFileSync(new URL('./fair-launch.html', import.meta.url), 'utf8');
   assert.match(html, /id="launchSearch"/);

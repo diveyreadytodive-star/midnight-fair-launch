@@ -39,41 +39,43 @@ export function canCreateFromEnvelope(envelope) {
     envelope?.capabilities?.canCreate === true;
 }
 
-function parsePositiveInteger(value, label, errors) {
+function parsePositiveInteger(value, label, errors, language) {
   const raw = String(value ?? '').trim();
   const number = Number(raw);
   if (!raw || !Number.isSafeInteger(number) || number <= 0) {
-    errors.push(label + '은(는) 0보다 큰 정수여야 합니다.');
+    const koreanLabels = { 'Sale inventory': '판매 수량', 'Reserve price': '최저가격', 'Deposit lot': '고정 예치액', 'Commit window': '입찰 기간', 'Open window': 'opening 기간' };
+    errors.push(language === 'en' ? `${label} must be a positive integer.` : `${koreanLabels[label] ?? label}: 0보다 큰 정수를 입력해 주세요.`);
     return null;
   }
   return number;
 }
 
-export function buildCreateRequest(fields) {
+export function buildCreateRequest(fields, language = 'ko') {
   const errors = [];
+  const message = (ko, en) => language === 'en' ? en : ko;
   const name = String(fields.name ?? '').trim();
   const ticker = String(fields.ticker ?? '').trim().replace(/\s+/g, '').toUpperCase();
   const description = String(fields.description ?? '').trim();
   const imageRaw = String(fields.imageUrl ?? '').trim();
   let imageUrl = '';
 
-  if (!name) errors.push('Token name을 입력해 주세요.');
-  if (name.length > 40) errors.push('Token name은 40자 이내로 입력해 주세요.');
-  if (!ticker || !/^[A-Z0-9]{1,10}$/.test(ticker)) errors.push('Ticker는 영문 대문자와 숫자 1–10자로 입력해 주세요.');
-  if (description.length > 280) errors.push('Description은 280자 이내로 입력해 주세요.');
+  if (!name) errors.push(message('토큰 이름을 입력해 주세요.', 'Enter a token name.'));
+  if (name.length > 40) errors.push(message('토큰 이름은 40자 이내로 입력해 주세요.', 'Token name must be 40 characters or fewer.'));
+  if (!ticker || !/^[A-Z0-9]{1,10}$/.test(ticker)) errors.push(message('티커는 영문 대문자와 숫자 1–10자로 입력해 주세요.', 'Ticker must contain 1–10 letters or digits.'));
+  if (description.length > 280) errors.push(message('설명은 280자 이내로 입력해 주세요.', 'Description must be 280 characters or fewer.'));
   if (imageRaw) {
     imageUrl = safeImageUrl(imageRaw) ?? '';
-    if (!imageUrl) errors.push('Image URL은 HTTPS 주소여야 합니다.');
+    if (!imageUrl) errors.push(message('이미지 URL은 HTTPS 주소여야 합니다.', 'Image URL must use HTTPS.'));
   }
 
-  const inventory = parsePositiveInteger(fields.inventoryAtoms, 'Sale inventory', errors);
-  const reserve = parsePositiveInteger(fields.reservePriceAtoms, 'Reserve price', errors);
-  const deposit = parsePositiveInteger(fields.depositLotAtoms, 'Deposit lot', errors);
-  const commitMinutes = parsePositiveInteger(fields.commitWindowMinutes, 'Commit window', errors);
-  const openMinutes = parsePositiveInteger(fields.openWindowMinutes, 'Open window', errors);
-  if (commitMinutes != null && commitMinutes < 5) errors.push('Commit window는 최소 5분(300초)이어야 합니다.');
-  if (commitMinutes != null && commitMinutes > Math.floor(Number.MAX_SAFE_INTEGER / 60)) errors.push('Commit window 값이 너무 큽니다.');
-  if (openMinutes != null && openMinutes > Math.floor(Number.MAX_SAFE_INTEGER / 60)) errors.push('Open window 값이 너무 큽니다.');
+  const inventory = parsePositiveInteger(fields.inventoryAtoms, 'Sale inventory', errors, language);
+  const reserve = parsePositiveInteger(fields.reservePriceAtoms, 'Reserve price', errors, language);
+  const deposit = parsePositiveInteger(fields.depositLotAtoms, 'Deposit lot', errors, language);
+  const commitMinutes = parsePositiveInteger(fields.commitWindowMinutes, 'Commit window', errors, language);
+  const openMinutes = parsePositiveInteger(fields.openWindowMinutes, 'Open window', errors, language);
+  if (commitMinutes != null && commitMinutes < 5) errors.push(message('입찰 기간은 최소 5분(300초)이어야 합니다.', 'Commit window must be at least 5 minutes (300 seconds).'));
+  if (commitMinutes != null && commitMinutes > Math.floor(Number.MAX_SAFE_INTEGER / 60)) errors.push(message('입찰 기간 값이 너무 큽니다.', 'Commit window is too large.'));
+  if (openMinutes != null && openMinutes > Math.floor(Number.MAX_SAFE_INTEGER / 60)) errors.push(message('opening 기간 값이 너무 큽니다.', 'Open window is too large.'));
 
   return {
     errors,
@@ -270,6 +272,7 @@ function initializePage() {
   let currentRoute = parseRoute(window.location.hash);
   let creating = false;
   let recoveryRequired = false;
+  let createErrorKind = null;
 
   function setCatalogMessage(message, kind = '') {
     catalogStatus.textContent = message;
@@ -626,7 +629,7 @@ function initializePage() {
         depositLotAtoms: $('#depositLotAtoms').value,
         commitWindowMinutes: $('#commitWindowMinutes').value,
         openWindowMinutes: $('#openWindowMinutes').value,
-      }),
+      }, locale.language),
     };
   }
 
@@ -640,13 +643,16 @@ function initializePage() {
   async function submitCreate(event) {
     event.preventDefault();
     createError.hidden = true;
+    createErrorKind = null;
     if (createLaunchButton.disabled || !capabilityEnvelope) {
+      createErrorKind = 'availability';
       createError.textContent = 'Operator Create API가 실행 가능한 상태가 아닙니다. 초안 미리보기만 사용할 수 있습니다.';
       createError.hidden = false;
       return;
     }
     const { errors, payload } = readCreatePayload();
     if (errors.length) {
+      createErrorKind = 'validation';
       createError.textContent = errors.join(' ');
       createError.hidden = false;
       return;
@@ -667,6 +673,7 @@ function initializePage() {
       if (!response.ok) throw new Error(data.error?.message || data.message || 'Create API returned HTTP ' + response.status + '.');
       if (data.status === 'recovery-required') {
         recoveryRequired = true;
+        createErrorKind = 'operation';
         createError.textContent = data.message || '체인 작업이 완료되지 않았습니다. 복구 상태를 확인하기 전까지 목록에 추가하지 않습니다.';
         createError.hidden = false;
         createAvailability.textContent = '복구 확인 전까지 새 Create 요청을 보낼 수 없습니다. 운영자 확인이 필요합니다.';
@@ -680,6 +687,7 @@ function initializePage() {
       createAvailability.textContent = '배포, 발행, 재고 예치 영수증이 확인되었습니다. 검증된 출시를 열었습니다.';
       window.location.hash = '#/token/' + encodeURIComponent(confirmed.id || confirmed.contractAddress);
     } catch (error) {
+      createErrorKind = 'operation';
       createError.textContent = error.message || 'Create 요청을 완료하지 못했습니다.';
       createError.hidden = false;
       createAvailability.textContent = '초안은 이 탭에서만 유지됩니다. 서버 응답을 확인한 뒤 다시 시도할 수 있습니다.';
@@ -695,6 +703,11 @@ function initializePage() {
     $('#localeToggle').addEventListener('click', () => {
       renderCatalog();
       if (currentRoute.view === 'detail') renderDetail(currentRoute.id);
+      if (createErrorKind === 'validation' && !createError.hidden) {
+        const { errors } = readCreatePayload();
+        createError.textContent = errors.join(' ');
+        createError.hidden = errors.length === 0;
+      }
     });
     searchInput.addEventListener('input', renderCatalog);
     document.querySelectorAll('[data-filter]').forEach((button) => {
