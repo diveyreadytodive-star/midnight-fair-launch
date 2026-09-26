@@ -1,0 +1,47 @@
+{
+  "network": "preprod",
+  "testAssetsOnly": true,
+  "operatorSignedCreate": true,
+  "metadata": {
+    "name": "Fair Launch Preprod Test",
+    "ticker": "FLTEST",
+    "imageUrl": null,
+    "description": "Valueless four-slot Midnight auction test. No market or liquidity."
+  },
+  "config": {
+    "inventoryAtoms": "600",
+    "reservePriceAtoms": "8",
+    "depositLotAtoms": "5000",
+    "commitWindowSeconds": 86400,
+    "openWindowSeconds": 3600
+  },
+  "metadataCommitmentHex": "f63d514678af945adbb6553e13d1ccc2a5ff7b00dea15e3c7a876ad6c9f1e117",
+  "sourceHash": "6730a2f36f90394c6a2b5038bf25d26d249c67c830864f2f0dfa057084b4148b",
+  "contractAddress": "ef7cb50ea29a2ab3501dac80d3fa9f05f570294a2fc0107ad0fc5b76cefe3921",
+  "commitDeadline": "1790545217",
+  "openDeadline": "1790548817",
+  "readback": {
+    "saleInventoryFunded": true,
+    "saleInventoryAtoms": "600"
+  },
+  "receipts": {
+    "deploy": {
+      "txId": "00c58889232108faa0ae122f477a24515ef82ec9ceea0045d4f9cbf165d9420443",
+      "transactionHash": "21dae2a1475e049550241d32421829c5ceb190c1fe51d1c62d4ed705bc440324",
+      "blockHeight": 2723525,
+      "entryPoint": "deploy"
+    },
+    "mint": {
+      "txId": "00bd8fc089bc5948f0c27391e27b745754f613396a7a6bdd440f6b82b88ed47a19",
+      "transactionHash": "ab0be5726ba5cd75aa1e98c1c8f8bef06d610db9205dabb11d91e55b60cab4bc",
+      "blockHeight": 2723529,
+      "entryPoint": "mintTestSaleCoin"
+    },
+    "fund": {
+      "txId": "000db691db733582ac765942c66a04bd3fd6d19acd37ae5ec2dedc3440626969cb",
+      "transactionHash": "eca93b0323702c869844ab0a538a523c1e2a4f9518c9033b8a2c39f0f7928dbf",
+      "blockHeight": 2723537,
+      "entryPoint": "fundSaleInventory"
+    }
+  }
+}

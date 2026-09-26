@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { buildCreateRequest, canCreateFromEnvelope, deriveRecordedLaunch, isVerifiedLaunch, parseRoute, phaseLabel } from './fair-launch.js';
+import { buildCreateRequest, canCreateFromEnvelope, deriveRecordedLaunch, isVerifiedLaunch, launchNetwork, mergeLaunches, parseRoute, phaseLabel, verifiedCatalogEntry } from './fair-launch.js';
 
 const evidence = JSON.parse(readFileSync(new URL('./fair-launch-evidence.json', import.meta.url), 'utf8'));
+const catalog = JSON.parse(readFileSync(new URL('./fair-launch-catalog.json', import.meta.url), 'utf8'));
 
 test('Explore fallback is derived only from a settled Local Devnet record with all three setup receipts', () => {
   const launch = deriveRecordedLaunch(evidence);
@@ -41,6 +42,36 @@ test('settled detail uses auction status language without implying a graduated t
   assert.equal(phaseLabel('commit'), 'Bidding live');
   assert.equal(phaseLabel('open'), 'Opening window');
   assert.notEqual(phaseLabel('settled'), 'Graduated');
+});
+
+test('a static Preprod setup record cannot be displayed as a live bidding round', () => {
+  const local = deriveRecordedLaunch(evidence);
+  const preprod = {
+    ...local, network: 'preprod', phase: 'commit', metadataAnchored: true,
+    evidenceSource: 'verified-preprod-create', metadataCommitmentHex: 'a'.repeat(64),
+    commitDeadlineUnixSeconds: '1790500000', openDeadlineUnixSeconds: '1790503600',
+  };
+  assert.equal(isVerifiedLaunch(preprod), true);
+  assert.equal(launchNetwork(preprod), 'preprod');
+  assert.equal(verifiedCatalogEntry(preprod).phase, 'unknown');
+  assert.equal(verifiedCatalogEntry(preprod).settlement, null);
+  assert.equal(verifiedCatalogEntry(preprod).registeredBidCount, null);
+  assert.equal(mergeLaunches([local], [verifiedCatalogEntry(preprod)]).length, 2, 'the same hex address on two networks must not merge');
+  assert.equal(phaseLabel('unknown'), 'Current status not verified');
+  assert.equal(isVerifiedLaunch({ ...preprod, metadataAnchored: false }), false);
+  assert.equal(isVerifiedLaunch({ ...preprod, evidenceSource: 'recorded-local-devnet-evidence' }), false);
+  assert.equal(isVerifiedLaunch({ ...preprod, network: 'mainnet' }), false);
+  assert.equal(launchNetwork(local), 'local-devnet');
+});
+
+test('the independently verified Preprod setup has all three receipt references but no invented live phase', () => {
+  const preprod = catalog.launches.find((entry) => entry.network === 'preprod');
+  assert.ok(preprod);
+  assert.equal(preprod.evidenceSource, 'verified-preprod-create');
+  assert.equal(isVerifiedLaunch(preprod), true);
+  assert.deepEqual(Object.keys(preprod.receipts).sort(), ['deploy', 'fund', 'mint']);
+  assert.equal(verifiedCatalogEntry(preprod).phase, 'unknown');
+  assert.equal(verifiedCatalogEntry(preprod).registeredBidCount, null);
 });
 
 test('Create is available only in the explicitly writable operator-sponsored Local Devnet mode', () => {
