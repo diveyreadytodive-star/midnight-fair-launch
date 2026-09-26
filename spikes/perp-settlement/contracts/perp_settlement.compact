@@ -1,0 +1,863 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Test-only M3 settlement spike. It extends the private-risk custody model
+// with one actual fixed LP test-token reserve coin and Compact-computed owner
+// payouts. No caller supplies a payout, cap, fee, or settlement price.
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+export type Wide = Uint<128>;
+
+export struct PositionTerms {
+  isLong: Boolean;
+  notionalAtoms: Amount;
+  entryPriceTicks: Amount;
+  guardBufferAtoms: Amount;
+}
+
+export struct OwnerTargetWitness {
+  ownerRecipient: ZswapCoinPublicKey;
+  recipientSalt: Bytes32;
+}
+
+export struct LpTargetWitness {
+  lpRecipient: ZswapCoinPublicKey;
+  recipientSalt: Bytes32;
+}
+
+export struct RiskPolicy {
+  collateralAtoms: Amount;
+  reserveAtoms: Amount;
+  maxNotionalAtoms: Amount;
+  feeAtoms: Amount;
+  maintenanceBps: Amount;
+  exitCostAtoms: Amount;
+  profitCapAtoms: Amount;
+  oracleMaxAgeSeconds: Amount;
+}
+
+export struct SettlementPreview {
+  pnlIsLoss: Boolean;
+  pnlMagnitudeAtoms: Wide;
+  currentNotionalAtoms: Amount;
+  equityIsNegative: Boolean;
+  equityMagnitudeAtoms: Wide;
+  maintenanceAtoms: Amount;
+  payoutBeforeCapIsNegative: Boolean;
+  payoutBeforeCapMagnitudeAtoms: Wide;
+  payoutAtoms: Amount;
+  profitPaidAtoms: Amount;
+  insuranceShortfallAtoms: Amount;
+  isLiquidatable: Boolean;
+  shouldProtectiveClose: Boolean;
+}
+
+struct SecretPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  contractAddress: Bytes32;
+  secret: Bytes32;
+}
+
+struct OracleSecretPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  secret: Bytes32;
+}
+
+struct LpSecretPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  secret: Bytes32;
+}
+
+struct RecipientPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  contractAddress: Bytes32;
+  recipient: ZswapCoinPublicKey;
+}
+
+struct PositionPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  collateralAtoms: Amount;
+  reserveAtoms: Amount;
+  entryOraclePriceTicks: Amount;
+  entryOracleSequence: Amount;
+  entryOraclePublishedAt: Amount;
+  ownerIdentityCommitment: Bytes32;
+  operatorIdentityCommitment: Bytes32;
+  ownerRecipientCommitment: Bytes32;
+  lpIdentityCommitment: Bytes32;
+  lpRecipientCommitment: Bytes32;
+  terms: PositionTerms;
+  policy: RiskPolicy;
+}
+
+struct Division {
+  quotient: Wide;
+  remainder: Wide;
+}
+
+struct RiskPredicates {
+  liquidatable: Boolean;
+  protective: Boolean;
+}
+
+witness quotientRemainder(numerator: Wide, denominator: Wide): Division;
+
+export ledger networkDomain: Bytes32;
+export ledger oraclePublisherCommitment: Bytes32;
+export ledger oraclePriceTicks: Amount;
+export ledger oracleSequence: Amount;
+export ledger oraclePublishedAt: Amount;
+export ledger oracleReady: Boolean;
+export ledger positionEntryOraclePriceTicks: Amount;
+export ledger positionEntryOracleSequence: Amount;
+export ledger positionEntryOraclePublishedAt: Amount;
+export ledger settlementOraclePriceTicks: Amount;
+export ledger settlementOracleSequence: Amount;
+export ledger settlementOraclePublishedAt: Amount;
+export ledger traderCoin: QualifiedShieldedCoinInfo;
+export ledger reserveCoin: QualifiedShieldedCoinInfo;
+export ledger lpCollateralRemainderCoin: QualifiedShieldedCoinInfo;
+export ledger reserveFunded: Boolean;
+export ledger lpCollateralRemainderClaimable: Boolean;
+export ledger positionActive: Boolean;
+export ledger closedUnclaimed: Boolean;
+export ledger settled: Boolean;
+export ledger ownerIdentityCommitment: Bytes32;
+export ledger operatorIdentityCommitment: Bytes32;
+export ledger ownerRecipientCommitment: Bytes32;
+export ledger lpIdentityCommitment: Bytes32;
+export ledger lpRecipientCommitment: Bytes32;
+export ledger positionCommitment: Bytes32;
+
+constructor(
+  networkDomain_: Bytes32,
+  oraclePublisherCommitment_: Bytes32,
+  lpIdentityCommitment_: Bytes32
+) {
+  networkDomain = disclose(networkDomain_);
+  oraclePublisherCommitment = disclose(oraclePublisherCommitment_);
+  lpIdentityCommitment = disclose(lpIdentityCommitment_);
+  oraclePriceTicks = 0;
+  oracleSequence = 0;
+  oraclePublishedAt = 0;
+  oracleReady = false;
+  positionEntryOraclePriceTicks = 0;
+  positionEntryOracleSequence = 0;
+  positionEntryOraclePublishedAt = 0;
+  settlementOraclePriceTicks = 0;
+  settlementOracleSequence = 0;
+  settlementOraclePublishedAt = 0;
+  reserveFunded = false;
+  lpCollateralRemainderClaimable = false;
+  positionActive = false;
+  closedUnclaimed = false;
+  settled = false;
+}
+
+export pure circuit testTokenDomain(): Bytes32 {
+  return pad(32, "silence:perp-settle-test:v1");
+}
+
+export pure circuit fixedRiskPolicy(): RiskPolicy {
+  return RiskPolicy{
+    collateralAtoms: 1000000000,
+    reserveAtoms: 500000000,
+    maxNotionalAtoms: 5000000000,
+    feeAtoms: 0,
+    maintenanceBps: 500,
+    exitCostAtoms: 20000000,
+    profitCapAtoms: 500000000,
+    oracleMaxAgeSeconds: 60
+  };
+}
+
+circuit deriveCapability(purposeDomain: Bytes32, secret: Bytes32): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain,
+    purposeDomain: purposeDomain,
+    contractAddress: kernel.self().bytes,
+    secret: secret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+circuit deriveOracleCapability(secret: Bytes32): Bytes32 {
+  const payload = OracleSecretPayload{
+    networkDomain: networkDomain,
+    purposeDomain: pad(32, "silence:perp-oracle:v1"),
+    secret: secret
+  };
+  return persistentHash<OracleSecretPayload>(payload);
+}
+
+export pure circuit deriveOraclePublisherCommitment(
+  networkDomain_: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  const payload = OracleSecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "silence:perp-oracle:v1"),
+    secret: secret
+  };
+  return persistentHash<OracleSecretPayload>(payload);
+}
+
+export pure circuit deriveOwnerIdentityCommitment(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "silence:perp-owner:v1"),
+    contractAddress: contractAddress,
+    secret: secret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+export pure circuit deriveOperatorIdentityCommitment(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "silence:perp-risk-op:v1"),
+    contractAddress: contractAddress,
+    secret: secret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+export pure circuit deriveLpIdentityCommitment(
+  networkDomain_: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  const payload = LpSecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "silence:perp-lp:v1"),
+    secret: secret
+  };
+  return persistentHash<LpSecretPayload>(payload);
+}
+
+circuit deriveLpCapability(secret: Bytes32): Bytes32 {
+  const payload = LpSecretPayload{
+    networkDomain: networkDomain,
+    purposeDomain: pad(32, "silence:perp-lp:v1"),
+    secret: secret
+  };
+  return persistentHash<LpSecretPayload>(payload);
+}
+
+circuit commitRecipient(
+  purposeDomain: Bytes32,
+  recipient: ZswapCoinPublicKey,
+  recipientSalt: Bytes32
+): Bytes32 {
+  const payload = RecipientPayload{
+    networkDomain: networkDomain,
+    purposeDomain: purposeDomain,
+    contractAddress: kernel.self().bytes,
+    recipient: recipient
+  };
+  return persistentCommit<RecipientPayload>(payload, recipientSalt);
+}
+
+circuit computePositionCommitment(
+  ownerIdentity: Bytes32,
+  operatorIdentity: Bytes32,
+  ownerRecipient: Bytes32,
+  lpIdentity: Bytes32,
+  lpRecipient: Bytes32,
+  terms: PositionTerms,
+  positionSalt: Bytes32
+): Bytes32 {
+  const payload = PositionPayload{
+    networkDomain: networkDomain,
+    contractAddress: kernel.self().bytes,
+    collateralAtoms: fixedRiskPolicy().collateralAtoms,
+    reserveAtoms: fixedRiskPolicy().reserveAtoms,
+    entryOraclePriceTicks: positionEntryOraclePriceTicks,
+    entryOracleSequence: positionEntryOracleSequence,
+    entryOraclePublishedAt: positionEntryOraclePublishedAt,
+    ownerIdentityCommitment: ownerIdentity,
+    operatorIdentityCommitment: operatorIdentity,
+    ownerRecipientCommitment: ownerRecipient,
+    lpIdentityCommitment: lpIdentity,
+    lpRecipientCommitment: lpRecipient,
+    terms: terms,
+    policy: fixedRiskPolicy()
+  };
+  return persistentCommit<PositionPayload>(payload, positionSalt);
+}
+
+circuit ceilDiv(numerator: Wide, denominator: Wide): Wide {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.quotient <= numerator, "INVALID_DIVISION_QUOTIENT");
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    (division.quotient as Field) * (denominator as Field) +
+      (division.remainder as Field) == (numerator as Field),
+    "INVALID_DIVISION_WITNESS"
+  );
+  if (division.remainder == 0) return division.quotient;
+  return (division.quotient + 1) as Wide;
+}
+
+circuit floorDiv(numerator: Wide, denominator: Wide): Wide {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.quotient <= numerator, "INVALID_DIVISION_QUOTIENT");
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    (division.quotient as Field) * (denominator as Field) +
+      (division.remainder as Field) == (numerator as Field),
+    "INVALID_DIVISION_WITNESS"
+  );
+  return division.quotient;
+}
+
+circuit calculateSettlement(
+  terms: PositionTerms,
+  markPriceTicks: Amount
+): SettlementPreview {
+  const policy = fixedRiskPolicy();
+  assert(terms.notionalAtoms > 0, "NOTIONAL_ZERO");
+  assert(terms.notionalAtoms <= policy.maxNotionalAtoms, "NOTIONAL_EXCEEDS_CAP");
+  assert(terms.entryPriceTicks > 0, "ENTRY_PRICE_ZERO");
+  assert(markPriceTicks > 0, "MARK_PRICE_ZERO");
+
+  const entry = terms.entryPriceTicks as Wide;
+  const mark = markPriceTicks as Wide;
+  const notional = terms.notionalAtoms as Wide;
+  const pnlIsLoss = terms.isLong ? mark < entry : mark > entry;
+  const priceDelta = mark >= entry ? mark - entry : entry - mark;
+  // notional is capped at 5e9 and prices are Uint64; all products are below
+  // 2^97 and therefore fit exactly in Uint128 before the quotient witness.
+  const pnlNumerator = ((notional as Field) * (priceDelta as Field)) as Wide;
+  const pnlMagnitude = pnlIsLoss
+    ? ceilDiv(pnlNumerator, entry)
+    : floorDiv(pnlNumerator, entry);
+  const currentNotionalWide = ceilDiv(
+    ((notional as Field) * (mark as Field)) as Wide,
+    entry
+  );
+  assert(currentNotionalWide <= 18446744073709551615, "CURRENT_NOTIONAL_OUT_OF_RANGE");
+  const currentNotional = currentNotionalWide as Amount;
+  const maintenanceWide = ceilDiv(
+    ((currentNotionalWide as Field) * (policy.maintenanceBps as Field)) as Wide,
+    10000
+  );
+  assert(maintenanceWide <= 18446744073709551615, "MAINTENANCE_OUT_OF_RANGE");
+  const maintenance = maintenanceWide as Amount;
+
+  // Sign/magnitude arithmetic mirrors TS equity = collateral + pnl - fees.
+  const positive = pnlIsLoss ? 0 : pnlMagnitude;
+  const lossPart = pnlIsLoss ? pnlMagnitude : 0;
+  const negative = ((lossPart as Field) + (policy.feeAtoms as Field)) as Wide;
+  const netIsGain = positive >= negative;
+  const netMagnitude = netIsGain ? positive - negative : negative - positive;
+  const collateral = policy.collateralAtoms as Wide;
+  const equityIsNegative = !netIsGain && netMagnitude > collateral;
+  const equityMagnitude = netIsGain
+    ? ((collateral as Field) + (netMagnitude as Field)) as Wide
+    : (netMagnitude > collateral ? netMagnitude - collateral : collateral - netMagnitude);
+  const isLiquidatable = equityIsNegative || equityMagnitude <= (maintenance as Wide);
+
+  const postMaintenanceExit =
+    ((maintenance as Field) + (policy.exitCostAtoms as Field)) as Wide;
+  const protectiveBuffer = equityMagnitude > postMaintenanceExit
+    ? equityMagnitude - postMaintenanceExit
+    : 0;
+  const shouldProtectiveClose = !isLiquidatable &&
+    equityMagnitude > (maintenance as Wide) &&
+    equityMagnitude > (policy.exitCostAtoms as Wide) &&
+    protectiveBuffer <= (terms.guardBufferAtoms as Wide);
+
+  const payoutBeforeCapIsNegative = equityIsNegative ||
+    equityMagnitude < (policy.exitCostAtoms as Wide);
+  const payoutBeforeCapMagnitude = equityIsNegative
+    ? ((equityMagnitude as Field) + (policy.exitCostAtoms as Field)) as Wide
+    : equityMagnitude < (policy.exitCostAtoms as Wide)
+      ? (policy.exitCostAtoms as Wide) - equityMagnitude
+      : equityMagnitude - (policy.exitCostAtoms as Wide);
+  const payoutCap = (policy.collateralAtoms + policy.profitCapAtoms) as Amount;
+  const payoutWide = payoutBeforeCapIsNegative
+    ? 0
+    : payoutBeforeCapMagnitude < (payoutCap as Wide)
+      ? payoutBeforeCapMagnitude
+      : (payoutCap as Wide);
+  assert(payoutWide <= 18446744073709551615, "PAYOUT_OUT_OF_RANGE");
+  const payout = payoutWide as Amount;
+  const profitPaid = payout > policy.collateralAtoms
+    ? payout - policy.collateralAtoms
+    : 0;
+  const shortfallWide = payoutBeforeCapIsNegative ? payoutBeforeCapMagnitude : 0;
+  assert(shortfallWide <= 18446744073709551615, "INSURANCE_SHORTFALL_OUT_OF_RANGE");
+
+  return SettlementPreview{
+    pnlIsLoss: pnlIsLoss,
+    pnlMagnitudeAtoms: pnlMagnitude,
+    currentNotionalAtoms: currentNotional,
+    equityIsNegative: equityIsNegative,
+    equityMagnitudeAtoms: equityMagnitude,
+    maintenanceAtoms: maintenance,
+    payoutBeforeCapIsNegative: payoutBeforeCapIsNegative,
+    payoutBeforeCapMagnitudeAtoms: payoutBeforeCapMagnitude,
+    payoutAtoms: payout,
+    profitPaidAtoms: profitPaid,
+    insuranceShortfallAtoms: shortfallWide as Amount,
+    isLiquidatable: isLiquidatable,
+    shouldProtectiveClose: shouldProtectiveClose
+  };
+}
+
+export circuit mintTestCoin(value: Amount, nonce: Bytes32): ShieldedCoinInfo {
+  assert(value > 0, "TEST_COIN_AMOUNT_ZERO");
+  return mintShieldedToken(
+    testTokenDomain(),
+    disclose(value),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+export circuit publishOracleQuote(
+  priceTicks: Amount,
+  sequence: Amount,
+  publishedAt: Amount,
+  publisherSecret: Bytes32
+): [] {
+  assert(deriveOracleCapability(publisherSecret) == oraclePublisherCommitment, "UNAUTHORIZED_ORACLE_PUBLISHER");
+  assert(priceTicks > 0, "ORACLE_PRICE_ZERO");
+  assert(sequence > oracleSequence, "ORACLE_SEQUENCE_NOT_NEWER");
+  assert(publishedAt >= oraclePublishedAt, "ORACLE_TIMESTAMP_NOT_MONOTONIC");
+  assert(publishedAt <= 4000000000, "ORACLE_TIMESTAMP_OUT_OF_RANGE");
+  const policy = fixedRiskPolicy();
+  assert(blockTimeGte(disclose(publishedAt)), "ORACLE_TIMESTAMP_IN_FUTURE");
+  assert(
+    blockTimeLt(disclose((publishedAt + policy.oracleMaxAgeSeconds + 1) as Amount)),
+    "ORACLE_STALE"
+  );
+  oraclePriceTicks = disclose(priceTicks);
+  oracleSequence = disclose(sequence);
+  oraclePublishedAt = disclose(publishedAt);
+  oracleReady = disclose(true);
+  return [];
+}
+
+export circuit fundReserve(
+  coin: ShieldedCoinInfo,
+  lpSecret: Bytes32,
+  lpTarget: LpTargetWitness
+): [] {
+  assert(!reserveFunded, "RESERVE_ALREADY_FUNDED");
+  assert(!positionActive && !closedUnclaimed && !settled, "POSITION_ALREADY_STARTED");
+  assert(deriveLpCapability(lpSecret) == lpIdentityCommitment, "NOT_AUTHORIZED_LP");
+  const policy = fixedRiskPolicy();
+  assert(coin.value == policy.reserveAtoms, "INVALID_RESERVE_AMOUNT");
+  assert(coin.color == tokenType(testTokenDomain(), kernel.self()), "INVALID_RESERVE_TOKEN");
+  receiveShielded(disclose(coin));
+  reserveCoin.writeCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  const lpRecipient = commitRecipient(pad(32, "silence:lp-recipient:v1"), lpTarget.lpRecipient, lpTarget.recipientSalt);
+  lpRecipientCommitment = disclose(lpRecipient);
+  reserveFunded = disclose(true);
+  return [];
+}
+
+export circuit openPosition(
+  coin: ShieldedCoinInfo,
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  operatorIdentity: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  const policy = fixedRiskPolicy();
+  assert(oracleReady, "ORACLE_NOT_READY");
+  assert(reserveFunded, "LP_RESERVE_NOT_FUNDED");
+  assert(!positionActive && !closedUnclaimed && !settled, "POSITION_ALREADY_STARTED");
+  assert(coin.value == policy.collateralAtoms, "INVALID_TRADER_COLLATERAL");
+  assert(coin.color == tokenType(testTokenDomain(), kernel.self()), "INVALID_TRADER_TOKEN");
+  assert(terms.notionalAtoms > 0 && terms.notionalAtoms <= policy.maxNotionalAtoms, "INVALID_NOTIONAL");
+  assert(terms.entryPriceTicks == oraclePriceTicks, "ENTRY_PRICE_NOT_CURRENT_ORACLE");
+  assert(terms.guardBufferAtoms <= policy.collateralAtoms, "GUARD_EXCEEDS_COLLATERAL");
+  assert(publishedOracleFresh(), "ORACLE_STALE");
+
+  const entryMaintenance = ceilDiv(
+    ((terms.notionalAtoms as Field) * (policy.maintenanceBps as Field)) as Wide,
+    10000
+  );
+  const initialMinimumExit = ((entryMaintenance as Field) + (policy.exitCostAtoms as Field)) as Wide;
+  const initialBuffer = (policy.collateralAtoms as Wide) > initialMinimumExit
+    ? (policy.collateralAtoms as Wide) - initialMinimumExit
+    : 0;
+  assert(initialBuffer > (terms.guardBufferAtoms as Wide), "GUARD_TRIGGERS_AT_ENTRY");
+
+  receiveShielded(disclose(coin));
+  traderCoin.writeCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  positionEntryOraclePriceTicks = disclose(oraclePriceTicks);
+  positionEntryOracleSequence = disclose(oracleSequence);
+  positionEntryOraclePublishedAt = disclose(oraclePublishedAt);
+
+  const ownerIdentity = deriveCapability(pad(32, "silence:perp-owner:v1"), ownerSecret);
+  const ownerRecipient = commitRecipient(pad(32, "silence:owner-recipient:v1"), ownerTarget.ownerRecipient, ownerTarget.recipientSalt);
+  const position = computePositionCommitment(
+    ownerIdentity,
+    operatorIdentity,
+    ownerRecipient,
+    lpIdentityCommitment,
+    lpRecipientCommitment,
+    terms,
+    positionSalt
+  );
+  ownerIdentityCommitment = disclose(ownerIdentity);
+  operatorIdentityCommitment = disclose(operatorIdentity);
+  ownerRecipientCommitment = disclose(ownerRecipient);
+  positionCommitment = disclose(position);
+  positionActive = disclose(true);
+  return [];
+}
+
+export circuit riskClose(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  operatorSecret: Bytes32
+): [] {
+  assert(positionActive, "POSITION_NOT_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(publishedOracleFresh(), "ORACLE_STALE");
+  assert(deriveCapability(pad(32, "silence:perp-risk-op:v1"), operatorSecret) == operatorIdentityCommitment, "NOT_AUTHORIZED_OPERATOR");
+  assert(
+    computePositionCommitment(
+      ownerIdentityCommitment,
+      operatorIdentityCommitment,
+      ownerRecipientCommitment,
+      lpIdentityCommitment,
+      lpRecipientCommitment,
+      terms,
+      positionSalt
+    ) == positionCommitment,
+    "POSITION_TERMS_MISMATCH"
+  );
+  const risk = calculateSettlement(terms, oraclePriceTicks);
+  assert(risk.isLiquidatable || risk.shouldProtectiveClose, "POSITION_HEALTHY");
+  freezeSettlementOracle();
+  positionActive = disclose(false);
+  closedUnclaimed = disclose(true);
+  return [];
+}
+
+export circuit ownerSelfClose(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assert(positionActive, "POSITION_NOT_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(publishedOracleFresh(), "ORACLE_STALE");
+  verifyOwnerPosition(terms, positionSalt, ownerSecret, ownerTarget);
+  freezeSettlementOracle();
+  positionActive = disclose(false);
+  closedUnclaimed = disclose(true);
+  return [];
+}
+
+// Each static settlement entrypoint computes the amount from the committed
+// position and frozen oracle snapshot. None accepts a payout or fee argument.
+export circuit ownerSettleLoss(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assertCanSettle();
+  verifyOwnerPosition(terms, positionSalt, ownerSecret, ownerTarget);
+  const result = calculateSettlement(terms, settlementOraclePriceTicks);
+  assert(result.payoutAtoms > 0 && result.payoutAtoms < fixedRiskPolicy().collateralAtoms, "WRONG_SETTLEMENT_PATH");
+  settlePartialLoss(result.payoutAtoms, ownerTarget.ownerRecipient);
+  return [];
+}
+
+export circuit ownerSettleFlat(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assertCanSettle();
+  verifyOwnerPosition(terms, positionSalt, ownerSecret, ownerTarget);
+  const result = calculateSettlement(terms, settlementOraclePriceTicks);
+  assert(result.payoutAtoms == fixedRiskPolicy().collateralAtoms, "WRONG_SETTLEMENT_PATH");
+  const paid = sendShielded(
+    traderCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownerTarget.ownerRecipient)),
+    disclose(fixedRiskPolicy().collateralAtoms)
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_FLAT_CHANGE");
+  markSettled();
+  return [];
+}
+
+export circuit ownerSettleProfit(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assertCanSettle();
+  verifyOwnerPosition(terms, positionSalt, ownerSecret, ownerTarget);
+  const result = calculateSettlement(terms, settlementOraclePriceTicks);
+  assert(result.payoutAtoms > fixedRiskPolicy().collateralAtoms, "WRONG_SETTLEMENT_PATH");
+  assert(reserveFunded, "LP_RESERVE_NOT_FUNDED");
+  assert(result.profitPaidAtoms <= reserveCoin.value, "LP_RESERVE_INSUFFICIENT");
+  const traderPaid = sendShielded(
+    traderCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownerTarget.ownerRecipient)),
+    disclose(fixedRiskPolicy().collateralAtoms)
+  );
+  assert(!traderPaid.change.is_some, "UNEXPECTED_TRADER_CHANGE");
+  const lpPaid = sendShielded(
+    reserveCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownerTarget.ownerRecipient)),
+    disclose(result.profitPaidAtoms)
+  );
+  if (lpPaid.change.is_some) {
+    assert(
+      lpPaid.change.value.value == fixedRiskPolicy().reserveAtoms - result.profitPaidAtoms,
+      "LP_RESERVE_CHANGE_MISMATCH"
+    );
+    reserveCoin.writeCoin(disclose(lpPaid.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  } else {
+    assert(result.profitPaidAtoms == fixedRiskPolicy().reserveAtoms, "UNEXPECTED_EMPTY_LP_RESERVE");
+    reserveFunded = disclose(false);
+  }
+  markSettled();
+  return [];
+}
+
+export circuit ownerSettleZero(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assertCanSettle();
+  verifyOwnerPosition(terms, positionSalt, ownerSecret, ownerTarget);
+  const result = calculateSettlement(terms, settlementOraclePriceTicks);
+  assert(result.payoutAtoms == 0 && result.insuranceShortfallAtoms == 0, "WRONG_SETTLEMENT_PATH");
+  retainCollateralForLp();
+  markSettled();
+  return [];
+}
+
+export circuit ownerSettleBadDebt(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assertCanSettle();
+  verifyOwnerPosition(terms, positionSalt, ownerSecret, ownerTarget);
+  const result = calculateSettlement(terms, settlementOraclePriceTicks);
+  assert(result.payoutAtoms == 0 && result.insuranceShortfallAtoms > 0, "WRONG_SETTLEMENT_PATH");
+  retainCollateralForLp();
+  markSettled();
+  return [];
+}
+
+// Permissionless zero-payout finalizer: a liquidated trader may have no
+// incentive to submit a claim that pays them nothing. Anyone holding the
+// retained private terms and salt can move the fixed collateral coin into the
+// LP-only remainder path, but cannot redirect it or change the computed result.
+export circuit finalizeZeroPayout(
+  terms: PositionTerms,
+  positionSalt: Bytes32
+): [] {
+  assert(closedUnclaimed, "POSITION_NOT_CLOSED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(
+    computePositionCommitment(
+      ownerIdentityCommitment,
+      operatorIdentityCommitment,
+      ownerRecipientCommitment,
+      lpIdentityCommitment,
+      lpRecipientCommitment,
+      terms,
+      positionSalt
+    ) == positionCommitment,
+    "POSITION_TERMS_MISMATCH"
+  );
+  const result = calculateSettlement(terms, settlementOraclePriceTicks);
+  assert(result.payoutAtoms == 0, "POSITIVE_PAYOUT_REQUIRES_OWNER_CLAIM");
+  retainCollateralForLp();
+  markSettled();
+  return [];
+}
+
+export circuit lpClaimCollateralRemainder(
+  lpSecret: Bytes32,
+  lpTarget: LpTargetWitness
+): [] {
+  assert(settled, "POSITION_NOT_SETTLED");
+  assert(lpCollateralRemainderClaimable, "NO_LP_COLLATERAL_REMAINDER");
+  verifyLp(lpSecret, lpTarget);
+  const coin = lpCollateralRemainderCoin;
+  const paid = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(lpTarget.lpRecipient)),
+    disclose(coin.value)
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_LP_COLLATERAL_CHANGE");
+  lpCollateralRemainderClaimable = disclose(false);
+  return [];
+}
+
+export circuit lpClaimReserveRemainder(
+  lpSecret: Bytes32,
+  lpTarget: LpTargetWitness
+): [] {
+  assert(settled, "POSITION_NOT_SETTLED");
+  assert(reserveFunded, "NO_LP_RESERVE_REMAINDER");
+  verifyLp(lpSecret, lpTarget);
+  const coin = reserveCoin;
+  const paid = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(lpTarget.lpRecipient)),
+    disclose(coin.value)
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_LP_RESERVE_CLAIM_CHANGE");
+  reserveFunded = disclose(false);
+  return [];
+}
+
+export circuit cancelUnopenedReserve(
+  lpSecret: Bytes32,
+  lpTarget: LpTargetWitness
+): [] {
+  assert(reserveFunded, "RESERVE_NOT_FUNDED");
+  assert(!positionActive && !closedUnclaimed && !settled, "RESERVE_ALREADY_COMMITTED_TO_POSITION");
+  verifyLp(lpSecret, lpTarget);
+  const coin = reserveCoin;
+  const paid = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(lpTarget.lpRecipient)),
+    disclose(coin.value)
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_RESERVE_CANCEL_CHANGE");
+  reserveFunded = disclose(false);
+  return [];
+}
+
+circuit assertOracleFresh(publishedAt: Amount): [] {
+  const policy = fixedRiskPolicy();
+  assert(publishedAt <= 4000000000, "ORACLE_TIMESTAMP_OUT_OF_RANGE");
+  assert(blockTimeGte(disclose(publishedAt)), "ORACLE_TIMESTAMP_IN_FUTURE");
+  assert(
+    blockTimeLt(disclose((publishedAt + policy.oracleMaxAgeSeconds + 1) as Amount)),
+    "ORACLE_STALE"
+  );
+}
+
+circuit publishedOracleFresh(): Boolean {
+  if (!oracleReady) return false;
+  assertOracleFresh(oraclePublishedAt);
+  return true;
+}
+
+circuit freezeSettlementOracle(): [] {
+  settlementOraclePriceTicks = disclose(oraclePriceTicks);
+  settlementOracleSequence = disclose(oracleSequence);
+  settlementOraclePublishedAt = disclose(oraclePublishedAt);
+}
+
+circuit assertCanSettle(): [] {
+  assert(closedUnclaimed, "POSITION_NOT_CLOSED");
+  assert(!positionActive, "POSITION_STILL_ACTIVE");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+}
+
+circuit markSettled(): [] {
+  positionActive = disclose(false);
+  closedUnclaimed = disclose(false);
+  settled = disclose(true);
+}
+
+circuit verifyOwnerPosition(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  const ownerIdentity = deriveCapability(pad(32, "silence:perp-owner:v1"), ownerSecret);
+  assert(ownerIdentity == ownerIdentityCommitment, "NOT_POSITION_OWNER");
+  const ownerRecipient = commitRecipient(pad(32, "silence:owner-recipient:v1"), ownerTarget.ownerRecipient, ownerTarget.recipientSalt);
+  assert(ownerRecipient == ownerRecipientCommitment, "OWNER_RECIPIENT_MISMATCH");
+  assert(
+    computePositionCommitment(
+      ownerIdentity,
+      operatorIdentityCommitment,
+      ownerRecipient,
+      lpIdentityCommitment,
+      lpRecipientCommitment,
+      terms,
+      positionSalt
+    ) == positionCommitment,
+    "POSITION_TERMS_MISMATCH"
+  );
+}
+
+circuit verifyLp(lpSecret: Bytes32, lpTarget: LpTargetWitness): [] {
+  assert(
+    deriveLpCapability(lpSecret) == lpIdentityCommitment,
+    "NOT_AUTHORIZED_LP"
+  );
+  assert(
+    commitRecipient(pad(32, "silence:lp-recipient:v1"), lpTarget.lpRecipient, lpTarget.recipientSalt)
+      == lpRecipientCommitment,
+    "LP_RECIPIENT_MISMATCH"
+  );
+}
+
+circuit settlePartialLoss(payout: Amount, recipient: ZswapCoinPublicKey): [] {
+  const paid = sendShielded(
+    traderCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(payout)
+  );
+  assert(paid.change.is_some, "EXPECTED_TRADER_LOSS_CHANGE");
+  assert(
+    paid.change.value.value == fixedRiskPolicy().collateralAtoms - payout,
+    "TRADER_LOSS_CHANGE_MISMATCH"
+  );
+  lpCollateralRemainderCoin.writeCoin(
+    disclose(paid.change.value),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+  lpCollateralRemainderClaimable = disclose(true);
+  markSettled();
+}
+
+circuit retainCollateralForLp(): [] {
+  const retained = sendShielded(
+    traderCoin,
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self()),
+    disclose(fixedRiskPolicy().collateralAtoms)
+  );
+  assert(!retained.change.is_some, "UNEXPECTED_RETAINED_COLLATERAL_CHANGE");
+  lpCollateralRemainderCoin.writeCoin(
+    disclose(retained.sent),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+  lpCollateralRemainderClaimable = disclose(true);
+}
