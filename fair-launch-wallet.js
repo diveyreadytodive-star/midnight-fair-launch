@@ -99,6 +99,15 @@ export function initFairLaunchWallet(doc = document, browser = window) {
     if (state.api && state.network === 'preprod') {
       state.connecting = true;
       try {
+        const [configuration, connection] = await Promise.all([state.api.getConfiguration(), state.api.getConnectionStatus()]);
+        const network = assessWalletNetwork(configuration, connection);
+        if (network.status !== 'ready') {
+          state.api = null;
+          state.dust = null;
+          state.network = network.network;
+          state.status = network.status;
+          return;
+        }
         state.dust = await state.api.getDustBalance();
         dustLabel(state.dust);
         state.status = BigInt(state.dust) === 0n ? 'noDust' : 'ready';
@@ -137,7 +146,10 @@ export function initFairLaunchWallet(doc = document, browser = window) {
     const panel = $('#walletPanel');
     panel.hidden = !panel.hidden;
     $('#walletButton').setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) scan();
+    if (!panel.hidden) {
+      scan();
+      if (state.api) void connect();
+    }
   });
   $('#walletConnect').addEventListener('click', connect);
   $('#walletClose').addEventListener('click', () => {

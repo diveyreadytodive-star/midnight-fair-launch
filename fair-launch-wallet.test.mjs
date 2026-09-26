@@ -61,3 +61,17 @@ test('disconnected wallet never becomes a connected Fair Launch session', async 
   assert.equal(adapter.connectedApi, null);
   assert.match(elements.walletStatus.textContent, /disconnected/);
 });
+
+test('refresh clears a connection after the wallet switches away from Preprod', async () => {
+  let network = 'preprod';
+  const api = { getConfiguration: async () => ({ networkId: network }), getConnectionStatus: async () => ({ status: 'connected', networkId: network }), getDustBalance: async () => 1_000_000_000_000_000n };
+  const { doc, browser, elements } = fakeWalletPage(api);
+  const adapter = initFairLaunchWallet(doc, browser);
+  await elements.walletConnect.fire();
+  assert.equal(adapter.connectedApi, api);
+  network = 'preview';
+  await elements.walletConnect.fire();
+  assert.equal(adapter.connectedApi, null);
+  assert.match(elements.walletStatus.textContent, /requires Preprod/);
+  assert.equal(elements.walletReadout.hidden, true);
+});
