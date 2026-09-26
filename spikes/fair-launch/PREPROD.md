@@ -2,6 +2,8 @@
 
 These scripts are separate from the completed Local Devnet one-shot runner. They use the protected `.local/preprod-dev-wallet.json` development wallet and valueless Preprod assets. Never pass the Local Devnet genesis seed to them. Their `--execute` paths have **not** been verified by a finalized Preprod Fair Launch transaction.
 
+The DUST registration `--execute` path **did** finalize a separate Preprod test transaction at block 2,722,807. See the [independent registration evidence](../../docs/evidence/preprod-dust-registration-2026-09-27.md). This is not a Fair Launch transaction; a fresh wallet tDUST balance readback is still required before deploying the auction.
+
 From the repository root, read-only checks are:
 
 ```sh
