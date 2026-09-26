@@ -40,6 +40,16 @@ The [verified launch catalog](../../web/fair-launch-catalog.json) now contains t
 
 The Create endpoint is opt-in (`FAIR_LAUNCH_CREATE_ENABLED=1`), bound to a loopback server, and uses an operator's **Local Devnet test wallet** to submit transactions. It is not a permissionless launch signed by each creator's wallet. A new catalog card appears only after deploy, mint, fund, and ledger readback succeed. The image URL string is included in the metadata commitment, but remote image bytes are not pinned. The public/static page can browse verified launches and preview a draft; only the locally enabled API can actually create one.
 
+## Preprod receipt recheck
+
+The separate guarded Preprod deploy runner produces `confirmed-public-evidence.json` only after its deploy, mint, fund, wallet, and ledger checks succeed. When that file exists, recheck it independently with:
+
+```sh
+npm run verify:preprod-launch -- /absolute/path/to/confirmed-public-evidence.json
+```
+
+The read-only verifier checks RPC network identity, the local Compact source and metadata hashes, each transaction's Preprod `SUCCESS` status and expected contract action, plus current funded ledger state. It accepts no seed and submits no transaction. At this writing, the Preprod runner is still syncing its wallet before any deployment transaction; a verifier script or an unconfirmed transaction ID is **not** Preprod launch evidence.
+
 ## Contract and evidence boundaries
 
 - The contract has exactly four registered bidder slots in this MVP. The evidence proves this four-slot fixture; it does not prove support for arbitrary participant counts.
