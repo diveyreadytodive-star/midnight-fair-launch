@@ -15,7 +15,7 @@ import {
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 
 export interface LocalNetworkConfig {
-  readonly networkId: 'undeployed';
+  readonly networkId: 'undeployed' | 'preprod';
   readonly indexer: string;
   readonly indexerWS: string;
   readonly node: string;

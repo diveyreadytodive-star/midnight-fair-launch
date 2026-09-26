@@ -1,0 +1,25 @@
+# Fair Launch judge-readiness gates
+
+Updated 2026-09-27 KST. This is an evidence ledger, not a claim that the Goal is complete.
+
+| Gate | Required proof | Current result |
+| --- | --- | --- |
+| Public Explore and explanation | Open the deployed Pages URL in a separate browser and inspect verified launches | **Passed:** three recorded Local Devnet launch cards visible on the public URL; settled outcomes belong to the original contract only |
+| Interactive no-wallet judge path | Change a bid at the public URL and observe a newly calculated price/allocation/refund with an explicit simulation label | **Passed:** public `judge-demo.html` returned 10 TEST, 300/300/0/0 and 2000/2000/5000/5000 for the example, explicitly saying no new transaction |
+| KO/EN | Switch public Explore/Create/detail/demo and retain preference | **Passed** on public Explore, Create, detail, and demo; wallet-error variants still need a real wallet for runtime validation |
+| Targeted Local Devnet raw-field scan | Re-query all receipts and inspect raw/structured fields for direct protected-value encodings | **Partial:** 20 receipts re-queried; exact 32-byte salts and recipient keys had no direct matches; numeric patterns were ambiguous against unrelated controls. See [scan report](evidence/fair-launch-targeted-raw-scan.md). This does not prove full privacy. |
+| Wallet connection | Actual Lace/1AM permission prompt, network and DUST readback | **Unverified:** connector code is present; current browser has no compatible injected wallet |
+| Preprod funding | Public indexer confirms test NIGHT and wallet derives the expected address | **Partial:** faucet output was previously confirmed; read-only SDK scan matched the protected address and found one unregistered NIGHT coin, while full DUST/shielded sync did not finish in 120 seconds |
+| Preprod DUST | Registration transaction finalized, UTXO marked registered, and nonzero DUST readback | **Open:** two earlier registration identifiers were not found by the public indexer on 2026-09-27; a new read-only fee preflight is being evaluated. Do not submit again without reconciling all records. |
+| Preprod auction contract | Fresh deployment/mint/fund receipts plus ledger inventory and metadata readback | **Not attempted**; Local Devnet receipts cannot be relabeled Preprod |
+| Public wallet-signed bid and claim | New user wallet signs, proof succeeds, receipt finalizes, contract and wallet readback agree | **Not implemented**; read-only connection is not this gate |
+| Opening handoff and recovery | All registered openings reach the settlement operator; each bidder can recover and claim after refresh/close | **Not implemented**; a public auction cannot safely accept deposits until this is solved |
+| Public operating service | Public-origin API/prover remains available after developer machine is off, without exposing operator seed | **Not implemented**; the existing Create API is loopback-only |
+
+The official [browser DApp example](https://docs.midnightkorea.org/examples/dapps/leaderboard) shows DApp Connector API v4 wallet balancing and Preprod proving. The [connector specification](https://github.com/midnightntwrk/midnight-dapp-connector-api/blob/main/docs/api/_media/SPECIFICATION.md) does not expose raw shielded UTXOs to a DApp, while the current Fair Launch `registerBid` takes a `ShieldedCoinInfo` input. A plausible integration route is a wallet-signed `mintTestPaymentCoin` call whose returned coin record is then passed to `registerBid`; this is **only a hypothesis** until proven in a real browser wallet. The official wallet-delegated proof provider and browser ZK artifact provider are not installed in this repository; integration remains pending a dependency decision.
+
+The existing loopback proof server at `127.0.0.1:26300` returned version `8.1.0`. The cached `midnightntwrk/proof-server:8.1.0` image's `--help` does not list the `--network` flag shown in some older examples. A separate container started with `--network preprod` exited immediately; it was not used for any transaction. Do not assume that the old flag applies to this image.
+
+The isolated Preprod demo deployment script's **read-only preflight** passed RPC chain identity (`Midnight Preprod`), indexer block response, local proof server version endpoint, compiled contract file checks, and the fixed valueless metadata/config hash. Its `--execute` path has not run, and no Preprod Fair Launch contract address exists. An independent wallet diagnostic measured DUST sync target `highestRelevantWalletIndex=1,567,585`; the separate read-only fee preflight was still scanning toward that target. This is a verified live process wait, not evidence of registration or transaction completion.
+
+Do not edit the attached PPTX or make a video under this Goal. The [fact-check](pitch-fact-check-2026-09-27.md) lists statements to change later. The final submission form has not been sent.
