@@ -18,7 +18,7 @@ Step 3 → 4 is a hypothesis. The current headless Local Devnet runner can read 
 
 [Lace issue #2239](https://github.com/input-output-hk/lace/issues/2239) reports that the older 2.1.0 extension failed to balance shielded-coin spends into a contract even though a headless wallet with a newer SDK could do so. Lace has since [announced version 2.3](https://www.lace.io/blog/lace-2-3-small-refresh-big-changes), but the issue page does not establish whether this exact Fair Launch call now works. Record the tested extension version and the real `registerBid` outcome before treating the bug as fixed or current.
 
-The browser provider needs the version-matched official fetch-ZK-asset and wallet-delegated proof packages. The generated Fair Launch prover keys currently total about **109 MiB**; public asset hosting, cross-origin rules, proof latency, and browser memory must be measured before promising a fast judge path. The repository does not yet include these browser build dependencies or a deployed Preprod contract.
+The version-matched official fetch-ZK-asset and wallet-delegated proof packages are installed, and a funded [Preprod contract](evidence/preprod-launch-2026-09-27.md) is independently verified. The mint/bid prover, verifier, and bzkir files are [hosted and hash-checked on public HTTPS](evidence/public-zk-assets-2026-09-27.md). The generated keys for **all** Fair Launch circuits total about **109 MiB**; claim/settlement keys are not yet hosted. Actual extension proof latency, browser memory, and wallet balancing remain unmeasured, so public asset delivery cannot be treated as a successful wallet transaction.
 
 ## Settlement and recovery
 
