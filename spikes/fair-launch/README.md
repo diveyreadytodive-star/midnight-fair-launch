@@ -50,6 +50,10 @@ npm run verify:preprod-launch -- docs/evidence/preprod-launch-2026-09-27.json
 
 The read-only verifier checks RPC network identity, the local Compact source and metadata hashes, each transaction's Preprod `SUCCESS` status and expected contract action, plus current funded ledger state. It accepts no seed and submits no transaction. It passed independently for the three setup receipts at blocks 2,723,525/529/537. No Preprod bid, settlement, or claim has been verified; the completed Local Devnet auction belongs to a different contract.
 
+A **separate, valueless three-hour Preprod auction test** is being prepared to exercise mint → four registration slots → settlement → refund/proceeds/token claims with one operator-owned test wallet. It cannot demonstrate independent bidders or a public user-wallet flow. The `npm run preprod:auction` command is read-only until exactly one completed three-hour setup exists. `npm run preprod:auction -- --execute` is a one-shot, guarded chain runner: it requires the protected development wallet, positive tDUST, a fresh contract with zero occupied slots, and sufficient time before the on-chain commit deadline. Its protected opening/coin recovery and exclusive lock remain under ignored `.local`; do not delete them or rerun after a partial transaction. The 24-hour judge contract is explicitly excluded from this runner.
+
+If the full auction run completes, copy only its generated `confirmed-public-evidence.json` to a reviewable location, then use `npm run verify:preprod-auction -- <setup-public-evidence.json> <auction-public-evidence.json>` for an independent read-only check of all 17 calls and final ledger accounting. The wallet balances in that evidence are runner readbacks, not independently recoverable from a public address. No full Preprod auction result exists until those gates pass.
+
 ## Contract and evidence boundaries
 
 - The contract has exactly four registered bidder slots in this MVP. The evidence proves this four-slot fixture; it does not prove support for arbitrary participant counts.

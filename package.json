@@ -15,6 +15,8 @@
     "stage:browser-artifacts": "node scripts/stage-browser-artifacts.mjs",
     "verify:public-zk-assets": "node scripts/verify-public-zk-assets.mjs",
     "verify:preprod-launch": "node --import tsx spikes/fair-launch/scripts/verify-preprod-launch.ts",
+    "preprod:auction": "node --import tsx spikes/fair-launch/scripts/run-preprod-auction.ts",
+    "verify:preprod-auction": "node --import tsx spikes/fair-launch/scripts/verify-preprod-auction.ts",
     "test": "npm run compile && npm run typecheck && node scripts/run-tests.mjs && node --import tsx --test spikes/fair-launch/tests/*.test.ts && node --import tsx --test spikes/veil-intent/tests/*.test.ts",
     "test:fair-launch:chain": "npm --prefix spikes/fair-launch run test:chain --",
     "chain:up": "docker compose up -d --wait",
