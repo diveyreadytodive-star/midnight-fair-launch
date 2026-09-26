@@ -1,8 +1,21 @@
 # VeilIntent — private policy-bound payments on Midnight
 
-**Pivot branch `codex/veil-intent`; valueless Local Devnet prototype, not a live payment or asset-exchange service.** A buyer locks a standardized public 150-unit test-token lot, an approved seller posts a public quote of 100, and a limited agent capability proves that the quote satisfies the buyer's private per-intent price and budget limits. The seller claims 100 in its own shielded wallet; the buyer separately claims the 50-unit remainder. The max limits are generated per run and stored only in protected local test state. Actual quote, lot, deadline, settlement status, and later recipient disclosures remain observable.
+**Valueless Local Devnet prototype, not a live payment or asset-exchange service.** This VeilIntent checkout is published on the submission repository's `main`; the original SILENCE research remains at [silence](https://github.com/diveyreadytodive-star/silence). A buyer locks a standardized public 150-unit test-token lot, an approved seller posts a public quote of 100, and a limited agent capability proves that the quote satisfies the buyer's private per-intent price and budget limits. The seller claims 100 in its own shielded wallet; the buyer separately claims the 50-unit remainder. The max limits are generated per run and stored only in protected local test state. Actual quote, lot, deadline, settlement status, and later recipient disclosures remain observable.
 
 The [Compact spike](spikes/veil-intent/README.md) compiles seven proof circuits and passes 14 simulator/recovery tests. One [actual Local Devnet flow](spikes/veil-intent/docs/evidence/local-devnet-veil-intent.json) finalized deploy/mint/intent/quote/approval/two claims at blocks 4222–4246. Its seven receipts and final ledger were independently re-queried, and separate buyer/seller wallet readback confirmed 50/100 test units. This proves a **one-to-one policy-gated payment** with valueless assets. It does not prove goods delivery, an atomic token swap, a reusable multi-intent mandate, independent agent key isolation, Preprod, or a browser trading flow. See [scope and acceptance decisions](docs/veil-intent-implementation-decisions.md).
+
+From a fresh checkout, run:
+
+```sh
+npm ci
+npm run setup:compiler
+cd spikes/veil-intent
+npm test
+```
+
+This compiles and tests the VeilIntent contract. The recorded Local Devnet receipts can be inspected without any wallet seed. Re-running the acceptance transaction requires a separate funded **valueless Local Devnet-only** test seed and a new protected recovery bundle; it is not part of the public quick start. The historical root `npm run compile`/`npm test` commands below validate SILENCE, not VeilIntent.
+
+For the read-only web demo, run `node --import tsx src/server.ts` from the repository root and open `http://127.0.0.1:3000/`. The private-limit checker on that page is **browser-only simulation**; the receipts are recorded Local Devnet evidence. This page does not connect a wallet or submit a new proof/transaction.
 
 The original SILENCE work below is preserved as reusable research. Its receipts are not VeilIntent completion evidence.
 
@@ -34,7 +47,7 @@ The [deadline milestones and Go/No-Go gates](docs/milestones-to-submission-2026-
 - [An integrated risk-custody spike](spikes/integrated-risk-custody/README.md) compiles and passes 12/12 simulator cases **and actual Local Devnet P90/P84 risk-close/owner-claim cycles**. It combines fixed real test-coin escrow, an authenticated demo oracle, private risk predicates, operator close without payout and later owner claim. It refunds the full fixed lot regardless of PnL, offers no owner self-close if the operator disappears, and public open/close prices reveal the test positions' side afterward. It is a privacy/risk primitive, **not** a settled perp trade or safe product custody.
 - [An LP reserve accounting spike](spikes/lp-reserve/README.md) now has actual Local Devnet **static loss and profit payout** paths. The owner received 800 test units and the LP later claimed 200; in a separate contract the owner received 1,200 and the LP later spent its indexed 300-unit reserve remainder. These payouts were **public caller-supplied test inputs**, not validated market PnL. The original compound `claim` still fails proof-server `/check` HTTP 400, and public circuit names/amounts reveal realized outcome. See [loss receipts](spikes/lp-reserve/docs/evidence/diagnostic-loss-static-local-chain.json), [profit receipts](spikes/lp-reserve/docs/evidence/diagnostic-profit-static-local-chain.json), and [failed compound circuit](spikes/lp-reserve/docs/evidence/break-even-local-chain-partial.json).
 - The [operator risk-engine state machine](src/engine/risk-engine.ts) passed its persistence/retry unit cases under independent review. A pending protective close can still block a later liquidation; this is reported as an operational gap. Its adapter has not submitted a SILENCE on-chain close.
-- The [web trading UI](web/index.html) is a presentation layer with no fabricated quote, balance or transaction. Order submission remains disabled until wallet authorization, Compact proof, settlement and chain readback are integrated.
+- The historical SILENCE [web trading UI](https://github.com/diveyreadytodive-star/silence/blob/main/web/index.html) was a presentation layer with no fabricated quote, balance or transaction. It remains in the original SILENCE repository; this pivot checkout serves the VeilIntent evidence page at `/`.
 - [Preprod faucet evidence](docs/evidence/preprod-faucet.md) confirms an on-chain 5,000 tNIGHT output to the separate development address. DUST registration and an external-network product transaction remain unverified.
 
 ## Run from a fresh checkout
@@ -49,7 +62,7 @@ npm run typecheck
 npm test
 ```
 
-To inspect the current web interface locally, run `node --import tsx src/server.ts` and open `http://127.0.0.1:3000/`. The default server has no market-data or trading adapter: it reports unavailable data and keeps order submission disabled. The actual Phase 1 Local Devnet chain harness is `npm run test:chain` against the isolated Docker stack (`npm run chain:up`), but it additionally requires a **funded, valueless Local Devnet-only** `SILENCE_LOCAL_TEST_SEED` in the environment. Never pass a real wallet seed or the Preprod development wallet to that harness. The recorded receipts can be reviewed without any seed in [product Phase 1 evidence](docs/evidence/product-phase1-local-devnet.md).
+The original SILENCE UI is available from the preserved `silence` repository. In this VeilIntent checkout, `node --import tsx src/server.ts` serves the **recorded VeilIntent evidence demo** at `http://127.0.0.1:3000/`; its quote checker runs only in the browser and submits no transaction. The historical SILENCE Phase 1 Local Devnet harness is `npm run test:chain` against the isolated Docker stack (`npm run chain:up`), but it additionally requires a **funded, valueless Local Devnet-only** `SILENCE_LOCAL_TEST_SEED` in the environment. Never pass a real wallet seed or the Preprod development wallet to that harness. Its recorded receipts can be reviewed without any seed in [product Phase 1 evidence](docs/evidence/product-phase1-local-devnet.md).
 
 ## Development order
 

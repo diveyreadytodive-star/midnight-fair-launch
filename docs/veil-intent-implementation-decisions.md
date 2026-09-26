@@ -19,7 +19,9 @@
 | Seller/solver | 자기 quote와 청구 비밀, 자기 수취인 | 공개 quote 등록, 허용된 지급을 자기 수취인으로 청구 | 구매자의 최대 가격·전체 예산 witness 열람 불가 |
 | 공개 관찰자 | 고정 escrow lot, quote 실제액, commitment, 상태·시각, 지급 거래 | 성공·거절 상태 및 온체인 proof 확인 | 정책 상한 원문 열람 불가 |
 
-**핵심 기술 결정:** solver가 구매자의 정책을 모른다면 solver 단독으로 비공개 정책을 넣은 proof를 만들 수 없다. quote 제출은 seller가 하되 `executeQuote` proof는 정책 witness를 가진 agent/구매자 측 로컬 prover가 만든다. 이 prover가 운영 서비스라면 정책 원문을 볼 수 있으므로, “운영자도 모른다”는 주장은 금지한다. 이번 데모의 AI는 지갑 seed를 받지 않는 **제안 생성기**이며, 비밀 정책·권한을 가진 로컬 집행기가 최종 증명을 만든다.
+**핵심 기술 결정:** solver가 구매자의 정책을 모른다면 solver 단독으로 비공개 정책을 넣은 proof를 만들 수 없다. quote 제출은 seller가 하되 `approveQuote` proof는 정책 witness를 가진 agent/구매자 측 로컬 prover가 만든다. 이 prover가 운영 서비스라면 정책 원문을 볼 수 있으므로, “운영자도 모른다”는 주장은 금지한다. 목표 제품에서 AI 모델은 거래 **제안 생성기**로 제한하고, 비밀 정책·권한을 가진 로컬 집행기가 최종 증명을 만든다.
+
+실제 9/26 체인 실험에는 생성형 AI 모델이나 자율적으로 주문을 고르는 서비스가 연결되지 않았다. `agent`는 별도 shielded 키와 제한 secret으로 Compact 승인 회로를 호출하는 **테스트 역할**이다. 따라서 “AI agent가 실제 구매를 했다”가 아니라 “AI agent가 사용할 수 있는 제한 지출 증명 경로를 시험했다”고 설명한다. 같은 테스트 프로세스가 buyer·seller·solver의 seed를 모두 보유하고 buyer가 DUST 수수료를 후원했으므로 운영상 키 격리를 입증하지 않았다.
 
 ## 자금 모델과 공개 범위
 
