@@ -28,6 +28,8 @@ A live browser flow must provide account/contract/slot-scoped opening recovery a
 
 Four slots fill in transaction arrival order. Uniform-price settlement among admitted bids does not remove the speed contest for admission. A judge demo contract needs a repeatable fresh slot or a separate clearly labeled simulation once slots fill. The current public Pages site has no always-on write/settlement backend; localhost operator Create is not a public service.
 
+An isolated, wallet-created contract with just the judge's own bid could test deploy/mint/fund/register/settle/claim without a public operator service, provided all browser transactions actually work. That would be a useful **single-user integration smoke test**, not evidence that the four-person auction or third-party settlement service is operational. Keep it separate from the multi-user product claim.
+
 ## Go/no-go evidence
 
 | Gate | Proof required |

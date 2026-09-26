@@ -14,7 +14,7 @@ A sealed-bid, uniform-price first sale for valueless test tokens on Midnight. Th
 | Inspect one completed four-slot auction: 600 units, clearing price 10 TEST, allocations 300/300/0/0, refunds 2000/2000/5000/5000 | [20 confirmed Local Devnet receipts](spikes/fair-launch/docs/evidence/local-devnet-fair-launch.json), blocks 9380–9493, plus separate wallet readback |
 | Change an example bid and reveal uniform-price allocations | **Browser simulation:** no wallet, proof, new transaction, or asset transfer |
 | Switch between Korean and English | Browser preference stored locally |
-| Open the Preprod wallet panel | Read-only wallet/network/DUST check; **bids and claims are not connected** |
+| Open the Preprod wallet panel | Read-only connector UI; real Lace/1AM permission and balance responses are **not yet runtime-verified**; bids and claims are not connected |
 | Enter a token name and auction configuration on Create | Browser preview only on the public site |
 
 The opt-in localhost **operator-sponsored** Create API can deploy a fresh Local Devnet contract, mint its sale token once, fund inventory, and append the card only after receipt and ledger readback. It created `Midnight Moth Test` through the CLI and `Night Bloom Test` through the browser button. An arbitrary user's wallet did **not** sign those launches. Neither of these two later launches has a recorded settlement.
