@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessWalletNetwork, compatibleWallets, dustLabel, hasDuplicateWalletIdentity, initFairLaunchWallet } from './fair-launch-wallet.js';
+import { assessWalletNetwork, compatibleWallets, dustBalanceValue, dustLabel, hasDuplicateWalletIdentity, initFairLaunchWallet } from './fair-launch-wallet.js';
 
 test('only recognized API v4 wallet providers are offered', () => {
   const connect = async () => ({});
@@ -13,6 +13,11 @@ test('DUST display uses exact integer units', () => {
   assert.equal(dustLabel(1_000_000_000_000_000n), '1 tDUST');
   assert.equal(dustLabel(1_500_000_000_000_000n), '1.5 tDUST');
   assert.throws(() => dustLabel(-1n), RangeError);
+});
+
+test('DApp Connector v4 DUST report reads its balance field', () => {
+  assert.equal(dustBalanceValue({ cap: 2_000_000_000_000_000n, balance: 1_000_000_000_000_000n }), 1_000_000_000_000_000n);
+  assert.throws(() => dustBalanceValue({ cap: 1n }), TypeError);
 });
 
 test('wallet status must be connected and match Preprod in both reports', () => {
@@ -45,7 +50,7 @@ function fakeWalletPage(api, providers) {
 }
 
 test('zero-DUST connection is labeled read-only and can be refreshed', async () => {
-  const api = { getConfiguration: async () => ({ networkId: 'preprod' }), getConnectionStatus: async () => ({ status: 'connected', networkId: 'preprod' }), getDustBalance: async () => 0n };
+  const api = { getConfiguration: async () => ({ networkId: 'preprod' }), getConnectionStatus: async () => ({ status: 'connected', networkId: 'preprod' }), getDustBalance: async () => ({ cap: 0n, balance: 0n }) };
   const { doc, browser, elements } = fakeWalletPage(api);
   const adapter = initFairLaunchWallet(doc, browser);
   await elements.walletButton.fire();
