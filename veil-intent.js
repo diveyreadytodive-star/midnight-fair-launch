@@ -9,6 +9,7 @@ const state = {
   view: "agent",
   replayIndex: 0,
   replayTimer: null,
+  reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   // Deliberately in-memory only. Never persisted, serialized, logged, or copied into attributes.
   privatePolicy: null,
 };
@@ -22,7 +23,7 @@ function shortHash(value) {
 
 function formatUnitPrice(ticks) {
   const price = Number(ticks) / 1_000_000;
-  return Number.isFinite(price) ? `$${price.toFixed(2)}` : "—";
+  return Number.isFinite(price) ? price.toFixed(2) : "—";
 }
 
 function formatInteger(value) {
@@ -77,46 +78,39 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) stopR
 
 const replayStages = {
   deploy: {
-    title: "Contract deployed",
-    copy: "The Compact contract was deployed on Local Devnet before any test payment was created.",
-    public: "Contract address and deployment receipt recorded.",
-    private: "No buyer ceiling was disclosed in this step.",
+    title: "Contract deployment receipt",
+    copy: "The recorded Local Devnet sequence begins with a contract deployment receipt.",
+    private: "No buyer ceiling appears in the sanitized evidence JSON.",
   },
   mintTestCoin: {
-    title: "Valueless test lot minted",
-    copy: "The test client prepared 150 valueless units for the one-buyer payment path.",
-    public: "Test-token mint receipt recorded; 150-unit lot used in this run.",
-    private: "This is not a production asset or a hidden treasury balance.",
+    title: "Test-token mint receipt",
+    copy: "A mint receipt is recorded for the valueless Local Devnet test token.",
+    private: "The receipt list does not record a per-step balance or mint amount.",
   },
   createIntent: {
-    title: "Buyer locks the intent",
-    copy: "The buyer committed a one-intent policy and escrowed 150 test units.",
-    public: "150-unit escrow lot, deadline, and commitments are visible.",
-    private: "Exact maximum unit price, maximum total spend, and nonce are omitted from the public evidence.",
+    title: "Buyer intent receipt",
+    copy: "The evidence records an intent-creation receipt and an aggregate public escrow amount.",
+    private: "The per-intent ceiling, budget, and witness values are omitted from the public evidence.",
   },
   submitQuote: {
-    title: "Seller publishes a quote",
-    copy: "The authorized seller submitted a quote for 50 items at 2 units each.",
-    public: "Quantity 50 × unit price 2 = total 100; quote receipt recorded.",
-    private: "The quote itself does not disclose the buyer's exact maximum.",
+    title: "Seller quote receipt",
+    copy: "The evidence includes one public quote alongside the quote-submission receipt.",
+    private: "The quote does not include the buyer's maximum; exact policy values are omitted.",
   },
   approveQuote: {
-    title: "Private policy accepts",
-    copy: "A deterministic test prover supplied the private policy witness to the Compact approval path. No autonomous AI made this decision.",
-    public: "Approval transaction finalized; the public quote passed the per-intent checks.",
-    private: "Exact price cap, total cap, agent secret, and nonce values are omitted from this sanitized record.",
+    title: "Policy approval receipt",
+    copy: "An approval receipt is recorded. The deterministic test prover uses the Compact policy path; no LLM is connected.",
+    private: "Witness values and individual check results are not included in this sanitized record.",
   },
   sellerClaimPayout: {
-    title: "Seller claims payment",
-    copy: "After approval, the seller's own wallet claimed its committed payout.",
-    public: "Seller claim receipt finalized; separate wallet readback found 100 test units.",
-    private: "This does not prove seller asset delivery or an atomic swap.",
+    title: "Seller claim receipt",
+    copy: "The evidence records a seller-claim receipt and a separate final wallet readback.",
+    private: "The readback does not establish seller asset delivery or an atomic swap.",
   },
   claimBuyerRemainder: {
-    title: "Buyer recovers change",
-    copy: "The buyer's own wallet claimed the unspent escrow remainder.",
-    public: "Buyer claim receipt finalized; separate wallet readback found 50 test units.",
-    private: "The exact policy ceiling still is not in the sanitized public evidence.",
+    title: "Buyer remainder claim receipt",
+    copy: "The evidence records a buyer-remainder claim and a separate final wallet readback.",
+    private: "The exact policy ceiling is not included in the sanitized public evidence.",
   },
 };
 
@@ -124,26 +118,47 @@ function stopReplay() {
   if (state.replayTimer !== null) window.clearInterval(state.replayTimer);
   state.replayTimer = null;
   $("#replay-play").textContent = "Play replay";
+  $("#replay-play").setAttribute("aria-pressed", "false");
 }
 
 function showReplayStep(index) {
   if (!state.evidence) return;
   const receipts = state.evidence.receipts;
+  if (index < 0 || index >= receipts.length) return;
   state.replayIndex = index;
   const receipt = receipts[index];
   const details = replayStages[receipt.stage];
+  const record = state.evidence;
+  const escrow = formatInteger(record.publicEscrowAtoms);
+  const quantity = formatInteger(record.publicQuote.quantity);
+  const unitPrice = formatUnitPrice(record.publicQuote.unitPriceTicks);
+  const quoteTotal = formatInteger(record.publicQuote.totalAtoms);
+  const sellerBalance = formatInteger(record.finalReadback.sellerShieldedBalanceAtoms);
+  const buyerBalance = formatInteger(record.finalReadback.buyerShieldedBalanceAtoms);
+  const evidenceText = {
+    deploy: `Contract address ${shortHash(record.contractAddress)} and block ${receipt.blockHeight} are recorded.`,
+    mintTestCoin: `Mint receipt at block ${receipt.blockHeight}. A per-step mint amount is not recorded; the aggregate escrow field is ${escrow} test units.`,
+    createIntent: `Intent receipt at block ${receipt.blockHeight}. The aggregate public escrow field is ${escrow} test units; no per-step ledger snapshot is recorded.`,
+    submitQuote: `Quote receipt at block ${receipt.blockHeight}. The recorded quote is ${quantity} items × ${unitPrice} test units per item = ${quoteTotal} test units; no per-step ledger snapshot is recorded.`,
+    approveQuote: `Approval receipt at block ${receipt.blockHeight}. Aggregate final readback marks the intent ${record.finalReadback.intentExecuted ? "executed" : "not executed"}; per-step state and check results are not recorded.`,
+    sellerClaimPayout: `Seller claim receipt at block ${receipt.blockHeight}. Separate final wallet readback: ${sellerBalance} test units at the seller; no per-step balance snapshot is recorded.`,
+    claimBuyerRemainder: `Buyer remainder receipt at block ${receipt.blockHeight}. Separate final wallet readback: ${buyerBalance} test units at the buyer; no per-step balance snapshot is recorded.`,
+  };
   $("#replay-step-index").textContent = `STEP ${String(index + 1).padStart(2, "0")} / ${String(receipts.length).padStart(2, "0")}`;
   $("#replay-step-title").textContent = details.title;
   $("#replay-step-copy").textContent = details.copy;
-  $("#replay-public").textContent = details.public;
+  $("#replay-public").textContent = evidenceText[receipt.stage] || "Receipt details not recorded.";
   $("#replay-private").textContent = details.private;
   $("#replay-block").textContent = receipt.blockHeight;
-  $("#replay-tx").textContent = receipt.txId;
+  $("#replay-tx").textContent = shortHash(receipt.txId);
+  $("#replay-tx").title = receipt.txId;
+  $("#replay-tx").setAttribute("aria-label", `Full transaction ID ${receipt.txId}`);
   for (const [stepIndex, button] of [...$("#replay-steps").querySelectorAll("button")].entries()) {
     button.classList.toggle("is-current", stepIndex === index);
-    button.setAttribute("aria-current", stepIndex === index ? "step" : "false");
+    if (stepIndex === index) button.setAttribute("aria-current", "step");
+    else button.removeAttribute("aria-current");
   }
-  $("#replay-next").textContent = index === receipts.length - 1 ? "Restart ↺" : "Next step →";
+  $("#replay-next").disabled = index === receipts.length - 1;
 }
 
 function renderReplay(receipts) {
@@ -159,34 +174,52 @@ function renderReplay(receipts) {
     number.textContent = String(index + 1).padStart(2, "0");
     const label = document.createElement("strong");
     label.textContent = replayStages[receipt.stage].title;
-    const block = document.createElement("small");
-    block.textContent = `BLOCK ${receipt.blockHeight}`;
-    button.append(number, label, block);
+    const receiptMeta = document.createElement("small");
+    receiptMeta.textContent = `RECORDED · BLOCK ${receipt.blockHeight} · TX ${shortHash(receipt.txId)}`;
+    receiptMeta.title = `Full transaction ID ${receipt.txId}`;
+    button.setAttribute("aria-label", `Step ${index + 1}: ${label.textContent}, recorded, block ${receipt.blockHeight}, transaction ID ${receipt.txId}`);
+    button.append(number, label, receiptMeta);
     button.addEventListener("click", () => { stopReplay(); showReplayStep(index); });
     item.append(button);
     list.append(item);
   });
-  $("#replay-play").disabled = false;
+  $("#replay-play").disabled = state.reducedMotion;
   $("#replay-next").disabled = false;
+  $("#replay-reset").disabled = false;
   showReplayStep(0);
 }
 
 $("#replay-play").addEventListener("click", () => {
-  if (!state.evidence) return;
+  if (!state.evidence || state.reducedMotion) return;
   if (state.replayTimer !== null) { stopReplay(); return; }
-  showReplayStep(0);
+  if (state.replayIndex >= state.evidence.receipts.length - 1) return;
   $("#replay-play").textContent = "Pause replay";
+  $("#replay-play").setAttribute("aria-pressed", "true");
   state.replayTimer = window.setInterval(() => {
     if (state.replayIndex >= state.evidence.receipts.length - 1) { stopReplay(); return; }
     showReplayStep(state.replayIndex + 1);
-  }, 2600);
+  }, 1200);
 });
 
 $("#replay-next").addEventListener("click", () => {
   if (!state.evidence) return;
   stopReplay();
-  showReplayStep((state.replayIndex + 1) % state.evidence.receipts.length);
+  showReplayStep(state.replayIndex + 1);
 });
+
+$("#replay-reset").addEventListener("click", () => {
+  stopReplay();
+  showReplayStep(0);
+});
+
+window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
+  state.reducedMotion = event.matches;
+  if (state.reducedMotion) stopReplay();
+  $("#replay-play").disabled = !state.evidence || state.reducedMotion;
+  $("#replay-motion-note").hidden = !state.reducedMotion;
+});
+
+$("#replay-motion-note").hidden = !state.reducedMotion;
 
 function validateEvidence(record) {
   if (record.kind !== "recorded-static-evidence" || record.network !== "Midnight Local Devnet") throw new Error("Unexpected evidence source.");
@@ -205,9 +238,11 @@ function renderEvidence(record) {
   $("#hero-quote").textContent = formatInteger(record.publicQuote.totalAtoms);
   $("#hero-seller").textContent = formatInteger(record.finalReadback.sellerShieldedBalanceAtoms);
   $("#hero-buyer").textContent = formatInteger(record.finalReadback.buyerShieldedBalanceAtoms);
+  $("#boundary-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} test units`;
+  $("#boundary-quote").textContent = `${formatInteger(record.publicQuote.quantity)} items × ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each = ${formatInteger(record.publicQuote.totalAtoms)}`;
   $("#hero-receipt-count").textContent = `${record.receipts.length} recorded receipts`;
   $("#hero-block-range").textContent = `Blocks ${record.blockRange.first}–${record.blockRange.last}`;
-  $("#agent-order-summary").textContent = `${formatInteger(record.publicQuote.quantity)} items · ${formatUnitPrice(record.publicQuote.unitPriceTicks)} each`;
+  $("#agent-order-summary").textContent = `${formatInteger(record.publicQuote.quantity)} items · ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each`;
   $("#agent-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} public units`;
   $("#quote-quantity").textContent = formatInteger(record.publicQuote.quantity);
   $("#quote-unit-price").textContent = formatUnitPrice(record.publicQuote.unitPriceTicks);
@@ -218,6 +253,7 @@ function renderEvidence(record) {
   $("#observer-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} units`;
   $("#observer-quote").textContent = `${formatInteger(record.publicQuote.totalAtoms)} units`;
   $("#observer-block-range").textContent = `${record.blockRange.first}–${record.blockRange.last}`;
+  $("#observer-intent-state").textContent = record.finalReadback.intentExecuted ? "EXECUTED" : "NOT EXECUTED";
   $("#observer-seller-balance").textContent = `${formatInteger(record.finalReadback.sellerShieldedBalanceAtoms)} units`;
   $("#observer-buyer-balance").textContent = `${formatInteger(record.finalReadback.buyerShieldedBalanceAtoms)} units`;
   $("#change-index").textContent = record.finalReadback.buyerChangeCoinMtIndexBeforeClaim;
@@ -235,11 +271,11 @@ function renderReceipts(receipts) {
   const labels = {
     deploy: "Contract deployed",
     mintTestCoin: "Public test lot minted",
-    createIntent: "Buyer escrowed 150",
+    createIntent: "Buyer created intent",
     submitQuote: "Seller submitted quote",
-    approveQuote: "Agent policy approved",
-    sellerClaimPayout: "Seller claimed 100",
-    claimBuyerRemainder: "Buyer claimed 50 change",
+    approveQuote: "Policy approval receipt",
+    sellerClaimPayout: "Seller claim receipt",
+    claimBuyerRemainder: "Buyer remainder claim",
   };
   receipts.forEach((receipt, index) => {
     const row = document.createElement("li");
@@ -255,9 +291,9 @@ function renderReceipts(receipts) {
     block.textContent = `BLOCK ${receipt.blockHeight}`;
     const hash = document.createElement("span");
     hash.className = "receipt-hash";
-    hash.textContent = shortHash(receipt.transactionHash);
-    hash.setAttribute("aria-label", `Transaction hash ${receipt.transactionHash}`);
-    hash.title = `Transaction hash ${receipt.transactionHash}`;
+    hash.textContent = shortHash(receipt.txId);
+    hash.setAttribute("aria-label", `Transaction ID ${receipt.txId}`);
+    hash.title = `Transaction ID ${receipt.txId}`;
     row.append(node, stage, block, hash);
     list.append(row);
   });
