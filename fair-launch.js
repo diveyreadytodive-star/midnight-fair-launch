@@ -1,4 +1,4 @@
-import { createLocaleController, translateText } from './fair-launch-locale.js?v=4';
+import { createLocaleController, translateText } from './fair-launch-locale.js?v=6';
 import { initFairLaunchWallet } from './fair-launch-wallet.js?v=5';
 
 const LAUNCHES_URL = '/api/fair-launch/launches';
@@ -177,6 +177,11 @@ export function phaseLabel(phase) {
   return labels[phase] ?? 'Status unavailable';
 }
 
+function launchPhaseLabel(launch) {
+  return launchNetwork(launch) === 'preprod' && launch.chainReadback && launch.phase === 'commit'
+    ? 'On-chain commit window' : phaseLabel(launch.phase);
+}
+
 export function launchNetwork(launch) {
   return launch?.network === 'preprod' ? 'preprod' : 'local-devnet';
 }
@@ -298,6 +303,39 @@ function initializePage() {
   let creating = false;
   let recoveryRequired = false;
   let createErrorKind = null;
+  const preprodReadInFlight = new Set();
+  const preprodReadFailed = new Set();
+
+  async function hydratePreprod(launch) {
+    const key = launchKey(launch);
+    if (preprodReadInFlight.has(key) || preprodReadFailed.has(key) || launch.chainReadback) return;
+    preprodReadInFlight.add(key);
+    try {
+      const { readPreprodAuction } = await import('./assets/fair-launch-client.js');
+      const result = await readPreprodAuction(launch.contractAddress, {
+        metadataCommitmentHex: launch.metadataCommitmentHex,
+        inventoryAtoms: launch.config.inventoryAtoms,
+        reservePriceAtoms: launch.config.reservePriceAtoms,
+        depositLotAtoms: launch.config.depositLotAtoms,
+      });
+      const index = launches.findIndex((item) => launchKey(item) === key);
+      if (index === -1) return;
+      launches[index] = {
+        ...launches[index], phase: result.phase, registeredBidCount: result.registeredBidCount,
+        settlement: result.settlement, chainReadback: {
+          blockHeight: result.blockHeight,
+          chainTimeUnixSeconds: result.chainTimeUnixSeconds,
+        },
+      };
+      renderCatalog();
+      if (currentRoute.view === 'detail') renderDetail(currentRoute.id);
+    } catch {
+      preprodReadFailed.add(key);
+      if (currentRoute.view === 'detail') renderDetail(currentRoute.id);
+    } finally {
+      preprodReadInFlight.delete(key);
+    }
+  }
 
   function setCatalogMessage(message, kind = '') {
     catalogStatus.textContent = message;
@@ -316,7 +354,7 @@ function initializePage() {
     article.setAttribute('role', 'listitem');
     const link = makeElement('a', 'launch-card-link');
     link.href = '#/token/' + encodeURIComponent(launchRouteId(launch));
-    link.setAttribute('aria-label', translateText(launchLabel(launch), locale.language) + ', ' + translateText(phaseLabel(launch.phase), locale.language) + ', ' + shortAddress(launch.contractAddress));
+    link.setAttribute('aria-label', translateText(launchLabel(launch), locale.language) + ', ' + translateText(launchPhaseLabel(launch), locale.language) + ', ' + shortAddress(launch.contractAddress));
 
     const art = makeElement('div', 'launch-card-art');
     art.setAttribute('aria-hidden', 'true');
@@ -336,7 +374,7 @@ function initializePage() {
 
     const body = makeElement('div', 'launch-card-body');
     const top = makeElement('div', 'launch-card-top');
-    const phase = makeElement('span', 'phase-chip is-' + launch.phase, phaseLabel(launch.phase));
+    const phase = makeElement('span', 'phase-chip is-' + launch.phase, launchPhaseLabel(launch));
     const network = makeElement('span', 'launch-network', launchNetwork(launch) === 'preprod'
       ? 'PREPROD · SETUP VERIFIED'
       : launch.sourceKind === 'recorded-evidence' ? 'RECORDED LOCAL DEVNET' : 'LOCAL DEVNET');
@@ -388,7 +426,7 @@ function initializePage() {
     const query = searchInput.value.trim().toLocaleLowerCase();
     const visible = launches.filter((launch) => {
       if (!matchesFilter(launch)) return false;
-      const searchText = [launchLabel(launch), launchTicker(launch), launch.contractAddress, phaseLabel(launch.phase), launchNetwork(launch)].join(' ').toLocaleLowerCase();
+      const searchText = [launchLabel(launch), launchTicker(launch), launch.contractAddress, launchPhaseLabel(launch), launchNetwork(launch)].join(' ').toLocaleLowerCase();
       return !query || searchText.includes(query);
     });
 
@@ -421,7 +459,12 @@ function initializePage() {
     emptyState.hidden = true;
     for (const launch of visible) listingGrid.append(renderCard(launch));
     if (visible.some((launch) => launchNetwork(launch) === 'preprod')) {
-      setCatalogMessage(visible.length + ' verified test launches · Preprod setup only, current status unverified · public writes unavailable', 'warning');
+      const liveReadbacks = visible.filter((launch) => launchNetwork(launch) === 'preprod' && launch.chainReadback).length;
+      setCatalogMessage(liveReadbacks
+        ? locale.language === 'ko'
+          ? `${visible.length}개 검증된 테스트 출시 · Preprod 실시간 조회 ${liveReadbacks}건 · 공개 쓰기 기능 없음`
+          : `${visible.length} verified test launches · ${liveReadbacks} live Preprod readback · public writes unavailable`
+        : visible.length + ' verified test launches · Preprod setup only, current status unverified · public writes unavailable', 'warning');
       return;
     }
     const kind = capabilityEnvelope ? 'live verified catalog' : 'recorded evidence';
@@ -503,6 +546,9 @@ function initializePage() {
     }
     renderCatalog();
     if (currentRoute.view === 'detail') renderDetail(currentRoute.id);
+    for (const launch of launches) {
+      if (launchNetwork(launch) === 'preprod') void hydratePreprod(launch);
+    }
     if (apiReady && catalog.length === 0 && !recorded) {
       setEmptyState('No verified launches yet', '배포, 토큰 발행, 재고 예치 영수증이 확인된 출시가 아직 없습니다.', false);
     }
@@ -553,7 +599,7 @@ function initializePage() {
       : '계약에 이름, 티커, 이미지 메타데이터가 연결되지 않은 테스트 토큰입니다.';
     const status = $('#detailStatus');
     status.className = 'status-chip is-' + launch.phase;
-    status.textContent = phaseLabel(launch.phase);
+    status.textContent = launchPhaseLabel(launch);
 
     const config = launch.config ?? {};
     const hasSettlement = launch.phase === 'settled' && launch.settlement?.clearingPriceAtoms != null;
@@ -563,7 +609,7 @@ function initializePage() {
     $('#detailClearingPrice').textContent = hasSettlement
       ? formatInteger(launch.settlement.clearingPriceAtoms) + ' TEST'
       : launch.phase === 'cancelled' ? 'Cancelled'
-        : launchNetwork(launch) === 'preprod' ? 'Not live-verified' : 'Not settled';
+        : launchNetwork(launch) === 'preprod' && !launch.chainReadback ? 'Not live-verified' : 'Not settled';
     $('#detailInventory').textContent = formatInteger(config.inventoryAtoms) + ' units';
     $('#detailReserve').textContent = formatInteger(config.reservePriceAtoms) + ' TEST';
     $('#detailDeposit').textContent = formatInteger(config.depositLotAtoms) + ' TEST';
@@ -598,6 +644,14 @@ function initializePage() {
     }
     $('#detailPanelNote').textContent = allocations && refunds
       ? 'Slot outcomes are public settlement data for this completed auction.'
+      : launch.chainReadback
+        ? locale.language === 'ko'
+          ? `Preprod 블록 ${formatInteger(launch.chainReadback.blockHeight)}에서 현재 상태를 조회했습니다. 입찰·청구는 아직 비활성입니다.`
+          : `Current state read from Preprod block ${formatInteger(launch.chainReadback.blockHeight)}. Bids and claims remain disabled.`
+        : preprodReadFailed.has(launchKey(launch))
+          ? locale.language === 'ko'
+            ? 'Preprod 실시간 조회에 실패했습니다. 설치 영수증만 표시하며 새로고침 후 다시 시도할 수 있습니다.'
+            : 'Live Preprod readback failed. Only setup receipts are shown; reload to retry.'
       : launchNetwork(launch) === 'preprod'
         ? 'Preprod setup receipts are verified. Current auction phase and slot state need live chain readback.'
         : 'Settlement has not been recorded for this launch; no clearing price or slot outcome is shown.';
@@ -614,6 +668,8 @@ function initializePage() {
             : 'Bid · wallet unavailable';
     $('#actionExplanation').textContent = isSettled
       ? '이 경매는 종료되었습니다. 이 페이지는 개인 지갑 상태를 조회하지 않는 기록용 화면입니다.'
+      : launch.chainReadback
+        ? 'Preprod 현재 체인 상태를 읽었습니다. 사용자 지갑 서명·입찰 opening 전달·청구 흐름은 아직 검증되지 않아 거래 버튼은 비활성입니다.'
       : launchNetwork(launch) === 'preprod'
         ? 'Preprod 경매의 설치 영수증만 확인되었습니다. 현재 체인 상태와 사용자 지갑 서명 경로가 검증될 때까지 입찰·청구를 사용할 수 없습니다.'
       : '경매 상태는 검증된 카탈로그에서 읽었습니다. Preprod 지갑 연결은 읽기 전용이며 이 Local Devnet 경매에 입찰을 제출할 수 없습니다.';
@@ -632,6 +688,7 @@ function initializePage() {
       $('#detailEvidenceLink').hidden = true;
       $('#detailEvidenceNote').textContent = '배포·발행·예치 확인 영수증은 카탈로그 응답에 포함되어 있습니다.';
     }
+    if (launchNetwork(launch) === 'preprod') void hydratePreprod(launch);
   }
 
   function updateDraftPreview() {
