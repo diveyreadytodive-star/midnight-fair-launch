@@ -157,6 +157,9 @@ async function main(): Promise<void> {
     } finally { progress.unsubscribe(); if (estimateTimer) clearTimeout(estimateTimer); }
     process.stdout.write(JSON.stringify({ network: 'preprod', mode: execute ? 'execute' : 'preflight', priorIdsAbsent: true, unregisteredCoinCount: unregistered.length, estimatedFeeSpeck: String(fee), fullWalletSyncComplete: state.isSynced }) + '\n');
     if (!execute) return;
+    if ((await Promise.all(priorIds.map(indexerHasTransaction))).some(Boolean)) {
+      throw new Error('A prior registration became indexed during wallet sync; inspect it instead of submitting.');
+    }
 
     attempt = { status: 'prepared', network: 'preprod', startedAt: new Date().toISOString(), priorIds, selectedCoinCount: unregistered.length };
     manifestPath = resolve(localDirectory, `preprod-dust-registration-attempt-${randomUUID()}.json`);
