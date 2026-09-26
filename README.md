@@ -6,7 +6,7 @@ The [Compact spike](spikes/veil-intent/README.md) compiles seven proof circuits 
 
 Prior Midnight winner [Latch](https://midnight.network/blog/celebrating-seven-winners-from-mlh-x-midnight-july-hack) already demonstrated the private AI-agent spending-policy idea. VeilIntent's specific verified step is **seller-authenticated public quote → proof against a hidden buyer ceiling → actual shielded seller payout and buyer change**. We do not claim to have invented private agent allowances. [Competitor and scope comparison](docs/veil-intent-competitive-positioning.md).
 
-The [public demo](https://diveyreadytodive-star.github.io/veil-intent/) has an interactive replay of the seven recorded Local Devnet receipts and a separately labeled **browser-only policy simulation**. Replay submits no transaction; the simulation creates no Compact proof. The site does not connect a live wallet or LLM. Its HTML and sanitized evidence JSON were checked against the verified local files after GitHub Pages built successfully.
+The [public demo](https://diveyreadytodive-star.github.io/veil-intent/) opens on a single payment card. Its main button replays the completed Local Devnet payment and shows the recorded seller/buyer wallet results; it submits no new transaction. Seven receipts and privacy limits are on the separate Evidence view, with a separately labeled **browser-only policy simulation** linked from there. The simulation creates no Compact proof. The site does not connect a live wallet or LLM.
 
 From a fresh checkout, run:
 
@@ -18,7 +18,7 @@ npm test
 
 The root test command compiles both VeilIntent's seven circuits and the preserved SILENCE contract, typechecks both, then runs the VeilIntent simulator and repository/web tests. The recorded Local Devnet receipts can be inspected without any wallet seed. Re-running the acceptance transaction requires a separate funded **valueless Local Devnet-only** test seed and a new protected recovery bundle; it is not part of the public quick start.
 
-For the read-only web demo, run `node --import tsx src/server.ts` from the repository root and open `http://127.0.0.1:3000/`. The page replays recorded Local Devnet receipts and offers a separate **browser-only policy simulation**. Replay sends no transaction; simulation creates no Compact proof. The page does not connect a live wallet or LLM.
+For the read-only web demo, run `node --import tsx src/server.ts` from the repository root and open `http://127.0.0.1:3000/`. The payment screen replays recorded results only; Evidence and the browser-only simulator are separate views. Replay sends no transaction, simulation creates no Compact proof, and the page connects neither a live wallet nor an LLM.
 
 The original SILENCE work below is preserved as reusable research. Its receipts are not VeilIntent completion evidence.
 

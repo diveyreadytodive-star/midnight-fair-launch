@@ -3,327 +3,157 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#090b0d" />
+    <meta name="theme-color" content="#0a0c0d" />
     <meta name="description" content="VeilIntent checks a public seller quote against a buyer's private ceiling, then records seller payment and buyer change." />
-    <title>VeilIntent · Verified Private Quote Approval</title>
+    <title>VeilIntent · Private payment</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23080a0b'/%3E%3Cpath d='M9 29 16 11h4l-7 18zm10 0 7-18h4l-7 18zm10 0 4-11h3l-4 11z' fill='%23baf273'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./veil-intent.css" />
     <script type="module" src="./veil-intent.js"></script>
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to VeilIntent demo</a>
+    <a class="skip-link" href="#main">Skip to main content</a>
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#main" aria-label="VeilIntent home">
+        <a class="brand" href="?view=home" aria-label="VeilIntent home">
           <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
           <span class="brand-name">VEIL<span>INTENT</span></span>
-          <span class="brand-divider" aria-hidden="true"></span>
-          <span class="brand-product">PRIVATE QUOTE APPROVAL</span>
         </a>
-
         <nav class="main-nav" aria-label="Main navigation">
-          <a href="#proof-replay">Replay proof</a>
-          <a href="#privacy-boundary">What is hidden?</a>
-          <a href="#technical-evidence">Evidence</a>
-          <a href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a href="?view=home" data-nav-view="home">Payment</a>
+          <a href="?view=evidence" data-nav-view="evidence">Evidence</a>
+          <a class="github-link" href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
         </nav>
-
-        <div class="topbar-status" aria-label="Environment status">
-          <span class="recorded-pill"><span class="status-dot"></span> RECORDED LOCAL DEVNET</span>
-          <span class="live-state"><span class="quiet-dot"></span> NO LIVE SESSION</span>
-        </div>
+        <span class="network-status"><i aria-hidden="true"></i> RECORDED LOCAL DEVNET</span>
       </header>
 
       <main id="main" class="main-content">
-        <section class="intro-row hero-grid" aria-labelledby="page-title">
-          <div class="intro-copy-block">
-            <p class="eyebrow">PRIVATE QUOTE APPROVAL <span>·</span> MIDNIGHT COMPACT</p>
-            <h1 id="page-title">A public quote.<br />A private ceiling.<br /><em class="hero-title-accent">A verified payment.</em></h1>
-            <p class="intro-copy">A deterministic prover checks the seller's public quote against the buyer's private policy before the recorded escrow release.</p>
-          </div>
-          <aside class="hero-result" aria-label="Verified Local Devnet payment results">
-            <div class="hero-result-head"><span class="evidence-badge">CHAIN EVIDENCE</span><span id="recorded-date">Loading record…</span></div>
-            <p class="hero-result-title">One quote. Two recipients.</p>
-            <div class="hero-flow" aria-label="Escrow split into the recorded seller and buyer wallet balances">
-              <div class="flow-amount"><span>Escrow lot · test units</span><strong id="hero-escrow">—</strong></div>
-              <span class="flow-arrow" aria-hidden="true">→</span>
-              <div class="flow-recipients">
-                <div class="flow-amount"><span>Seller received</span><strong id="hero-seller">—</strong></div>
-                <span class="flow-plus" aria-hidden="true">+</span>
-                <div class="flow-amount"><span>Buyer recovered</span><strong id="hero-buyer">—</strong></div>
-              </div>
+        <section class="page-view execution-view" id="execution-view" data-page-view="home" aria-label="Private quote payment">
+          <section class="payment-card" aria-label="Recorded private payment">
+            <div class="payment-card-head">
+              <span>PAYMENT</span>
             </div>
-            <div class="hero-quote-row"><span>Public seller quote</span><strong id="hero-quote">—</strong><small>test units</small></div>
-            <div class="hero-result-foot"><span id="hero-receipt-count">7 recorded receipts</span><span id="hero-block-range">Blocks —</span></div>
-            <p>Final wallet balances were read back separately. This page replays a sanitized record; no wallet is connected.</p>
-          </aside>
-          <div class="hero-actions">
-            <a class="hero-primary" href="#proof-replay">Replay the payment <span aria-hidden="true">↗</span></a>
-            <a class="hero-secondary" href="#browser-simulation">Try browser simulation</a>
-          </div>
-          <p class="hero-disclaimer">Recorded Local Devnet evidence · valueless test token · no live session</p>
-        </section>
 
-        <p class="scope-line"><strong>Verified today:</strong> private policy-bound payment, seller claim, buyer remainder claim. <strong>Outside this MVP:</strong> connected LLM, live wallet, browser transaction, seller asset delivery, atomic swap.</p>
-
-        <div class="evidence-ribbon" role="note">
-          <span class="ribbon-led" aria-hidden="true"></span>
-          <strong>TEST TOKENS ONLY</strong>
-          <span class="ribbon-separator" aria-hidden="true"></span>
-          <span>Escrow and quote are public</span>
-          <span class="ribbon-separator" aria-hidden="true"></span>
-          <span>No LLM connected</span>
-          <span class="ribbon-spacer"></span>
-          <span id="record-status" class="record-status">Loading evidence</span>
-        </div>
-
-        <section class="replay-section panel" id="proof-replay" aria-labelledby="replay-title">
-          <div class="replay-heading">
-            <div><p class="eyebrow">RECORDED LOCAL DEVNET · NO LIVE SESSION</p><h2 id="replay-title">Replay the verified payment</h2><p>Seven recorded receipts. Aggregate quote, escrow, and final wallet readback are shown where recorded; per-step ledger snapshots are not.</p></div>
-            <div class="replay-control-group"><div class="replay-controls"><button id="replay-play" type="button" aria-pressed="false" disabled>Play replay</button><button id="replay-next" type="button" disabled>Next step →</button><button id="replay-reset" type="button" disabled>Reset</button></div><p class="replay-motion-note" id="replay-motion-note" hidden>Reduced motion is on. Use the step controls to replay manually.</p></div>
-          </div>
-          <div class="replay-layout">
-            <ol class="replay-steps" id="replay-steps" aria-label="Recorded transaction sequence"><li>Loading verified steps…</li></ol>
-            <article class="replay-detail" id="replay-detail" aria-live="polite">
-              <span class="evidence-badge">CHAIN EVIDENCE</span>
-              <p class="replay-step-index" id="replay-step-index">STEP — / 07</p>
-              <h3 id="replay-step-title">Loading record…</h3>
-              <p class="replay-step-copy" id="replay-step-copy">The replay uses sanitized evidence from a completed Local Devnet run.</p>
-              <div class="replay-field-grid"><div><span>EVIDENCE RECORD</span><p id="replay-public">—</p></div><div><span>PRIVATE / SCOPE</span><p id="replay-private">—</p></div></div>
-              <div class="replay-receipt"><span>BLOCK <b id="replay-block">—</b></span><span>TX ID <code id="replay-tx">—</code></span></div>
-              <p class="replay-audit-note">Sanitized evidence record, not a complete raw-transaction privacy audit.</p>
-            </article>
-          </div>
-          <div class="replay-footer"><span>Replays recorded receipts. No new transaction is submitted.</span><a href="./veil-intent-evidence.json" target="_blank" rel="noreferrer">Open sanitized evidence JSON ↗</a><a href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">Source and tests ↗</a></div>
-        </section>
-
-        <section class="boundary-section" id="privacy-boundary" aria-labelledby="boundary-title">
-          <div><p class="eyebrow">THE PRIVACY BOUNDARY</p><h2 id="boundary-title">The chain sees enough.<br />Not everything.</h2><p>The public escrow amount and seller quote still constrain the possible private ceiling. This is scoped field privacy, not full transaction anonymity.</p></div>
-          <div class="boundary-ledger" aria-label="Public and private fields in the recorded prototype">
-            <section class="boundary-ledger-column" aria-labelledby="public-ledger-title">
-              <h3 id="public-ledger-title"><span class="ledger-indicator is-public" aria-hidden="true"></span>Public by design</h3>
-              <ul>
-                <li><span>Escrow lot</span><strong id="boundary-escrow">—</strong></li>
-                <li><span>Seller quote</span><strong id="boundary-quote">—</strong></li>
-                <li><span>Receipt metadata</span><strong>Block and transaction IDs</strong></li>
-                <li><span>Commitments and status</span><strong>Contract fields; per-step snapshot not recorded</strong></li>
-              </ul>
-            </section>
-            <section class="boundary-ledger-column" aria-labelledby="private-ledger-title">
-              <h3 id="private-ledger-title"><span class="ledger-indicator is-private" aria-hidden="true"></span>Not directly readable here</h3>
-              <ul>
-                <li><span>Buyer price ceiling</span><strong>Omitted from public JSON</strong></li>
-                <li><span>Buyer total budget</span><strong>Omitted from public JSON</strong></li>
-                <li><span>Prover capability secret</span><strong>Omitted from public JSON</strong></li>
-                <li><span>Recipient opening and witness</span><strong>Not exposed in this record</strong></li>
-              </ul>
-            </section>
-          </div>
-        </section>
-
-        <section class="secondary-views" id="browser-simulation" aria-label="Explore individual roles and browser simulation">
-          <div class="secondary-heading"><div><p class="eyebrow">EXPLORE THE ROLES</p><h2>Inspect each side of the payment</h2></div><span class="simulation-badge">POLICY CHECKER: BROWSER SIMULATION</span></div>
-          <nav class="view-tabs" role="tablist" aria-label="VeilIntent demo views">
-            <button class="view-tab is-active" id="tab-agent" type="button" role="tab" aria-selected="true" aria-controls="panel-agent" tabindex="0">Policy prover</button>
-            <button class="view-tab" id="tab-seller" type="button" role="tab" aria-selected="false" aria-controls="panel-seller" tabindex="-1">Seller quote</button>
-            <button class="view-tab" id="tab-observer" type="button" role="tab" aria-selected="false" aria-controls="panel-observer" tabindex="-1">Public observer</button>
-          </nav>
-        </section>
-
-        <section class="view-panel" id="panel-agent" role="tabpanel" aria-labelledby="tab-agent" tabindex="0">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">01 / PRIVATE INPUT</p>
-              <h2>Policy prover <span class="heading-slash">/</span> per-intent policy</h2>
+            <div class="amount-field escrow-field">
+              <div class="amount-caption"><span>Escrow</span><span>Public</span></div>
+              <div class="amount-line"><strong id="home-escrow">—</strong><span class="token-chip">TEST <span aria-hidden="true">⌄</span></span></div>
+              <small>Locked for this intent</small>
             </div>
-            <span class="panel-index">BUYER SIDE</span>
-          </div>
 
-          <div class="agent-grid">
-            <article class="panel policy-panel">
-              <div class="panel-topline">
-                  <div>
-                    <p class="eyebrow">POLICY WITNESS</p>
-                  <h3>Set the private ceiling</h3>
-                </div>
-                <span class="privacy-tag"><span aria-hidden="true">◉</span> LOCAL INPUT</span>
-              </div>
-              <p class="panel-copy">A deterministic test prover stood in for an authorized executor in the recorded run. No LLM is connected. Values entered below stay in this browser tab; this simulation creates no Compact proof, wallet action, or transaction.</p>
+            <div class="swap-indicator" aria-hidden="true"><span>↓</span></div>
 
-              <form id="policy-checker" novalidate>
-                <div class="public-intent-row">
-                  <span class="field-label">RECORDED ORDER</span>
-                  <strong id="agent-order-summary">Waiting for evidence</strong>
-                  <span class="public-mini-tag">PUBLIC QUOTE</span>
-                </div>
-                <div class="field-grid">
-                  <div class="field-wrap">
-                    <label for="max-unit-price">Private max unit price <span>TEST UNITS</span></label>
-                    <div class="input-shell">
-                      <input id="max-unit-price" name="maxUnitPrice" type="number" inputmode="decimal" min="0.000001" step="0.000001" placeholder="Enter a private cap" autocomplete="off" aria-describedby="unit-price-help" required />
-                      <span class="input-suffix">/ ITEM</span>
-                    </div>
-                    <small class="field-help" id="unit-price-help">Exact cap is not written into this page's public evidence.</small>
-                  </div>
-                  <div class="field-wrap">
-                    <label for="max-total">Private total budget <span>TEST UNITS</span></label>
-                    <div class="input-shell">
-                      <input id="max-total" name="maxTotal" type="number" inputmode="decimal" min="0.000001" step="0.000001" placeholder="Enter a private budget" autocomplete="off" aria-describedby="total-help" required />
-                      <span class="input-suffix">MAX</span>
-                    </div>
-                    <small class="field-help" id="total-help">The public escrow lot is larger than the per-intent budget.</small>
-                  </div>
-                </div>
-                <div class="form-footer">
-                  <span class="simulation-label"><span class="simulation-dot"></span> BROWSER SIMULATION · NO PROOF</span>
-                  <button class="primary-button" id="check-policy" type="submit" disabled>
-                    <span>Check policy locally</span><span aria-hidden="true">↗</span>
-                  </button>
-                </div>
-                <p class="policy-result" id="policy-result" role="status" aria-live="polite" hidden></p>
-              </form>
-            </article>
-
-            <aside class="panel mandate-card" aria-labelledby="mandate-card-title">
-              <div class="card-corner-label">AUTHORIZATION MAP</div>
-              <p class="eyebrow">ONE INTENT · ONE SELLER</p>
-              <h3 id="mandate-card-title">A quote clears the ceiling before funds move.</h3>
-              <p class="panel-copy">The deterministic test prover checks this public quote against the buyer's private max unit price and budget. The seller can claim only to its committed recipient; unused escrow returns to the buyer.</p>
-              <div class="mandate-facts">
-                <div><span>PROVER ROLE</span><strong>Deterministic test client</strong></div>
-                <div><span>SELLER COUNT</span><strong>One approved</strong></div>
-                <div><span>SPEND SCOPE</span><strong>Per intent only</strong></div>
-              </div>
-              <div class="boundary-note">
-                <span class="boundary-mark" aria-hidden="true">!</span>
-                <p>No LLM integration, daily cap, or cross-intent spending limit is implemented.</p>
-              </div>
-            </aside>
-          </div>
-
-          <div class="footnote-row">
-            <span><strong>PUBLIC ESCROW LOT</strong><b id="agent-escrow">—</b></span>
-            <span><strong>INTENT TYPE</strong><b>Private one-way payment</b></span>
-            <span><strong>CHECK MODE</strong><b>Browser-only · no signing</b></span>
-          </div>
-        </section>
-
-        <section class="view-panel" id="panel-seller" role="tabpanel" aria-labelledby="tab-seller" tabindex="0" hidden>
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">02 / PUBLIC OFFER</p>
-              <h2>Seller quote <span class="heading-slash">/</span> payment request</h2>
+            <div class="amount-field quote-field">
+              <div class="amount-caption"><span>Seller quote</span><span>Public</span></div>
+              <div class="amount-line"><strong id="home-quote">—</strong><span class="token-chip">TEST</span></div>
+              <small id="home-quote-detail">—</small>
             </div>
-            <span class="panel-index">QUOTE RECORDED</span>
-          </div>
 
-          <div class="seller-layout">
-            <article class="panel quote-panel">
-              <div class="quote-panel-header">
-                <div class="seller-avatar" aria-hidden="true">S<span></span></div>
-                <div class="seller-id"><p class="eyebrow">APPROVED SELLER</p><h3>Seller · Local Devnet</h3><span class="seller-key" id="seller-commitment">Identity commitment recorded</span></div>
-                <span class="verified-badge"><span aria-hidden="true">✓</span> AUTHENTICATED</span>
-              </div>
-              <div class="quote-number-row">
-                <div><span class="field-label">PUBLIC QUANTITY</span><strong id="quote-quantity">—</strong><small>items</small></div>
-                <div class="quote-multiply" aria-hidden="true">×</div>
-                <div><span class="field-label">UNIT PRICE</span><strong id="quote-unit-price">—</strong><small>test units / item</small></div>
-                <div class="quote-equals" aria-hidden="true">=</div>
-                <div class="quote-total"><span class="field-label">PUBLIC TOTAL</span><strong id="quote-total">—</strong><small>test units</small></div>
-              </div>
-              <div class="quote-status-row">
-                <div class="quote-status-icon" aria-hidden="true">✓</div>
-                <div><strong>Policy approval receipt recorded</strong><p>The sanitized record includes the receipt; individual state snapshots are not published.</p></div>
-                <span class="status-chip settled-chip">RECORDED</span>
-              </div>
-            </article>
-
-            <aside class="panel seller-payment-card">
-              <p class="eyebrow">SELLER WALLET RECEIPT</p>
-              <div class="payout-amount"><span>+</span><strong id="seller-payout">—</strong></div>
-              <p class="panel-copy">The seller's own wallet discovered the shielded payment after its claim transaction.</p>
-              <div class="receipt-line"><span>NETWORK</span><strong>Local Devnet</strong></div>
-              <div class="receipt-line"><span>PAYMENT ASSET</span><strong>Valueless test token</strong></div>
-              <div class="receipt-line"><span>ASSET SWAP</span><strong>No seller asset in escrow</strong></div>
-              <span class="static-stamp">RECORDED · NOT LIVE</span>
-            </aside>
-          </div>
-
-          <div class="settlement-strip">
-            <div class="settlement-copy"><span class="eyebrow">TWO RECIPIENTS · TWO WALLET READBACKS</span><strong>Payment to seller. Change back to buyer.</strong></div>
-            <div class="split-amount seller-split"><span>SELLER</span><strong id="seller-balance">—</strong></div>
-            <span class="split-plus" aria-hidden="true">+</span>
-            <div class="split-amount buyer-split"><span>BUYER CHANGE</span><strong id="buyer-balance">—</strong></div>
-          </div>
-        </section>
-
-        <section class="view-panel" id="panel-observer" role="tabpanel" aria-labelledby="tab-observer" tabindex="0" hidden>
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">03 / PUBLIC LEDGER VIEW</p>
-              <h2>What the chain reveals <span class="heading-slash">/</span> what the record proves</h2>
+            <div class="private-limit-row">
+              <span class="private-icon" aria-hidden="true">⌑</span>
+              <span><strong>Private buyer ceiling</strong><small>Hidden from the public record</small></span>
+              <b>PRIVATE</b>
             </div>
-            <span class="panel-index observer-index"><span class="observer-dot"></span> OBSERVER</span>
-          </div>
+            <div class="policy-ready-row"><span>Policy check</span><strong id="home-policy-status">Loading evidence</strong></div>
 
-          <div class="observer-top-grid">
-            <article class="panel observer-ledger-card">
-              <div class="card-heading">
-                <div><p class="eyebrow">PUBLIC LEDGER FIELDS</p><h3>Execution is visible. Maxima are not.</h3></div>
-                <span class="public-badge">PUBLIC</span>
-              </div>
-              <div class="ledger-metrics">
-                <div><span>ESCROW LOT</span><strong id="observer-escrow">—</strong><small>public by design</small></div>
-                <div><span>SELLER QUOTE</span><strong id="observer-quote">—</strong><small>unit price × quantity</small></div>
-                <div><span>FINAL INTENT STATE</span><strong class="state-complete" id="observer-intent-state">—</strong><small>aggregate readback</small></div>
-                <div><span>BLOCK WINDOW</span><strong id="observer-block-range">—</strong><small>recorded receipts</small></div>
-              </div>
-              <div class="contract-address-row">
-                <span class="field-label">CONTRACT ADDRESS</span>
-                <code id="contract-address">Loading…</code>
-                <button class="copy-button" id="copy-address" type="button" aria-label="Copy contract address" disabled>Copy</button>
-              </div>
-            </article>
+            <button class="primary-button execution-button" id="execute-replay" type="button" disabled>
+              <span>Verify &amp; release payment</span><span aria-hidden="true">→</span>
+            </button>
+            <p class="button-note">Recorded replay · no wallet connected · no new transaction</p>
 
-            <article class="panel hidden-boundary-card">
-              <p class="eyebrow">PRIVATE WITNESS</p>
-              <h3>Limits are absent from this view.</h3>
-              <ul class="hidden-list">
-                <li><span aria-hidden="true">—</span> Maximum unit price</li>
-                <li><span aria-hidden="true">—</span> Maximum total budget</li>
-                <li><span aria-hidden="true">—</span> Prover capability secret</li>
-                <li><span aria-hidden="true">—</span> Buyer recipient opening</li>
-              </ul>
-              <p class="privacy-caveat">The public lot and actual quote still bound the possible maximum. This is scoped field evidence, not full privacy.</p>
-            </article>
-          </div>
-
-          <section class="panel receipt-panel" id="technical-evidence" aria-labelledby="receipt-title">
-            <div class="receipt-heading">
-              <div><p class="eyebrow">STATIC RECEIPT LEDGER</p><h3 id="receipt-title">Seven verified Local Devnet steps</h3></div>
-              <span class="recorded-range" id="receipt-range">Loading…</span>
+            <div class="execution-status" id="execution-status" role="status" aria-live="polite" hidden>
+              <p class="replay-disclosure">RECORDED REPLAY · NO NEW TRANSACTION</p>
+              <div class="execution-progress" aria-hidden="true"><span></span></div>
+              <strong id="execution-state-title" tabindex="-1">Checking private policy</strong>
+              <small id="execution-state-detail">Recorded Compact approval</small>
+              <button class="replay-next-action" id="execution-next" type="button" hidden>Next recorded step</button>
             </div>
-            <ol class="receipt-timeline" id="receipt-timeline" aria-label="Recorded Local Devnet receipt timeline">
-              <li class="loading-row">Reading the sanitized receipt record…</li>
-            </ol>
-            <p class="receipt-note">Receipt hashes and blocks are a sanitized evidence record. This page does not connect to an indexer, wallet extension, or transaction submitter and is not a raw-transaction privacy audit. <a href="./veil-intent-evidence.json" target="_blank" rel="noreferrer">Open evidence JSON ↗</a></p>
+
+            <div class="success-state" id="success-state" hidden>
+              <div class="success-icon" aria-hidden="true">✓</div>
+              <p class="eyebrow">RECORDED PAYMENT</p>
+              <h2 id="success-title" tabindex="-1">Payment verified</h2>
+              <div class="success-rows">
+                <div><span>Seller received</span><strong id="home-seller-result">—</strong></div>
+                <div><span>Buyer recovered</span><strong id="home-buyer-result">—</strong></div>
+                <div><span>Policy status</span><strong class="approved-value">Approved</strong></div>
+                <div><span>Network</span><strong>Local Devnet</strong></div>
+              </div>
+              <a class="primary-button evidence-action" href="?view=evidence">View evidence <span aria-hidden="true">→</span></a>
+              <p class="success-note">Recorded Local Devnet evidence · no new transaction was submitted</p>
+              <button class="text-action" id="start-over" type="button">Start over</button>
+            </div>
           </section>
 
-          <section class="panel wallet-readback-panel" aria-label="Private wallet readback evidence">
-            <div class="readback-heading"><span class="readback-icon" aria-hidden="true">↳</span><div><p class="eyebrow">SEPARATE WALLET READBACK</p><strong>Balances confirmed from the buyer and seller wallets</strong></div><span class="not-public-tag">NOT PUBLIC LEDGER FIELDS</span></div>
-            <div class="readback-values"><div><span>SELLER WALLET</span><strong id="observer-seller-balance">—</strong></div><span class="readback-plus" aria-hidden="true">+</span><div><span>BUYER WALLET</span><strong id="observer-buyer-balance">—</strong></div><span class="change-index">CHANGE COIN INDEX <b id="change-index">—</b></span></div>
+          <p class="execution-footnote" id="execution-footnote"><span class="footnote-dot" aria-hidden="true"></span> Test tokens only</p>
+        </section>
+
+        <section class="page-view evidence-view" id="evidence-view" data-page-view="evidence" hidden aria-labelledby="evidence-title">
+          <div class="page-heading">
+            <div><p class="eyebrow">EVIDENCE VIEW · NOT LIVE</p><h1 id="evidence-title">Recorded evidence</h1><p class="intro-copy">Seven finalized Local Devnet steps behind this payment.</p></div>
+            <div class="page-actions"><a class="secondary-page-link" href="?view=simulator">Policy simulator</a><a class="back-link" href="?view=home">← Payment</a></div>
+          </div>
+
+          <section class="panel replay-section" id="proof-replay" aria-labelledby="replay-title">
+            <div class="replay-heading">
+              <div><p class="eyebrow">RECORDED RECEIPTS</p><h2 id="replay-title">Payment sequence</h2><p>Receipt IDs and blocks come from the sanitized record. Intermediate balance snapshots are not available.</p></div>
+              <div class="replay-control-group"><div class="replay-controls"><button id="replay-play" type="button" aria-pressed="false" disabled>Play replay</button><button id="replay-next" type="button" disabled>Next step →</button><button id="replay-reset" type="button" disabled>Reset</button></div><p class="replay-motion-note" id="replay-motion-note" hidden>Reduced motion is on. Use the step controls to replay manually.</p></div>
+            </div>
+            <div class="replay-layout">
+              <ol class="replay-steps" id="replay-steps" aria-label="Recorded transaction sequence"><li>Loading verified steps…</li></ol>
+              <article class="replay-detail" id="replay-detail" aria-live="polite">
+                <span class="evidence-badge">CHAIN EVIDENCE</span>
+                <p class="replay-step-index" id="replay-step-index">STEP — / 07</p>
+                <h3 id="replay-step-title">Loading record…</h3>
+                <p class="replay-step-copy" id="replay-step-copy">The replay uses sanitized evidence from a completed Local Devnet run.</p>
+                <div class="replay-field-grid"><div><span>EVIDENCE RECORD</span><p id="replay-public">—</p></div><div><span>PRIVATE / SCOPE</span><p id="replay-private">—</p></div></div>
+                <div class="replay-receipt"><span>BLOCK <b id="replay-block">—</b></span><span>TX ID <code id="replay-tx">—</code></span></div>
+                <p class="replay-audit-note">Sanitized evidence record, not a complete raw-transaction privacy audit.</p>
+              </article>
+            </div>
+            <div class="replay-footer"><span>Replays recorded receipts. No new transaction is submitted.</span><a href="./veil-intent-evidence.json" target="_blank" rel="noreferrer">Open sanitized evidence JSON ↗</a><a href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">Source and tests ↗</a></div>
+          </section>
+
+          <section class="boundary-section" id="privacy-boundary" aria-labelledby="boundary-title">
+            <div><p class="eyebrow">THE PRIVACY BOUNDARY</p><h2 id="boundary-title">What is public.<br />What stays private.</h2><p>The escrow and quote remain visible and constrain the possible ceiling. This is scoped field privacy, not full transaction anonymity.</p></div>
+            <div class="boundary-ledger" aria-label="Public and private fields in the recorded prototype">
+              <section class="boundary-ledger-column" aria-labelledby="public-ledger-title"><h3 id="public-ledger-title"><span class="ledger-indicator is-public" aria-hidden="true"></span>Public</h3><ul><li><span>Escrow lot</span><strong id="boundary-escrow">—</strong></li><li><span>Seller quote</span><strong id="boundary-quote">—</strong></li><li><span>Receipt metadata</span><strong>Block and transaction IDs</strong></li><li><span>Commitments and status</span><strong>Contract fields; per-step snapshot not recorded</strong></li></ul></section>
+              <section class="boundary-ledger-column" aria-labelledby="private-ledger-title"><h3 id="private-ledger-title"><span class="ledger-indicator is-private" aria-hidden="true"></span>Private inputs</h3><ul><li><span>Buyer price ceiling</span><strong>Omitted from public JSON</strong></li><li><span>Buyer total budget</span><strong>Omitted from public JSON</strong></li><li><span>Prover capability secret</span><strong>Omitted from public JSON</strong></li><li><span>Recipient opening and witness</span><strong>Not exposed in this record</strong></li></ul></section>
+            </div>
+          </section>
+
+          <section class="panel evidence-ledger" aria-labelledby="ledger-title">
+            <div class="panel-heading"><div><p class="eyebrow">STATIC RECEIPT LEDGER</p><h2 id="ledger-title">Recorded payment details</h2></div><span class="panel-index" id="receipt-range">Loading…</span></div>
+            <div class="observer-top-grid">
+              <article class="panel observer-ledger-card"><div class="card-heading"><div><p class="eyebrow">PUBLIC LEDGER FIELDS</p><h3>Execution is visible. Maxima are not.</h3></div><span class="public-badge">PUBLIC</span></div><div class="ledger-metrics"><div><span>ESCROW LOT</span><strong id="observer-escrow">—</strong><small>public by design</small></div><div><span>SELLER QUOTE</span><strong id="observer-quote">—</strong><small>unit price × quantity</small></div><div><span>FINAL INTENT STATE</span><strong class="state-complete" id="observer-intent-state">—</strong><small>aggregate readback</small></div><div><span>BLOCK WINDOW</span><strong id="observer-block-range">—</strong><small>recorded receipts</small></div></div><div class="contract-address-row"><span class="field-label">CONTRACT ADDRESS</span><code id="contract-address">Loading…</code><button class="copy-button" id="copy-address" type="button" aria-label="Copy contract address" disabled>Copy</button></div></article>
+              <article class="panel hidden-boundary-card"><p class="eyebrow">PRIVATE WITNESS</p><h3>Limits are absent from this view.</h3><ul class="hidden-list"><li><span aria-hidden="true">—</span> Maximum unit price</li><li><span aria-hidden="true">—</span> Maximum total budget</li><li><span aria-hidden="true">—</span> Prover capability secret</li><li><span aria-hidden="true">—</span> Buyer recipient opening</li></ul><p class="privacy-caveat">The public lot and actual quote still bound the possible maximum. This is scoped field evidence, not full privacy.</p></article>
+            </div>
+            <section class="panel receipt-panel" id="technical-evidence" aria-labelledby="receipt-title"><div class="receipt-heading"><div><p class="eyebrow">SEVEN RECORDED STEPS</p><h3 id="receipt-title">Local Devnet receipts</h3></div></div><ol class="receipt-timeline" id="receipt-timeline" aria-label="Recorded Local Devnet receipt timeline"><li class="loading-row">Reading the sanitized receipt record…</li></ol><p class="receipt-note">The evidence does not establish raw-transaction, timing, or recipient privacy, independent agent-service isolation, or production asset settlement. <a href="./veil-intent-evidence.json" target="_blank" rel="noreferrer">Open evidence JSON ↗</a></p></section>
+            <section class="panel wallet-readback-panel" aria-label="Private wallet readback evidence"><div class="readback-heading"><span class="readback-icon" aria-hidden="true">↳</span><div><p class="eyebrow">SEPARATE WALLET READBACK</p><strong>Balances confirmed from buyer and seller wallets</strong></div><span class="not-public-tag">NOT PUBLIC LEDGER FIELDS</span></div><div class="readback-values"><div><span>SELLER WALLET</span><strong id="observer-seller-balance">—</strong></div><span class="readback-plus" aria-hidden="true">+</span><div><span>BUYER WALLET</span><strong id="observer-buyer-balance">—</strong></div><span class="change-index">CHANGE COIN INDEX <b id="change-index">—</b></span></div></section>
+            <p class="evidence-limit">This prototype uses a deterministic test prover. No LLM or autonomous agent is connected; no live wallet action, seller asset delivery, or atomic swap is implemented.</p>
           </section>
         </section>
 
-        <footer class="page-footer">
-          <span><strong>VEILINTENT</strong> · PRIVATE POLICY RAIL</span>
-          <span>ONE BUYER · ONE SELLER · ONE PER-INTENT POLICY</span>
-          <span class="footer-limits">NO LIVE WALLET · NO LLM · NO ASSET SWAP</span>
-          <a class="source-link" href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">Source repository ↗</a>
-        </footer>
+        <section class="page-view simulator-view" id="simulator-view" data-page-view="simulator" hidden aria-labelledby="simulator-title">
+          <div class="page-heading"><div><p class="eyebrow">BROWSER SIMULATION ONLY</p><h1 id="simulator-title">Policy simulator</h1><p class="intro-copy">Check a private limit against the recorded public quote in this browser.</p></div><a class="back-link" href="?view=home">← Back to payment</a></div>
+          <p class="simulator-notice">This checker runs locally in your browser. It does not generate a Compact proof, connect a wallet, or submit a transaction.</p>
+          <section class="panel simulator-panel" id="panel-agent" aria-labelledby="agent-title">
+            <div class="panel-heading"><div><p class="eyebrow">PRIVATE INPUT · LOCAL TO THIS TAB</p><h2 id="agent-title">Set your private limits</h2></div><span class="simulation-badge">NO PROOF</span></div>
+            <p class="panel-copy">The values you enter are cleared when you leave this page and are never saved or sent.</p>
+            <form id="policy-checker" novalidate>
+              <div class="public-intent-row"><span class="field-label">RECORDED QUOTE</span><strong id="agent-order-summary">Waiting for evidence</strong><span class="public-mini-tag">PUBLIC</span></div>
+              <div class="field-grid">
+                <div class="field-wrap"><label for="max-unit-price">Private max unit price <span>TEST UNITS</span></label><div class="input-shell"><input id="max-unit-price" name="maxUnitPrice" type="number" inputmode="decimal" min="0.000001" step="0.000001" placeholder="Enter a private cap" autocomplete="off" aria-describedby="unit-price-help" required /><span class="input-suffix">/ ITEM</span></div><small class="field-help" id="unit-price-help">The entered value stays in this browser tab.</small></div>
+                <div class="field-wrap"><label for="max-total">Private total budget <span>TEST UNITS</span></label><div class="input-shell"><input id="max-total" name="maxTotal" type="number" inputmode="decimal" min="0.000001" step="0.000001" placeholder="Enter a private budget" autocomplete="off" aria-describedby="total-help" required /><span class="input-suffix">MAX</span></div><small class="field-help" id="total-help">Compared with the recorded quote total.</small></div>
+              </div>
+              <div class="form-footer"><span class="simulation-label"><span class="simulation-dot"></span> BROWSER SIMULATION · NO PROOF</span><button class="primary-button" id="check-policy" type="submit" disabled><span>Check policy locally</span><span aria-hidden="true">→</span></button></div>
+              <p class="policy-result" id="policy-result" role="status" aria-live="polite" hidden></p>
+            </form>
+          </section>
+        </section>
+
+        <footer class="page-footer"><span><strong>VEILINTENT</strong> · PRIVATE POLICY RAIL</span><span class="footer-limits">RECORDED TEST EVIDENCE · NO LIVE WALLET</span><a class="source-link" href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">Source repository ↗</a></footer>
       </main>
     </div>
   </body>
