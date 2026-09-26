@@ -1,0 +1,281 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Feasibility spike: an authorized risk operator can end exposure without
+// taking custody of the trader's payout. All collateral is one public fixed
+// test-token lot; terms and both capabilities remain private witnesses.
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+
+export struct PositionTerms {
+  side: Boolean;
+  notionalAtoms: Amount;
+  entryPriceTicks: Amount;
+  guardBufferAtoms: Amount;
+}
+
+export struct OwnerTargetWitness {
+  ownerRecipient: ZswapCoinPublicKey;
+  recipientSalt: Bytes32;
+}
+
+export struct OwnerSecretPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  collateralLotAtoms: Amount;
+  ownerCloseSecret: Bytes32;
+}
+
+export struct OperatorSecretPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  operatorCloseSecret: Bytes32;
+}
+
+export struct RecipientPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  collateralLotAtoms: Amount;
+  ownerRecipient: ZswapCoinPublicKey;
+}
+
+export struct PositionPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  collateralLotAtoms: Amount;
+  ownerIdentityCommitment: Bytes32;
+  operatorIdentityCommitment: Bytes32;
+  ownerRecipientCommitment: Bytes32;
+  terms: PositionTerms;
+}
+
+export ledger networkDomain: Bytes32;
+export ledger escrowCoin: QualifiedShieldedCoinInfo;
+export ledger ownerIdentityCommitment: Bytes32;
+export ledger operatorIdentityCommitment: Bytes32;
+export ledger ownerRecipientCommitment: Bytes32;
+export ledger positionCommitment: Bytes32;
+export ledger positionActive: Boolean;
+export ledger closedUnclaimed: Boolean;
+export ledger settled: Boolean;
+
+constructor(networkDomain_: Bytes32) {
+  networkDomain = disclose(networkDomain_);
+  positionActive = false;
+  closedUnclaimed = false;
+  settled = false;
+}
+
+export pure circuit collateralTokenDomain(): Bytes32 {
+  return pad(32, "silence:claim-test:v1");
+}
+
+export pure circuit fixedCollateralLotAtoms(): Amount {
+  return 1000000000;
+}
+
+export pure circuit deriveOwnerIdentity(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  collateralLotAtoms: Amount,
+  ownerCloseSecret: Bytes32
+): Bytes32 {
+  const payload = OwnerSecretPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    collateralLotAtoms: collateralLotAtoms,
+    ownerCloseSecret: ownerCloseSecret
+  };
+  return persistentHash<OwnerSecretPayload>(payload);
+}
+
+export pure circuit deriveOperatorIdentity(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  operatorCloseSecret: Bytes32
+): Bytes32 {
+  const payload = OperatorSecretPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    operatorCloseSecret: operatorCloseSecret
+  };
+  return persistentHash<OperatorSecretPayload>(payload);
+}
+
+export pure circuit commitOwnerRecipient(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  collateralLotAtoms: Amount,
+  ownerRecipient: ZswapCoinPublicKey,
+  recipientSalt: Bytes32
+): Bytes32 {
+  const payload = RecipientPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    collateralLotAtoms: collateralLotAtoms,
+    ownerRecipient: ownerRecipient
+  };
+  return persistentCommit<RecipientPayload>(payload, recipientSalt);
+}
+
+export pure circuit computePositionCommitment(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  collateralLotAtoms: Amount,
+  ownerIdentity: Bytes32,
+  operatorIdentity: Bytes32,
+  recipientCommitment: Bytes32,
+  terms: PositionTerms,
+  positionSalt: Bytes32
+): Bytes32 {
+  const payload = PositionPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    collateralLotAtoms: collateralLotAtoms,
+    ownerIdentityCommitment: ownerIdentity,
+    operatorIdentityCommitment: operatorIdentity,
+    ownerRecipientCommitment: recipientCommitment,
+    terms: terms
+  };
+  return persistentCommit<PositionPayload>(payload, positionSalt);
+}
+
+// Permissionless faucet for Local Devnet circuit tests only.
+export circuit mintTestCollateral(nonce: Bytes32): ShieldedCoinInfo {
+  return mintShieldedToken(
+    collateralTokenDomain(),
+    fixedCollateralLotAtoms(),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+export circuit openPosition(
+  coin: ShieldedCoinInfo,
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerCloseSecret: Bytes32,
+  operatorIdentity: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assert(!positionActive, "POSITION_ALREADY_OPEN");
+  assert(!closedUnclaimed, "POSITION_ALREADY_CLOSED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(coin.value == fixedCollateralLotAtoms(), "INVALID_COLLATERAL_AMOUNT");
+  assert(
+    coin.color == tokenType(collateralTokenDomain(), kernel.self()),
+    "INVALID_COLLATERAL_TOKEN"
+  );
+  assert(terms.notionalAtoms > 0, "NOTIONAL_ZERO");
+  assert(terms.entryPriceTicks > 0, "ENTRY_PRICE_ZERO");
+  assert(terms.guardBufferAtoms > 0, "GUARD_BUFFER_ZERO");
+
+  receiveShielded(disclose(coin));
+  escrowCoin.writeCoin(
+    disclose(coin),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+
+  const ownerIdentity = deriveOwnerIdentity(
+    networkDomain,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerCloseSecret
+  );
+  const recipientCommitment = commitOwnerRecipient(
+    networkDomain,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerTarget.ownerRecipient,
+    ownerTarget.recipientSalt
+  );
+  const termsCommitment = computePositionCommitment(
+    networkDomain,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerIdentity,
+    operatorIdentity,
+    recipientCommitment,
+    terms,
+    positionSalt
+  );
+
+  ownerIdentityCommitment = disclose(ownerIdentity);
+  operatorIdentityCommitment = disclose(operatorIdentity);
+  ownerRecipientCommitment = disclose(recipientCommitment);
+  positionCommitment = disclose(termsCommitment);
+  positionActive = true;
+}
+
+// Risk operator terminates the trading exposure. It does not spend the
+// collateral or choose a payout recipient.
+export circuit operatorClose(operatorCloseSecret: Bytes32): [] {
+  assert(positionActive, "POSITION_NOT_OPEN");
+  assert(!closedUnclaimed, "POSITION_ALREADY_CLOSED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+
+  const expectedOperator = deriveOperatorIdentity(
+    networkDomain,
+    kernel.self().bytes,
+    operatorCloseSecret
+  );
+  assert(expectedOperator == operatorIdentityCommitment, "NOT_AUTHORIZED_OPERATOR");
+
+  positionActive = false;
+  closedUnclaimed = true;
+}
+
+// Trader presents the original committed terms and owner capability. The
+// shielded transfer can only target the recipient committed at openPosition.
+export circuit ownerClaim(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerCloseSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assert(closedUnclaimed, "POSITION_NOT_CLOSED");
+  assert(!positionActive, "POSITION_STILL_ACTIVE");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+
+  const expectedOwner = deriveOwnerIdentity(
+    networkDomain,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerCloseSecret
+  );
+  assert(expectedOwner == ownerIdentityCommitment, "NOT_POSITION_OWNER");
+
+  const expectedRecipient = commitOwnerRecipient(
+    networkDomain,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerTarget.ownerRecipient,
+    ownerTarget.recipientSalt
+  );
+  assert(expectedRecipient == ownerRecipientCommitment, "OWNER_RECIPIENT_MISMATCH");
+
+  const expectedPosition = computePositionCommitment(
+    networkDomain,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    expectedOwner,
+    operatorIdentityCommitment,
+    expectedRecipient,
+    terms,
+    positionSalt
+  );
+  assert(expectedPosition == positionCommitment, "POSITION_WITNESS_MISMATCH");
+
+  const coin = escrowCoin;
+  const result = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownerTarget.ownerRecipient)),
+    disclose(coin.value)
+  );
+  assert(!result.change.is_some, "UNEXPECTED_COLLATERAL_CHANGE");
+
+  closedUnclaimed = false;
+  settled = true;
+  return [];
+}

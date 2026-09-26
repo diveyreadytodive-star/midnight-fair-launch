@@ -1,0 +1,85 @@
+{
+  "checkedAt": "2026-09-25T21:45:08.091Z",
+  "mode": "actual-shared-local-devnet-two-distinct-shielded-wallet-keys-owner-dust-sponsored",
+  "contractAddress": "4ad205690ed82147c694f9db3dde9bfe7439becea8dc113818515f075f711fe9",
+  "walletSeparation": {
+    "ownerAndOperatorShieldedKeysDiffer": true,
+    "operatorKeyMatchesCommittedRecipient": false,
+    "note": "The operator close used a separate shielded wallet key, but the same local test process accessed the owner's Local Devnet DUST secret key to balance and submit fees. This does not prove a deployed operator can execute without any owner wallet key. The valueless owner seed came from the public Local Devnet genesis fixture, not the user's Preprod/development wallet."
+  },
+  "receipts": {
+    "deployment": null,
+    "open": {
+      "txId": "003ae9579c43a46b741e997e9ee632691efd96724e2fc3a33ce70829d5c33acebb",
+      "status": "SucceedEntirely",
+      "blockHeight": 570,
+      "indexerHash": "5237ac45be5c91c66d5e6c1fb06f4bcfae694aa825991a5b82de39b60c064787"
+    },
+    "operatorClose": {
+      "txId": "00f4b0d5301e715c874d78c4feab244e69233638a33bba46cf018a5aa62442f422",
+      "status": "SucceedEntirely",
+      "blockHeight": 573,
+      "indexerHash": "9224803d55cc789c762777d74347c5485c0bd535e0ced1b39aca3065083026ce"
+    },
+    "ownerClaim": {
+      "txId": "00364725966f2ff2b97f2d33931819e6cbd19946e772f6f0d8d962d5f40bc04006",
+      "status": "SucceedEntirely",
+      "blockHeight": 577,
+      "indexerHash": "6fa16a3eb1676b10c8c5af4e45e47320550c3dafc9d0f2ddd24064b047eb2d19"
+    }
+  },
+  "observations": {
+    "ownerNativeBalanceBeforeAttemptStar": "249999000000000",
+    "operatorNativeBalanceBeforeAttemptStar": "0",
+    "ownerHadLocalDustForFee": true,
+    "operatorCloseDUSTFeeSponsoredByOwner": true,
+    "publicFixedCollateralAtoms": "1000000000",
+    "collateralMerkleIndex": "40",
+    "shieldedBalancesAtoms": {
+      "ownerAfterOpen": "0",
+      "ownerAfterOperatorClose": "0",
+      "ownerAfterClaim": "1000000000",
+      "operatorAfterOperatorClose": "0",
+      "operatorAfterClaim": "0"
+    },
+    "operatorOwnerClaimAttemptRejected": true,
+    "operatorClaimRejection": "failed assert: NOT_POSITION_OWNER",
+    "stateAfterOperatorClose": {
+      "positionActive": false,
+      "closedUnclaimed": true,
+      "settled": false,
+      "escrowValueAtoms": "1000000000",
+      "escrowMerkleIndex": "40"
+    },
+    "ownerShieldedBalanceAfterClaim": "1000000000",
+    "operatorShieldedBalanceAfterClaim": "0",
+    "ownerAndOperatorReplayAttemptsRejected": true,
+    "publicLedgerAfterFinalClaim": {
+      "positionActive": false,
+      "closedUnclaimed": false,
+      "settled": true,
+      "fixedCollateralAtoms": "1000000000"
+    },
+    "publiclyDisclosedForThisSpike": [
+      "Fixed collateral amount and its shielded-coin Merkle index",
+      "Owner, operator, recipient, and position commitments",
+      "Lifecycle phase flags"
+    ],
+    "privateValuesAbsentFromTestedPublicFields": [
+      "Position side, notional, entry price, guard buffer, and salts",
+      "Owner close secret and operator close secret",
+      "Committed owner shielded recipient key"
+    ],
+    "testedPublicFieldsExcludeOpenWitnessesAndOwnerAddress": true,
+    "testedPublicFieldsExcludeOperatorSecretAndOwnerAddressAtClose": true,
+    "testedPublicFieldsExcludeOwnerSecretAndRecipientAddressAtClaim": true
+  },
+  "limitations": [
+    "This is a valueless Local Devnet contract test using two distinct wallets. It is not a Preprod or production transaction.",
+    "The operator uses a separate shielded key, but the same local process accesses the owner's Local Devnet DUST secret key for fee balancing and submission. This verifies the caller-key/recipient-key boundary, not a key-isolated production operator or independently funded fees.",
+    "The chain runner holds the operator preimage in temporary process memory to exercise both roles. Secure operator-side generation, delivery, and persistence are not verified.",
+    "It proves close/claim authority separation and fixed-lot shielded owner readback only; it does not prove oracle pricing, PnL, automated liquidation, safe real-value custody, or a complete perp DEX.",
+    "The operator capability has no risk predicate in this spike and can close early at any time.",
+    "Only tested raw transaction and indexed contract-action fields were searched for the listed private witnesses; this is not a general privacy audit."
+  ]
+}

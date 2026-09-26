@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-09-25T21:42:27Z",
+  "mode": "actual-shared-local-devnet-partial",
+  "contract": {
+    "address": "4ad205690ed82147c694f9db3dde9bfe7439becea8dc113818515f075f711fe9",
+    "deploymentBlock": 316,
+    "deploymentTransactionHash": "9d24dbd7857e0a9e2cb743ff8b22d1dd021f1242842a105a83dd2630473010c3"
+  },
+  "ownerToEphemeralOperatorFunding": {
+    "block": 439,
+    "timestampMilliseconds": 1790371866002,
+    "transactionHash": "cab15801d64d9446d2d3635625e9e78188cdc6290757a4d151d84c40b74b56ea",
+    "localNativeTokenType": "0000000000000000000000000000000000000000000000000000000000000000",
+    "operatorOutput": {
+      "value": "1000000000",
+      "registeredForDustGeneration": false,
+      "recipientMatchesOwnerGenesisWallet": false
+    },
+    "ownerChangeOutput": {
+      "value": "49999000000000",
+      "registeredForDustGeneration": true,
+      "recipientMatchesOwnerGenesisWallet": true
+    }
+  },
+  "dustRegistration": {
+    "submitted": false,
+    "diagnostic": "Insufficient generated dust to cover registration fee",
+    "generatedDustRaw": "214942000000000",
+    "requiredDustRaw": "300000000277589"
+  },
+  "contractInteraction": {
+    "mintTestCollateral": false,
+    "openPosition": false,
+    "operatorClose": false,
+    "ownerClaim": false
+  },
+  "cleanupAndLimits": [
+    "The operator seed and temporary wallet state were deleted when the runner exited; no wallet seed, mnemonic, private witness, or address is recorded here.",
+    "The output is a valueless Local Devnet native test token, not Preprod tNIGHT or real funds. The ephemeral output is inaccessible to this runner after cleanup.",
+    "Public indexer metadata from blocks 440 through 449 contained no further transactions; the observed contract deployment is empty and no position was opened."
+  ]
+}

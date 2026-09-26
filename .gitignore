@@ -1,0 +1,28 @@
+.local/
+.midnight-state.json
+.midnight-wallet-state/
+node_modules/
+node_modules
+dist/
+build/
+coverage/
+generated/
+managed/
+.tools/
+.cache/
+artifacts/.build/
+.env
+.env.*
+!.env.example
+*.log
+*.seed
+*.mnemonic
+*.key
+.wallet*/
+*wallet-state*/
+# Historical local harness imports the preserved sibling BlindAid checkout.
+# Its sanitized receipts live in docs/evidence; keep the public repo standalone.
+spikes/shielded-escrow/
+# Wallet-sync diagnostics require the user's protected local test wallet and a
+# sibling checkout; only sanitized public faucet evidence is shareable.
+spikes/preprod-wallet/

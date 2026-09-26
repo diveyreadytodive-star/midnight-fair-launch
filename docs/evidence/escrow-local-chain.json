@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-09-25T19:52:14.401Z",
+  "mode": "actual-isolated-local-devnet",
+  "contractAddress": "44f50db5db19f3c4c18e49d0a4a4efd25b7ec4f413f817fd5844aeab24bf7f39",
+  "deployment": {
+    "txId": "00b32691c99d85bba1d613c099b86d854c3900f9a5674dec411ab5fe55705f50e5",
+    "status": "SucceedEntirely",
+    "blockHeight": 232
+  },
+  "mint": {
+    "txId": "00098937845a51144d922d2078e011a8e8695ad1ecb236a9a1316c6763f500fc10",
+    "status": "SucceedEntirely",
+    "blockHeight": 235
+  },
+  "deposit": {
+    "txId": "0018ae5516f39b75bebf903b29137d6647835c89b35681f997857c412d554b83cf",
+    "status": "SucceedEntirely",
+    "blockHeight": 239
+  },
+  "release": {
+    "txId": "00653caa7bc1302545f2fa83fc0d66ebeac676f9898ea2750918758c0bbbc0ccbc",
+    "status": "SucceedEntirely",
+    "blockHeight": 243
+  },
+  "observed": {
+    "amount": "1000",
+    "contractCoinMtIndexAfterDeposit": "34",
+    "indexerFirstFreeAfterDeposit": "0",
+    "indexerQueryBlockHeight": 239,
+    "escrowAmountVisibleInPublicLedger": "1000",
+    "ownerBalanceBeforeRelease": "0",
+    "ownerBalanceAfterRelease": "1000",
+    "contractHasDepositAfterRelease": false,
+    "contractSettledAfterRelease": true
+  },
+  "evidenceLimits": [
+    "This is a local-devnet contract-owned test-token round trip, not a Preprod transfer.",
+    "The test token has no value and the contract has no production mint authority.",
+    "No wallet seed, nonce, private transaction payload, or full proof response is recorded."
+  ]
+}

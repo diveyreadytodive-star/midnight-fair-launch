@@ -1,0 +1,11 @@
+{
+  "name": "silence-lp-reserve-spike",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "test": "npm run compile && node --import tsx --test tests/contract.test.ts",
+    "test:chain": "node --import tsx scripts/test-local-chain.ts"
+  }
+}

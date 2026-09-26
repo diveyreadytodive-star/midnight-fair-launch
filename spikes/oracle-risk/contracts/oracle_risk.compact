@@ -1,0 +1,348 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Simulator-only G2 composition spike. It has no token custody, PnL payout,
+// funding, or LP/insurance accounting. The public ledger contains a BTC demo
+// oracle quote and position lifecycle commitments only; exact private terms
+// and the protective/liquidation mode are never disclosed by a circuit.
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+export type Wide = Uint<128>;
+
+export struct PositionTerms {
+  isLong: Boolean;
+  notionalAtoms: Amount;
+  entryPriceTicks: Amount;
+  guardBufferAtoms: Amount;
+}
+
+export struct RiskPolicy {
+  collateralAtoms: Amount;
+  maxNotionalAtoms: Amount;
+  feeAtoms: Amount;
+  maintenanceBps: Amount;
+  exitCostAtoms: Amount;
+  profitCapAtoms: Amount;
+  oracleMaxAgeSeconds: Amount;
+}
+
+struct SecretPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  secret: Bytes32;
+}
+
+struct PositionPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  ownerIdentityCommitment: Bytes32;
+  terms: PositionTerms;
+  policy: RiskPolicy;
+}
+
+struct Division {
+  quotient: Wide;
+  remainder: Wide;
+}
+
+struct RiskPredicates {
+  liquidatable: Boolean;
+  protective: Boolean;
+}
+
+// Compact does not expose integer division. The circuit checks this private
+// quotient/remainder witness, including the exact identity and range.
+witness quotientRemainder(numerator: Wide, denominator: Wide): Division;
+
+export ledger networkDomain: Bytes32;
+export ledger oraclePublisherCommitment: Bytes32;
+export ledger operatorRiskCommitment: Bytes32;
+export ledger oraclePriceTicks: Amount;
+export ledger oracleSequence: Amount;
+export ledger oraclePublishedAt: Amount;
+export ledger oracleReady: Boolean;
+export ledger positionCommitment: Bytes32;
+export ledger positionActive: Boolean;
+export ledger positionClosed: Boolean;
+
+constructor(
+  networkDomain_: Bytes32,
+  oraclePublisherCommitment_: Bytes32,
+  operatorRiskCommitment_: Bytes32
+) {
+  networkDomain = disclose(networkDomain_);
+  oraclePublisherCommitment = disclose(oraclePublisherCommitment_);
+  operatorRiskCommitment = disclose(operatorRiskCommitment_);
+  oraclePriceTicks = 0;
+  oracleSequence = 0;
+  oraclePublishedAt = 0;
+  oracleReady = false;
+  positionActive = false;
+  positionClosed = false;
+}
+
+export pure circuit fixedRiskPolicy(): RiskPolicy {
+  return RiskPolicy{
+    collateralAtoms: 1000000000,
+    maxNotionalAtoms: 5000000000,
+    feeAtoms: 0,
+    maintenanceBps: 500,
+    exitCostAtoms: 20000000,
+    profitCapAtoms: 500000000,
+    oracleMaxAgeSeconds: 60
+  };
+}
+
+circuit deriveCapability(
+  networkDomain_: Bytes32,
+  purposeDomain: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  const payload = SecretPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: purposeDomain,
+    secret: secret
+  };
+  return persistentHash<SecretPayload>(payload);
+}
+
+export pure circuit deriveOraclePublisherCommitment(
+  networkDomain_: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  return deriveCapability(
+    networkDomain_,
+    pad(32, "silence:btc-oracle-publisher:v1"),
+    secret
+  );
+}
+
+export pure circuit deriveOperatorRiskCommitment(
+  networkDomain_: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  return deriveCapability(
+    networkDomain_,
+    pad(32, "silence:operator-risk-close:v1"),
+    secret
+  );
+}
+
+export pure circuit deriveOwnerIdentityCommitment(
+  networkDomain_: Bytes32,
+  secret: Bytes32
+): Bytes32 {
+  return deriveCapability(
+    networkDomain_,
+    pad(32, "silence:position-owner:v1"),
+    secret
+  );
+}
+
+circuit assertFreshTimestamp(publishedAt: Amount): [] {
+  const policy = fixedRiskPolicy();
+  // A bounded sum avoids Uint<64> wraparound. Midnight exposes only block-time
+  // comparison predicates, not a readable current-time value.
+  assert(publishedAt <= 4000000000, "ORACLE_TIMESTAMP_OUT_OF_RANGE");
+  assert(blockTimeGte(disclose(publishedAt)), "ORACLE_TIMESTAMP_IN_FUTURE");
+  assert(
+    blockTimeLt(disclose((publishedAt + policy.oracleMaxAgeSeconds + 1) as Amount)),
+    "ORACLE_STALE"
+  );
+}
+
+export circuit publishOracleQuote(
+  priceTicks: Amount,
+  sequence: Amount,
+  publishedAt: Amount,
+  publisherSecret: Bytes32
+): [] {
+  const publisher = deriveCapability(
+    networkDomain,
+    pad(32, "silence:btc-oracle-publisher:v1"),
+    publisherSecret
+  );
+  assert(publisher == oraclePublisherCommitment, "UNAUTHORIZED_ORACLE_PUBLISHER");
+  assert(priceTicks > 0, "ORACLE_PRICE_ZERO");
+  assert(sequence > oracleSequence, "ORACLE_SEQUENCE_NOT_NEWER");
+  assert(publishedAt >= oraclePublishedAt, "ORACLE_TIMESTAMP_NOT_MONOTONIC");
+  assertFreshTimestamp(publishedAt);
+  oraclePriceTicks = disclose(priceTicks);
+  oracleSequence = disclose(sequence);
+  oraclePublishedAt = disclose(publishedAt);
+  oracleReady = disclose(true);
+}
+
+circuit ceilDiv(numerator: Wide, denominator: Wide): Wide {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.quotient <= numerator, "INVALID_DIVISION_QUOTIENT");
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    (division.quotient as Field) * (denominator as Field) +
+      (division.remainder as Field) == (numerator as Field),
+    "INVALID_DIVISION_WITNESS"
+  );
+  if (division.remainder == 0) {
+    return division.quotient;
+  }
+  return (division.quotient + 1) as Wide;
+}
+
+circuit floorDiv(numerator: Wide, denominator: Wide): Wide {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.quotient <= numerator, "INVALID_DIVISION_QUOTIENT");
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    (division.quotient as Field) * (denominator as Field) +
+      (division.remainder as Field) == (numerator as Field),
+    "INVALID_DIVISION_WITNESS"
+  );
+  return division.quotient;
+}
+
+circuit computePositionCommitment(
+  terms: PositionTerms,
+  ownerIdentityCommitment: Bytes32,
+  positionSalt: Bytes32
+): Bytes32 {
+  const payload = PositionPayload{
+    networkDomain: networkDomain,
+    contractAddress: kernel.self().bytes,
+    ownerIdentityCommitment: ownerIdentityCommitment,
+    terms: terms,
+    policy: fixedRiskPolicy()
+  };
+  return persistentCommit<PositionPayload>(payload, positionSalt);
+}
+
+export circuit openPosition(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32
+): [] {
+  assert(oracleReady, "ORACLE_NOT_READY");
+  assertFreshTimestamp(oraclePublishedAt);
+  assert(!positionActive, "POSITION_ALREADY_OPEN");
+  assert(!positionClosed, "POSITION_ALREADY_CLOSED");
+  assert(terms.notionalAtoms > 0, "NOTIONAL_ZERO");
+  assert(terms.notionalAtoms <= fixedRiskPolicy().maxNotionalAtoms, "NOTIONAL_EXCEEDS_CAP");
+  assert(terms.entryPriceTicks > 0, "ENTRY_PRICE_ZERO");
+  assert(terms.entryPriceTicks == oraclePriceTicks, "ENTRY_PRICE_NOT_CURRENT_ORACLE");
+  assert(terms.guardBufferAtoms <= fixedRiskPolicy().collateralAtoms, "GUARD_EXCEEDS_COLLATERAL");
+
+  const policy = fixedRiskPolicy();
+  const entryMaintenance = ceilDiv(
+    ((terms.notionalAtoms as Field) * (policy.maintenanceBps as Field)) as Wide,
+    10000
+  );
+  const entryMinimumExitEquity =
+    ((entryMaintenance as Field) + (policy.exitCostAtoms as Field)) as Wide;
+  const entryBuffer = (policy.collateralAtoms as Wide) > entryMinimumExitEquity
+    ? (policy.collateralAtoms as Wide) - entryMinimumExitEquity
+    : 0;
+  assert(entryBuffer > (terms.guardBufferAtoms as Wide), "GUARD_TRIGGERS_AT_ENTRY");
+
+  const ownerIdentity = deriveOwnerIdentityCommitment(networkDomain, ownerSecret);
+  positionCommitment = disclose(computePositionCommitment(terms, ownerIdentity, positionSalt));
+  positionActive = disclose(true);
+}
+
+circuit evaluatePrivateRisk(terms: PositionTerms): RiskPredicates {
+  const policy = fixedRiskPolicy();
+  const entry = terms.entryPriceTicks as Wide;
+  const mark = oraclePriceTicks as Wide;
+  const notional = terms.notionalAtoms as Wide;
+  const pnlIsLoss = terms.isLong ? mark < entry : mark > entry;
+  const priceDelta = mark >= entry ? mark - entry : entry - mark;
+
+  // Product-compatible units: price ticks are micro-USD per BTC, so USD
+  // scaling cancels in notionalAtoms * priceDelta / entryTicks. With
+  // notional <= 5e9 and price inputs <= Uint64.max, the raw product is below
+  // 2^97 and fits exactly in Wide (Uint<128>).
+  const pnlNumerator = ((notional as Field) * (priceDelta as Field)) as Wide;
+  const pnlMagnitude = pnlIsLoss
+    ? ceilDiv(pnlNumerator, entry)
+    : floorDiv(pnlNumerator, entry);
+  const currentNotional = ceilDiv(
+    ((notional as Field) * (mark as Field)) as Wide,
+    entry
+  );
+  // Match the product TypeScript reference's checked Uint64 current notional.
+  assert(currentNotional <= 18446744073709551615, "CURRENT_NOTIONAL_OUT_OF_RANGE");
+  const maintenance = ceilDiv(
+    ((currentNotional as Field) * (policy.maintenanceBps as Field)) as Wide,
+    10000
+  );
+  const collateral = policy.collateralAtoms as Wide;
+  const fee = policy.feeAtoms as Wide;
+  const lossAndFee = ((pnlMagnitude as Field) + (fee as Field)) as Wide;
+  const grossProfitEquity = ((collateral as Field) + (pnlMagnitude as Field)) as Wide;
+  const equityIsNegative = pnlIsLoss
+    ? lossAndFee > collateral
+    : fee > grossProfitEquity;
+  const equity = pnlIsLoss
+    ? (lossAndFee > collateral ? lossAndFee - collateral : collateral - lossAndFee)
+    : (fee > grossProfitEquity ? fee - grossProfitEquity : grossProfitEquity - fee);
+  const isLiquidatable = equityIsNegative || equity <= maintenance;
+  const minimumExitEquity =
+    ((maintenance as Field) + (policy.exitCostAtoms as Field)) as Wide;
+  const bufferAfterMaintenanceAndExit = equity > minimumExitEquity
+    ? equity - minimumExitEquity
+    : 0;
+  const exitCost = policy.exitCostAtoms as Wide;
+  const isProtective = !isLiquidatable && equity > maintenance && equity > exitCost &&
+    bufferAfterMaintenanceAndExit <= (terms.guardBufferAtoms as Wide);
+
+  return RiskPredicates{
+    liquidatable: isLiquidatable,
+    protective: isProtective
+  };
+}
+
+export circuit ownerClose(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerSecret: Bytes32
+): [] {
+  assert(positionActive, "POSITION_NOT_OPEN");
+  const ownerIdentity = deriveOwnerIdentityCommitment(networkDomain, ownerSecret);
+  assert(
+    computePositionCommitment(terms, ownerIdentity, positionSalt) == positionCommitment,
+    "POSITION_TERMS_MISMATCH"
+  );
+  positionActive = disclose(false);
+  positionClosed = disclose(true);
+}
+
+// One generic circuit handles either private predicate. It returns no mode,
+// bool, price-dependent output, or event; the only public delta is that the
+// singleton position is no longer active.
+export circuit riskClose(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerIdentityCommitment: Bytes32,
+  operatorSecret: Bytes32
+): [] {
+  assert(positionActive, "POSITION_NOT_OPEN");
+  assert(oracleReady, "ORACLE_NOT_READY");
+  assertFreshTimestamp(oraclePublishedAt);
+  assert(
+    deriveCapability(
+      networkDomain,
+      pad(32, "silence:operator-risk-close:v1"),
+      operatorSecret
+    ) == operatorRiskCommitment,
+    "UNAUTHORIZED_RISK_OPERATOR"
+  );
+  assert(
+    computePositionCommitment(terms, ownerIdentityCommitment, positionSalt) == positionCommitment,
+    "POSITION_TERMS_MISMATCH"
+  );
+  const predicates = evaluatePrivateRisk(terms);
+  assert(predicates.liquidatable || predicates.protective, "POSITION_HEALTHY");
+  positionActive = disclose(false);
+  positionClosed = disclose(true);
+}

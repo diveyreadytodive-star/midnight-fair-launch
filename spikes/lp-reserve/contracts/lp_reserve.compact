@@ -1,0 +1,371 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+
+export struct LpRecipientWitness {
+  recipient: ZswapCoinPublicKey;
+  salt: Bytes32;
+}
+
+export struct OwnerRecipientWitness {
+  recipient: ZswapCoinPublicKey;
+  salt: Bytes32;
+}
+
+export struct OwnerSecretPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  collateralAtoms: Amount;
+  ownerSecret: Bytes32;
+}
+
+export struct LpSecretPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  reserveAtoms: Amount;
+  lpSecret: Bytes32;
+}
+
+export struct RecipientPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  recipient: ZswapCoinPublicKey;
+}
+
+// Isolated fixed-unit accounting spike. A trader funds 1,000 units and an LP
+// locks one actual 500-unit shielded coin of this contract's test token.
+export ledger networkDomain: Bytes32;
+export ledger traderCoin: QualifiedShieldedCoinInfo;
+export ledger reserveCoin: QualifiedShieldedCoinInfo;
+export ledger lpLossCoin: QualifiedShieldedCoinInfo;
+export ledger reserveFunded: Boolean;
+export ledger positionActive: Boolean;
+export ledger lpLossClaimable: Boolean;
+export ledger settled: Boolean;
+export ledger ownerIdentityCommitment: Bytes32;
+export ledger ownerRecipientCommitment: Bytes32;
+export ledger lpRecipientCommitment: Bytes32;
+export ledger lpSecretCommitment: Bytes32;
+
+constructor(networkDomain_: Bytes32) {
+  networkDomain = disclose(networkDomain_);
+  reserveFunded = false;
+  positionActive = false;
+  lpLossClaimable = false;
+  settled = false;
+}
+
+export pure circuit testTokenDomain(): Bytes32 {
+  return pad(32, "silence:lp-reserve-spike:v1");
+}
+
+export pure circuit traderCollateralUnits(): Amount {
+  return 1000;
+}
+
+export pure circuit lpReserveUnits(): Amount {
+  return 500;
+}
+
+export pure circuit maximumPayoutUnits(): Amount {
+  return (traderCollateralUnits() + lpReserveUnits()) as Amount;
+}
+
+export pure circuit deriveOwnerIdentity(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  collateralAtoms: Amount,
+  ownerSecret: Bytes32
+): Bytes32 {
+  const payload = OwnerSecretPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    collateralAtoms: collateralAtoms,
+    ownerSecret: ownerSecret
+  };
+  return persistentHash<OwnerSecretPayload>(payload);
+}
+
+export pure circuit deriveLpIdentity(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  reserveAtoms: Amount,
+  lpSecret: Bytes32
+): Bytes32 {
+  const payload = LpSecretPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    reserveAtoms: reserveAtoms,
+    lpSecret: lpSecret
+  };
+  return persistentHash<LpSecretPayload>(payload);
+}
+
+export pure circuit commitRecipient(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  recipient: ZswapCoinPublicKey,
+  salt: Bytes32
+): Bytes32 {
+  const payload = RecipientPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    recipient: recipient
+  };
+  return persistentCommit<RecipientPayload>(payload, salt);
+}
+
+// Local simulator fixture only; it makes this spike's test token freely mintable.
+export circuit mintTestCoin(value: Amount, nonce: Bytes32): ShieldedCoinInfo {
+  assert(value > 0, "TEST_COIN_AMOUNT_ZERO");
+  return mintShieldedToken(
+    testTokenDomain(),
+    disclose(value),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+// The LP contributes a real, exact-value shielded test-token coin. The public
+// state tracks the coin itself; this is not a numeric reserve promise.
+export circuit fundReserve(
+  coin: ShieldedCoinInfo,
+  lpSecret: Bytes32,
+  lpRecipient: LpRecipientWitness
+): [] {
+  assert(!reserveFunded, "RESERVE_ALREADY_FUNDED");
+  assert(!positionActive, "POSITION_ALREADY_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(coin.value == lpReserveUnits(), "INVALID_RESERVE_AMOUNT");
+  assert(
+    coin.color == tokenType(testTokenDomain(), kernel.self()),
+    "INVALID_RESERVE_TOKEN"
+  );
+
+  receiveShielded(disclose(coin));
+  reserveCoin.writeCoin(
+    disclose(coin),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+  lpRecipientCommitment = commitRecipient(
+    networkDomain,
+    kernel.self().bytes,
+    lpRecipient.recipient,
+    lpRecipient.salt
+  );
+  lpSecretCommitment = disclose(deriveLpIdentity(
+    networkDomain,
+    kernel.self().bytes,
+    lpReserveUnits(),
+    lpSecret
+  ));
+  reserveFunded = true;
+  return [];
+}
+
+export circuit openPosition(
+  coin: ShieldedCoinInfo,
+  ownerSecret: Bytes32,
+  ownerRecipient: OwnerRecipientWitness
+): [] {
+  assert(reserveFunded, "LP_RESERVE_NOT_FUNDED");
+  assert(!positionActive, "POSITION_ALREADY_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(coin.value == traderCollateralUnits(), "INVALID_TRADER_COLLATERAL");
+  assert(
+    coin.color == tokenType(testTokenDomain(), kernel.self()),
+    "INVALID_TRADER_TOKEN"
+  );
+
+  receiveShielded(disclose(coin));
+  traderCoin.writeCoin(
+    disclose(coin),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+
+  ownerIdentityCommitment = disclose(deriveOwnerIdentity(
+    networkDomain,
+    kernel.self().bytes,
+    traderCollateralUnits(),
+    ownerSecret
+  ));
+  ownerRecipientCommitment = commitRecipient(
+    networkDomain,
+    kernel.self().bytes,
+    ownerRecipient.recipient,
+    ownerRecipient.salt
+  );
+  positionActive = true;
+  return [];
+}
+
+// Accounting only: payoutUnits is a caller-supplied public circuit input. This
+// spike does not validate price, PnL, market fairness, or LP solvency.
+export circuit claim(payoutUnits: Amount, ownerSecret: Bytes32,
+  ownerRecipient: OwnerRecipientWitness
+): [] {
+  const publicPayoutUnits = disclose(payoutUnits);
+  assert(positionActive, "POSITION_NOT_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(publicPayoutUnits <= maximumPayoutUnits(), "PAYOUT_EXCEEDS_FUNDED_ASSETS");
+
+  assert(
+    deriveOwnerIdentity(
+      networkDomain,
+      kernel.self().bytes,
+      traderCollateralUnits(),
+      ownerSecret
+    ) == ownerIdentityCommitment,
+    "NOT_POSITION_OWNER"
+  );
+  assert(
+    commitRecipient(
+      networkDomain,
+      kernel.self().bytes,
+      ownerRecipient.recipient,
+      ownerRecipient.salt
+    ) == ownerRecipientCommitment,
+    "OWNER_RECIPIENT_MISMATCH"
+  );
+  const ownerAddress = left<ZswapCoinPublicKey, ContractAddress>(
+    disclose(ownerRecipient.recipient)
+  );
+  if (publicPayoutUnits == 0) {
+    const retainedLoss = sendShielded(
+      traderCoin,
+      right<ZswapCoinPublicKey, ContractAddress>(kernel.self()),
+      disclose(traderCollateralUnits())
+    );
+    assert(!retainedLoss.change.is_some, "UNEXPECTED_ZERO_PAYOUT_CHANGE");
+    lpLossCoin.writeCoin(
+      disclose(retainedLoss.sent),
+      right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+    );
+    lpLossClaimable = true;
+  } else if (publicPayoutUnits < traderCollateralUnits()) {
+    const paid = sendShielded(traderCoin, ownerAddress, disclose(publicPayoutUnits));
+    assert(paid.change.is_some, "EXPECTED_TRADER_LOSS_CHANGE");
+    assert(
+      paid.change.value.value == traderCollateralUnits() - publicPayoutUnits,
+      "TRADER_LOSS_CHANGE_MISMATCH"
+    );
+    lpLossCoin.writeCoin(
+      disclose(paid.change.value),
+      right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+    );
+    lpLossClaimable = true;
+  } else {
+    const paid = sendShielded(
+      traderCoin,
+      ownerAddress,
+      disclose(traderCollateralUnits())
+    );
+    assert(!paid.change.is_some, "UNEXPECTED_TRADER_PAYOUT_CHANGE");
+
+    if (publicPayoutUnits > traderCollateralUnits()) {
+      const lpSpend = publicPayoutUnits - traderCollateralUnits();
+      const paidFromReserve = sendShielded(reserveCoin, ownerAddress, disclose(lpSpend));
+      if (paidFromReserve.change.is_some) {
+        assert(
+          paidFromReserve.change.value.value == lpReserveUnits() - lpSpend,
+          "LP_RESERVE_CHANGE_MISMATCH"
+        );
+        reserveCoin.writeCoin(
+          disclose(paidFromReserve.change.value),
+          right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+        );
+      } else {
+        assert(lpSpend == lpReserveUnits(), "LP_RESERVE_UNEXPECTEDLY_EMPTY");
+        reserveFunded = false;
+      }
+    }
+  }
+
+  positionActive = false;
+  settled = true;
+  return [];
+}
+
+// The trader's loss remainder stays shielded in contract custody until a
+// separate LP transaction. LP authorization comes from the independent secret
+// commitment; ownPublicKey() below is prover-controlled and is only a
+// consistency assertion, not caller authentication or proof of notification.
+export circuit claimLpLoss(
+  lpSecret: Bytes32,
+  lpRecipient: LpRecipientWitness
+): [] {
+  assert(settled, "POSITION_NOT_SETTLED");
+  assert(lpLossClaimable, "NO_LP_LOSS_TO_CLAIM");
+  assert(
+    deriveLpIdentity(
+      networkDomain,
+      kernel.self().bytes,
+      lpReserveUnits(),
+      lpSecret
+    ) == lpSecretCommitment,
+    "NOT_AUTHORIZED_LP"
+  );
+  assert(
+    commitRecipient(
+      networkDomain,
+      kernel.self().bytes,
+      lpRecipient.recipient,
+      lpRecipient.salt
+    ) == lpRecipientCommitment,
+    "LP_RECIPIENT_MISMATCH"
+  );
+  assert(ownPublicKey() == lpRecipient.recipient, "LP_KEY_CONSISTENCY_MISMATCH");
+
+  const coin = lpLossCoin;
+  const paid = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(lpRecipient.recipient)),
+    disclose(coin.value)
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_LP_CLAIM_CHANGE");
+  lpLossClaimable = false;
+  return [];
+}
+
+// One-shot spike-only unwinder used to prove that a partial send's new reserve
+// coin can be spent by a later transaction after the ledger commitment. A
+// production pool would keep this coin available for another position.
+export circuit withdrawReserveRemainder(
+  lpSecret: Bytes32,
+  lpRecipient: LpRecipientWitness
+): [] {
+  assert(settled, "POSITION_NOT_SETTLED");
+  assert(reserveFunded, "NO_RESERVE_REMAINDER");
+  assert(
+    deriveLpIdentity(
+      networkDomain,
+      kernel.self().bytes,
+      lpReserveUnits(),
+      lpSecret
+    ) == lpSecretCommitment,
+    "NOT_AUTHORIZED_LP"
+  );
+  assert(
+    commitRecipient(
+      networkDomain,
+      kernel.self().bytes,
+      lpRecipient.recipient,
+      lpRecipient.salt
+    ) == lpRecipientCommitment,
+    "LP_RECIPIENT_MISMATCH"
+  );
+  assert(ownPublicKey() == lpRecipient.recipient, "LP_KEY_CONSISTENCY_MISMATCH");
+
+  const coin = reserveCoin;
+  const paid = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(lpRecipient.recipient)),
+    disclose(coin.value)
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_RESERVE_WITHDRAW_CHANGE");
+  reserveFunded = false;
+  return [];
+}

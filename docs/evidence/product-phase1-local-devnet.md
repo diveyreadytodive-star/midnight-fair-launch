@@ -1,0 +1,15 @@
+# SILENCE product contract Phase 1: Local Devnet evidence
+
+**Result: PASS for the fixed-lot custody and position-commitment primitive.** This is one actual Local Devnet proof-and-transaction round trip for the new SILENCE contract. It is not a perpetual position lifecycle, an oracle-validated trade, or an operator-triggered close.
+
+The isolated Compose project was `silence-private-perps-phase1`. The deployed product contract was `edd881ad8a7ef942307fc630457b17212ff54caea052de6e112ba85e51296673`. Deployment finalized at block 153, test collateral mint at 156, position commitment at 160, and owner close at 164. The exact SDK identifiers, indexer hashes, statuses, and blocks are recorded in the adjacent [sanitized JSON evidence](product-phase1-local-devnet.json).
+
+The committed position held a **public fixed collateral lot of 1,000 valueless test units (`1,000,000,000` atoms)**. The public ledger readback showed QSCI value `1,000,000,000`, `mt_index=37`, indexer `firstFree=0` at the open block, an active position commitment, and then `settled=true` after close. The owner wallet independently read a shielded balance of 0 before close and 1,000 units afterward. The asset is a permissionlessly minted Local Devnet fixture; it has no real value.
+
+Two adversarial calls exercised the compiled circuit against the live Local Devnet. A wrong `ownerCloseSecret` failed with `NOT_POSITION_OWNER`; the contract remained active, unsettled, and the owner balance remained zero. Replaying `ownerClose` after settlement failed with `POSITION_NOT_OPEN`; the settled state and 1,000-unit owner balance were unchanged. Both failures occurred before finality while producing/submitting the invalid proof, rather than as finalized failed transactions.
+
+The test inspected indexer transaction raw bytes and structured `ContractCall.address`, `entryPoint`, `state`, and `zswapState`, then decoded the contract ledger. Selected test-value and secret encodings were not observed in those open fields, and the decoded public ledger schema contains no side, notional, entry price, or guard field. This is a bounded observation, not an exhaustive proof that all encodings, side channels, derived data, or future transaction outputs hide those values. The output amount and coin index are public.
+
+The close circuit invokes `sendShielded(disclose(ownerRecipient))`. The exact encoded recipient-key bytes were not found by the harness's contiguous byte scan in the indexed raw fields, but that does not override the explicit `disclose` boundary. Treat the owner recipient key as public at close; whether observers can correlate that key to a person or other activity was not measured. This test does not establish wallet unlinkability or a private complete trade history.
+
+This phase does not validate the entry price against an oracle sequence, calculate or pay PnL, support operator protective close/liquidation, establish bad-debt coverage, or exercise a browser wallet. It tests one headless local genesis wallet only. See [verification status](../verification-status.md) for the remaining product gates.

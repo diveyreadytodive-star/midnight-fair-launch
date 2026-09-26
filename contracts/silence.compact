@@ -1,0 +1,274 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export type Bytes32 = Bytes<32>;
+export type ProtocolVersion = Uint<32>;
+export type Amount = Uint<64>;
+
+export struct PositionTerms {
+  side: Boolean;
+  notionalAtoms: Amount;
+  entryPriceTicks: Amount;
+  guardBufferAtoms: Amount;
+}
+
+export struct OwnerTargetWitness {
+  ownerRecipient: ZswapCoinPublicKey;
+  recipientSalt: Bytes32;
+}
+
+export struct OwnerIdentityPayload {
+  networkDomain: Bytes32;
+  marketId: Bytes32;
+  protocolVersion: ProtocolVersion;
+  contractAddress: Bytes32;
+  collateralLotAtoms: Amount;
+  ownerCloseSecret: Bytes32;
+}
+
+export struct OwnerRecipientPayload {
+  networkDomain: Bytes32;
+  marketId: Bytes32;
+  protocolVersion: ProtocolVersion;
+  contractAddress: Bytes32;
+  collateralLotAtoms: Amount;
+  ownerRecipient: ZswapCoinPublicKey;
+}
+
+export struct PositionCommitmentPayload {
+  networkDomain: Bytes32;
+  marketId: Bytes32;
+  protocolVersion: ProtocolVersion;
+  contractAddress: Bytes32;
+  collateralLotAtoms: Amount;
+  ownerIdentityCommitment: Bytes32;
+  ownerRecipientCommitment: Bytes32;
+  terms: PositionTerms;
+}
+
+export ledger networkDomain: Bytes32;
+export ledger marketId: Bytes32;
+export ledger protocolVersion: ProtocolVersion;
+export ledger escrowCoin: QualifiedShieldedCoinInfo;
+export ledger ownerIdentityCommitment: Bytes32;
+export ledger ownerRecipientCommitment: Bytes32;
+export ledger positionCommitment: Bytes32;
+export ledger positionActive: Boolean;
+export ledger settled: Boolean;
+
+constructor(networkDomain_: Bytes32) {
+  networkDomain = disclose(networkDomain_);
+  marketId = disclose(pad(32, "BTC-USD"));
+  protocolVersion = disclose(1);
+  positionActive = false;
+  settled = false;
+}
+
+export pure circuit collateralTokenDomain(): Bytes32 {
+  return pad(32, "silence:test-collateral:v1");
+}
+
+export pure circuit fixedCollateralLotAtoms(): Amount {
+  return 1000000000;
+}
+
+export pure circuit maxDemoNotionalAtoms(): Amount {
+  return (fixedCollateralLotAtoms() * 5) as Amount;
+}
+
+export pure circuit deriveOwnerIdentity(
+  networkDomain_: Bytes32,
+  marketId_: Bytes32,
+  protocolVersion_: ProtocolVersion,
+  contractAddress: Bytes32,
+  collateralLotAtoms: Amount,
+  ownerCloseSecret: Bytes32
+): Bytes32 {
+  const payload = OwnerIdentityPayload{
+    networkDomain: networkDomain_,
+    marketId: marketId_,
+    protocolVersion: protocolVersion_,
+    contractAddress: contractAddress,
+    collateralLotAtoms: collateralLotAtoms,
+    ownerCloseSecret: ownerCloseSecret
+  };
+  return persistentHash<OwnerIdentityPayload>(payload);
+}
+
+export pure circuit commitOwnerRecipient(
+  networkDomain_: Bytes32,
+  marketId_: Bytes32,
+  protocolVersion_: ProtocolVersion,
+  contractAddress: Bytes32,
+  collateralLotAtoms: Amount,
+  ownerRecipient: ZswapCoinPublicKey,
+  recipientSalt: Bytes32
+): Bytes32 {
+  const payload = OwnerRecipientPayload{
+    networkDomain: networkDomain_,
+    marketId: marketId_,
+    protocolVersion: protocolVersion_,
+    contractAddress: contractAddress,
+    collateralLotAtoms: collateralLotAtoms,
+    ownerRecipient: ownerRecipient
+  };
+  return persistentCommit<OwnerRecipientPayload>(payload, recipientSalt);
+}
+
+export pure circuit computePositionCommitment(
+  networkDomain_: Bytes32,
+  marketId_: Bytes32,
+  protocolVersion_: ProtocolVersion,
+  contractAddress: Bytes32,
+  collateralLotAtoms: Amount,
+  ownerIdentityCommitment_: Bytes32,
+  ownerRecipientCommitment_: Bytes32,
+  terms: PositionTerms,
+  positionSalt: Bytes32
+): Bytes32 {
+  const payload = PositionCommitmentPayload{
+    networkDomain: networkDomain_,
+    marketId: marketId_,
+    protocolVersion: protocolVersion_,
+    contractAddress: contractAddress,
+    collateralLotAtoms: collateralLotAtoms,
+    ownerIdentityCommitment: ownerIdentityCommitment_,
+    ownerRecipientCommitment: ownerRecipientCommitment_,
+    terms: terms
+  };
+  return persistentCommit<PositionCommitmentPayload>(payload, positionSalt);
+}
+
+// Permissionless test-asset faucet for Local Devnet only. This circuit must
+// never be enabled for any real-value collateral.
+export circuit mintTestCollateral(nonce: Bytes32): ShieldedCoinInfo {
+  return mintShieldedToken(
+    collateralTokenDomain(),
+    fixedCollateralLotAtoms(),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+// Phase 1 is only fixed-lot custody plus confidential terms/owner commitments.
+// It does not validate an oracle price or settle PnL and is not a complete perp.
+export circuit commitPosition(
+  coin: ShieldedCoinInfo,
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerCloseSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assert(!positionActive, "POSITION_ALREADY_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(coin.value == fixedCollateralLotAtoms(), "INVALID_COLLATERAL_AMOUNT");
+  assert(
+    coin.color == tokenType(collateralTokenDomain(), kernel.self()),
+    "INVALID_COLLATERAL_TOKEN"
+  );
+  assert(terms.notionalAtoms > 0, "NOTIONAL_ZERO");
+  assert(terms.notionalAtoms <= maxDemoNotionalAtoms(), "NOTIONAL_EXCEEDS_DEMO_LEVERAGE");
+  assert(terms.entryPriceTicks > 0, "ENTRY_PRICE_ZERO");
+  assert(terms.guardBufferAtoms > 0, "GUARD_BUFFER_ZERO");
+  assert(terms.guardBufferAtoms <= fixedCollateralLotAtoms(), "GUARD_BUFFER_TOO_LARGE");
+
+  receiveShielded(disclose(coin));
+  escrowCoin.writeCoin(
+    disclose(coin),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+
+  const ownerIdentity = deriveOwnerIdentity(
+    networkDomain,
+    marketId,
+    protocolVersion,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerCloseSecret
+  );
+  const recipientCommitment = commitOwnerRecipient(
+    networkDomain,
+    marketId,
+    protocolVersion,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerTarget.ownerRecipient,
+    ownerTarget.recipientSalt
+  );
+  const termsCommitment = computePositionCommitment(
+    networkDomain,
+    marketId,
+    protocolVersion,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerIdentity,
+    recipientCommitment,
+    terms,
+    positionSalt
+  );
+
+  ownerIdentityCommitment = disclose(ownerIdentity);
+  ownerRecipientCommitment = disclose(recipientCommitment);
+  positionCommitment = disclose(termsCommitment);
+  positionActive = true;
+}
+
+// The owner secret is a CSPRNG-generated client secret stored only in the
+// owner's private state. It is not a wallet seed and must never be sent to the
+// risk engine. There is deliberately no caller-selected payout recipient.
+export circuit ownerClose(
+  terms: PositionTerms,
+  positionSalt: Bytes32,
+  ownerCloseSecret: Bytes32,
+  ownerTarget: OwnerTargetWitness
+): [] {
+  assert(positionActive, "POSITION_NOT_OPEN");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+
+  const expectedOwnerIdentity = deriveOwnerIdentity(
+    networkDomain,
+    marketId,
+    protocolVersion,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerCloseSecret
+  );
+  assert(expectedOwnerIdentity == ownerIdentityCommitment, "NOT_POSITION_OWNER");
+
+  const expectedRecipientCommitment = commitOwnerRecipient(
+    networkDomain,
+    marketId,
+    protocolVersion,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    ownerTarget.ownerRecipient,
+    ownerTarget.recipientSalt
+  );
+  assert(expectedRecipientCommitment == ownerRecipientCommitment, "OWNER_RECIPIENT_MISMATCH");
+
+  const expectedTermsCommitment = computePositionCommitment(
+    networkDomain,
+    marketId,
+    protocolVersion,
+    kernel.self().bytes,
+    fixedCollateralLotAtoms(),
+    expectedOwnerIdentity,
+    expectedRecipientCommitment,
+    terms,
+    positionSalt
+  );
+  assert(expectedTermsCommitment == positionCommitment, "POSITION_WITNESS_MISMATCH");
+
+  const coin = escrowCoin;
+  const result = sendShielded(
+    coin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownerTarget.ownerRecipient)),
+    disclose(coin.value)
+  );
+  assert(!result.change.is_some, "UNEXPECTED_COLLATERAL_CHANGE");
+
+  positionActive = false;
+  settled = true;
+  return [];
+}

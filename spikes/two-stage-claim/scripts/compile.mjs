@@ -1,0 +1,36 @@
+import { existsSync, mkdirSync } from 'node:fs';
+import { delimiter, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+
+const spikeDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const projectDir = resolve(spikeDir, '../..');
+const version = '0.31.1';
+const platform = process.platform === 'darwin'
+  ? (process.arch === 'arm64' ? 'aarch64-darwin' : 'x86_64-darwin')
+  : process.platform === 'linux'
+    ? (process.arch === 'arm64' ? 'aarch64-linux' : 'x86_64-linux')
+    : null;
+const candidates = [
+  process.env.COMPACTC?.trim(),
+  platform ? resolve(projectDir, '.tools/compact-cache/versions', version, platform, 'compactc.bin') : undefined,
+  resolve(projectDir, '.tools/compact'),
+].filter(Boolean);
+const compiler = candidates.find((candidate) => existsSync(candidate)) ?? 'compact';
+const isCli = compiler.split('/').at(-1) === 'compact';
+const nativeDir = isCli ? undefined : dirname(compiler);
+const output = resolve(spikeDir, 'generated/two_stage_claim');
+mkdirSync(dirname(output), { recursive: true });
+
+const result = spawnSync(compiler, isCli
+  ? ['compile', 'contracts/two_stage_claim.compact', 'generated/two_stage_claim']
+  : [resolve(spikeDir, 'contracts/two_stage_claim.compact'), output], {
+  cwd: spikeDir,
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    PATH: nativeDir ? [nativeDir, process.env.PATH ?? ''].join(delimiter) : process.env.PATH,
+  },
+});
+if (result.error) console.error('Compact 0.31.1 compiler unavailable: ' + result.error.message);
+process.exit(result.status ?? 1);

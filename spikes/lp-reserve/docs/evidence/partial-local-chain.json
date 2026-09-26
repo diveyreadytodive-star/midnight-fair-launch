@@ -1,0 +1,102 @@
+{
+  "checkedAtUtc": "2026-09-25T21:59:06Z",
+  "mode": "partial-shared-local-devnet-run",
+  "chain": {
+    "network": "undeployed Local Devnet",
+    "localIndexerHeadAtFinalCheck": 704,
+    "noTransactionsObservedAfterOpenThroughHead": true,
+    "dockerResetOrRestarted": false
+  },
+  "contractAddress": "aa98ca04a6f83ad54d0304c99f23780851c4b4bea59564677a80aee8daf271c7",
+  "finalizedTransactions": [
+    {
+      "stage": "deploy",
+      "blockHeight": 651,
+      "indexerHash": "e59be9aa51d990299048afc5698f6ca4aabd22329db46adfa12852a1c6fe9945"
+    },
+    {
+      "stage": "mintTestCoin for LP reserve",
+      "entryPoint": "mintTestCoin",
+      "blockHeight": 654,
+      "indexerHash": "d602a1ed6ed5c0dd39cb8816d2691114bb6d00ad2a26b8ccf417a91a60af00bf"
+    },
+    {
+      "stage": "fund LP reserve",
+      "entryPoint": "fundReserve",
+      "blockHeight": 658,
+      "indexerHash": "42d07d2176429f03e269e44235d6e2a644d07e0c22521da39c1d8e1477afaaae"
+    },
+    {
+      "stage": "mintTestCoin for trader collateral",
+      "entryPoint": "mintTestCoin",
+      "blockHeight": 661,
+      "indexerHash": "d9be4ecf121afae5ca06c8e5ad2de28b9ede212e2cf4f88f13f9314f737b6e17"
+    },
+    {
+      "stage": "open position",
+      "entryPoint": "openPosition",
+      "blockHeight": 665,
+      "indexerHash": "3bb0fad5d970b8df21e45fe5a84d73c91fb9a64f81db82aefcd6efaec2e0cab4"
+    }
+  ],
+  "publicLedgerAtFinalReadback": {
+    "reserveFunded": true,
+    "positionActive": true,
+    "settled": false,
+    "lpLossClaimable": false,
+    "traderCoin": {
+      "value": "1000",
+      "mtIndex": "45"
+    },
+    "reserveCoin": {
+      "value": "500",
+      "mtIndex": "43"
+    },
+    "lpLossCoin": {
+      "value": "0",
+      "mtIndex": "0"
+    }
+  },
+  "failure": {
+    "lastFinalizedStage": "openPosition",
+    "nextExpectedStage": "owner claim with payout 800",
+    "diagnostic": "Failed Proof Server response: url=\"http://127.0.0.1:26300/check\", code=\"400\", status=\"Bad Request\"",
+    "claimReceiptObserved": false,
+    "stageAssessment": "The claim failure stage is inferred from the runner's sequential call order: openPosition was the last finalized action and no later transaction appeared through block 704. The original runner did not emit a finer stage marker."
+  },
+  "readOnlyDiagnosis": {
+    "proofServerLogWindowUtc": "2026-09-25T21:53:50Z/2026-09-25T21:54:05Z",
+    "sanitizedObservation": "Proof-server logs contain /check and HTTP 400 entries at 2026-09-25T21:53:56Z, but no structured server-side constraint, QSCI index, fee, or key/config diagnosis. Raw log bodies were not emitted because they may contain proof input data.",
+    "generatedAssets": {
+      "compilerVersion": "0.31.1",
+      "languageVersion": "0.23.0",
+      "runtimeVersion": "0.16.0",
+      "claimProverAssetPresent": true,
+      "claimKeyMaterialLoadedByNodeProvider": true
+    },
+    "sameEndpointEarlierCircuitEvidence": [
+      "mintTestCoin for LP reserve finalized",
+      "fundReserve finalized",
+      "mintTestCoin for trader collateral finalized",
+      "openPosition finalized"
+    ],
+    "feeAssessment": "The runner's read-only full-run DUST preflight passed, and the failure was raised by the Proof Server /check HTTP request before any claim receipt. No fee error was observed; a fee cause is not supported by current evidence.",
+    "qsciAssessment": "Indexer readback confirms the still-unspent trader coin at mt_index 45 and reserve coin at mt_index 43. No claim transaction reached the chain. A stale witness is not evidenced, but cannot be fully excluded as an input to the rejected check.",
+    "circuitAssessment": "The HTTP client discards non-success response bodies and reports only status 400. The next operation was the claim circuit, whose new path partially sends the trader QSCI and writes its change into the LP-loss ledger cell. This is the most specific candidate path, but the logs do not prove whether failure is its circuit constraints, change writeCoin handling, request serialization, or key material lookup.",
+    "proofClientBehavior": "The pinned SDK builds the /check payload from serialized circuit preimage and key material, then throws a generic HTTP error on non-success without exposing response content. A read-only NodeZkConfigProvider.get(\"claim\") check loads prover key, verifier key, and ZKIR successfully.",
+    "rootCause": "Unresolved without a new protected test run and a safe way to surface server diagnostics."
+  },
+  "recovery": {
+    "testAssetsOnly": true,
+    "assetValue": "valueless Local Devnet custom token",
+    "testOnlySecretsAndEphemeralLpSeedRetained": false,
+    "status": "The original runner deleted its temporary wallet state and in-memory owner secret, LP secret, LP seed, and recipient salts on process exit. This open test position cannot be claimed using the preserved artifacts.",
+    "retrySafe": false,
+    "operatorAction": "Do not submit further actions to this contract. Do not reset/restart the shared stack. A future attempt must use protected recovery state before its first transaction."
+  },
+  "claimBoundaries": [
+    "This is partial contract custody/open-position evidence only; it does not pass LP payout delivery or reserve-remainder spendability.",
+    "No Preprod wallet, user real-value asset, seed, recipient key, salt, private payload, or proof response was recorded.",
+    "Payout proof failure and subsequent LP wallet balances were not tested."
+  ]
+}

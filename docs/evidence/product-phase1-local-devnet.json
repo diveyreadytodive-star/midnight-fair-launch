@@ -1,0 +1,105 @@
+{
+  "checkedAt": "2026-09-25T21:03:50.434Z",
+  "network": "isolated undeployed Local Devnet",
+  "composeProject": "silence-private-perps-phase1",
+  "scope": "fixed-public-lot custody and private position-commitment primitive",
+  "completePerpetualExchange": false,
+  "contractAddress": "edd881ad8a7ef942307fc630457b17212ff54caea052de6e112ba85e51296673",
+  "receipts": {
+    "deploy": {
+      "sdkIdentifier": "0046215a56bba78da7be0d88b795e4c7c1fa6d6af29b012f65ebfa1460e18c95a3",
+      "indexerHash": "66633697247a685f57ef0c67a168a791c383a60fd1773b5c4f348da7cc932bb7",
+      "blockHeight": 153,
+      "status": "SucceedEntirely"
+    },
+    "mintTestCollateral": {
+      "sdkIdentifier": "00f848dba2a6c7baa0e07183f771d9d829dc5eaa70f0a6d5f72cebbc0f5438de2d",
+      "indexerHash": "de94d2651ddb8eb0a55fe8781611523ef7b76e5bc6146e0b5008e370e48fb134",
+      "blockHeight": 156,
+      "entryPoint": "mintTestCollateral",
+      "status": "SucceedEntirely"
+    },
+    "commitPosition": {
+      "sdkIdentifier": "00322a895a37aa1ecaf52270496e0a7af445500131449e4e0bcaa0b61d5e545cc5",
+      "indexerHash": "51455c288ceb3946bca98b1aa24577597268e883ce93c6070135197d5bd944c7",
+      "blockHeight": 160,
+      "entryPoint": "commitPosition",
+      "status": "SucceedEntirely"
+    },
+    "ownerClose": {
+      "sdkIdentifier": "0096d6d34bfd094efafdc55d32cd9f1b375a5711ef30688aac93fc22c4331b263e",
+      "indexerHash": "cd176b6ffc0222bcb88fd9ed603689d1386e9a91d53e3cd72319f3ba0fbb8a2c",
+      "blockHeight": 164,
+      "entryPoint": "ownerClose",
+      "status": "SucceedEntirely"
+    }
+  },
+  "publicReadbackAfterCommit": {
+    "collateralAmountAtoms": "1000000000",
+    "collateralAmountUnits": "1000",
+    "collateralMtIndex": "37",
+    "indexerFirstFreeAtCommitBlock": "0",
+    "positionActive": true,
+    "settled": false,
+    "decodedPublicLedgerFields": [
+      "networkDomain",
+      "marketId",
+      "protocolVersion",
+      "collateralValueAtoms",
+      "collateralMtIndex",
+      "ownerIdentityCommitment",
+      "ownerRecipientCommitment",
+      "positionCommitment",
+      "positionActive",
+      "settled"
+    ]
+  },
+  "publicReadbackAfterOwnerClose": {
+    "collateralAmountAtoms": "1000000000",
+    "positionActive": false,
+    "settled": true
+  },
+  "ownerWalletBalanceReadbackAtoms": {
+    "beforeOwnerClose": "0",
+    "afterOwnerClose": "1000000000"
+  },
+  "adversarialAttempts": {
+    "wrongOwnerCloseSecret": {
+      "rejected": true,
+      "stage": "proof-or-pre-finality-submission",
+      "circuitDiagnostic": "failed assert: NOT_POSITION_OWNER",
+      "positionActiveAfterAttempt": true,
+      "settledAfterAttempt": false,
+      "ownerBalanceAtomsAfterAttempt": "0"
+    },
+    "replayOwnerClose": {
+      "rejected": true,
+      "stage": "proof-or-pre-finality-submission",
+      "circuitDiagnostic": "failed assert: POSITION_NOT_OPEN",
+      "positionActiveAfterAttempt": false,
+      "settledAfterAttempt": true,
+      "ownerBalanceAtomsAfterAttempt": "1000000000"
+    }
+  },
+  "privacyAudit": {
+    "openTransactionAndContractFieldsInspected": [
+      "transaction.raw",
+      "contractCall.address",
+      "contractCall.entryPoint",
+      "contractCall.state",
+      "contractCall.zswapState",
+      "decoded public ledger fields"
+    ],
+    "targetedPrivateValueAndSecretByteScansObservedMatch": false,
+    "ownerCloseSecretContiguousBytesObservedInCloseFields": false,
+    "ownerRecipientKeyContiguousBytesObservedInCloseFields": false,
+    "ownerRecipientCircuitDisclosure": "The contract calls sendShielded with disclose(ownerRecipient). Treat the recipient coin key as public at this boundary; the byte scan did not establish its serialized representation or whether an observer can correlate it to an identity.",
+    "limits": [
+      "The raw-byte check tests selected encodings and is not a proof that every representation or derived value is absent.",
+      "The contract has no oracle binding, PnL settlement, operator protective close, or liquidation circuit in this phase.",
+      "The fixed collateral amount, coin value, coin mt_index, and public commitments are visible.",
+      "The mint circuit is permissionless test-token issuance and is never suitable for production assets.",
+      "The test used one local genesis wallet. It does not prove browser-wallet integration, independent operator execution, or recipient-wallet discovery by another wallet."
+    ]
+  }
+}

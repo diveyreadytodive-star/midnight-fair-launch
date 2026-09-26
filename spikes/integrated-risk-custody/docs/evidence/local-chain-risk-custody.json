@@ -1,0 +1,264 @@
+{
+  "checkedAt": "2026-09-25T22:29:45.001Z",
+  "mode": "loopback-only actual Local Devnet; test mint; no Preprod wallet seed; no shared stack reset",
+  "runId": "ae2d01b3-2d24-49c7-909f-6dcecec12f99",
+  "distinctOwnerAndOperatorShieldedKeys": true,
+  "ownerGenesisDUSTSponsoredOperatorTransactions": true,
+  "ownerGenesisWalletNativeAtomsBefore": "249999000000000",
+  "ownerGenesisWalletDUSTBefore": "1249999970539720999995010",
+  "operatorWalletNativeAtomsBefore": "0",
+  "scenarios": [
+    {
+      "scenario": "p90-protective",
+      "riskPriceTicks": "90000000000",
+      "inferredSideFromPublicPricePair": "long",
+      "noteOnInference": "Open and risk-close quotes are public; the adverse-only riskClose path lets observers infer the likely losing side from this pair after close.",
+      "contractAddress": "67bdb010570d44dd50f856eb88c7666f1a4f114f67e8e15a6549de7245783d80",
+      "entryOracleSnapshot": {
+        "priceTicks": "100000000000",
+        "sequence": "1",
+        "publishedAt": "1790375120"
+      },
+      "riskOracleSnapshot": {
+        "priceTicks": "90000000000",
+        "sequence": "2",
+        "publishedAt": "1790375180"
+      },
+      "receipts": {
+        "deploy": {
+          "txId": "009f6317c81e66655ec0447dd04dc8cfb53ec6e40a8b9e18dea8c58d531cdea852",
+          "status": "SucceedEntirely",
+          "blockHeight": 979,
+          "durationMs": 16501,
+          "transactionHash": "2b1ab74042d69fe4f4b5eb7b4b12cf826f96c57a3850523b2cf6fd905032cd91"
+        },
+        "openQuote": {
+          "txId": "0077ee3291608bee1b637e527575b918f0c0cabb406969e25a9601191a5b047ad3",
+          "status": "SucceedEntirely",
+          "blockHeight": 982,
+          "durationMs": 17348,
+          "transactionHash": "34680dac9778d0b0d0e5df3c6eef7990dc5089ec9c49feda13c1a4bc2908d8f5",
+          "entryPoint": "publishOracleQuote"
+        },
+        "mint": {
+          "txId": "00af0eef6ab8caac4ab9cf98a88309311b74220c7bc08ac5cb3c2800fe9ad6ba84",
+          "status": "SucceedEntirely",
+          "blockHeight": 985,
+          "durationMs": 18708,
+          "transactionHash": "5b833cd10392abd71c024e79debd25f72ec8566e07dcc7223f1c6e2f54c48ce9",
+          "entryPoint": "mintTestCollateral"
+        },
+        "open": {
+          "txId": "00d052b11edf20a67cb60220fb203d5c6343ebb846a27ef5e79f49ebe6a83a9836",
+          "status": "SucceedEntirely",
+          "blockHeight": 989,
+          "durationMs": 24001
+        },
+        "riskQuote": {
+          "txId": "003f4be9791508a6f3f84fbda1d43106aa4897be2ef855f2edf415b0902bb18b96",
+          "status": "SucceedEntirely",
+          "blockHeight": 992,
+          "durationMs": 17325,
+          "transactionHash": "7010a22079cc2c1df790b01ea7ce4d3725a765e3f75f2344009241a98a00cb4b",
+          "entryPoint": "publishOracleQuote"
+        },
+        "riskClose": {
+          "txId": "00f25ad658ce9ab92e76361770065550586d8773ef52912848c9d56ca525cc2f2c",
+          "status": "SucceedEntirely",
+          "blockHeight": 995,
+          "durationMs": 18682
+        },
+        "ownerClaim": {
+          "txId": "00e378ba68e7a8565e864d28275c66b20c286607d94ee533adb39e76cb8289a155",
+          "status": "SucceedEntirely",
+          "blockHeight": 999,
+          "durationMs": 24018
+        }
+      },
+      "timings": {
+        "quotePublishToReceiptMs": 17325,
+        "riskCloseTransactionMs": 18682,
+        "measuredFrom": "host wall clock around proof generation, balancing, submission and receipt wait; not a chain consensus latency benchmark",
+        "riskCloseStartedAtUnixSeconds": 1790375197,
+        "riskQuoteAgeAtRiskCloseSubmitMs": 17939
+      },
+      "observations": {
+        "publicFixedCollateralAtoms": "1000000000",
+        "collateralMtIndex": "47",
+        "ownerShieldedBalanceAfterOpenAtoms": "0",
+        "operatorShieldedBalanceAfterRiskCloseAtoms": "0",
+        "ownerShieldedBalanceAfterClaimAtoms": "1000000000",
+        "operatorShieldedBalanceAfterClaimAtoms": "0",
+        "testedOpenAndRiskClosePublicFieldsExcludeSelectedSecretsSaltsSizeAndGuard": true,
+        "testedClaimPublicFieldsExcludeSelectedSecretsSaltsSizeAndGuard": true,
+        "committedRecipientDisclosedByCircuitDuringOwnerClaim": true,
+        "exactRecipientKeyHexFoundInIndexedRawFields": false,
+        "positionSideInferenceFromOpenAndClosePrices": "The selected quotes imply long-side adverse risk; this is a semantic inference, not a plaintext side field."
+      },
+      "quotePublicAudits": {
+        "oracle-open": {
+          "txId": "0077ee3291608bee1b637e527575b918f0c0cabb406969e25a9601191a5b047ad3",
+          "transactionHash": "34680dac9778d0b0d0e5df3c6eef7990dc5089ec9c49feda13c1a4bc2908d8f5",
+          "blockHeight": 982,
+          "entryPoint": "publishOracleQuote",
+          "publisherSecretFoundInTestedPublicFields": false
+        },
+        "oracle-risk": {
+          "txId": "003f4be9791508a6f3f84fbda1d43106aa4897be2ef855f2edf415b0902bb18b96",
+          "transactionHash": "7010a22079cc2c1df790b01ea7ce4d3725a765e3f75f2344009241a98a00cb4b",
+          "blockHeight": 992,
+          "entryPoint": "publishOracleQuote",
+          "publisherSecretFoundInTestedPublicFields": false
+        }
+      },
+      "finalIndependentLedgerReadback": {
+        "oraclePriceTicks": "90000000000",
+        "oracleSequence": "2",
+        "positionEntryOraclePriceTicks": "100000000000",
+        "positionEntryOracleSequence": "1",
+        "positionActive": false,
+        "closedUnclaimed": false,
+        "settled": true,
+        "fixedEscrowCoinAtoms": "1000000000",
+        "escrowMtIndex": "47",
+        "readAfterFinalizedOwnerClaim": true
+      },
+      "recoveryBundleState": {
+        "status": "complete",
+        "directoryMode": "700",
+        "manifestMode": "600",
+        "pendingOperation": null
+      }
+    },
+    {
+      "scenario": "p84-liquidation",
+      "riskPriceTicks": "84000000000",
+      "inferredSideFromPublicPricePair": "long",
+      "noteOnInference": "Open and risk-close quotes are public; the adverse-only riskClose path lets observers infer the likely losing side from this pair after close.",
+      "contractAddress": "12e2fcd9a79072494987b8d875c3dda93a5339ab5eb0032f78e9a0baba8b9854",
+      "entryOracleSnapshot": {
+        "priceTicks": "100000000000",
+        "sequence": "1",
+        "publishedAt": "1790375258"
+      },
+      "riskOracleSnapshot": {
+        "priceTicks": "84000000000",
+        "sequence": "2",
+        "publishedAt": "1790375318"
+      },
+      "receipts": {
+        "deploy": {
+          "txId": "004bed6e8ae4fce42481e750352e6e93dd6ab1ffc5d4987971baf7e434045ea9b8",
+          "status": "SucceedEntirely",
+          "blockHeight": 1002,
+          "durationMs": 17307,
+          "transactionHash": "71f3e5412a4aac6ca54495c9a209d8583b9e12ef9a49e6b757fefd6cc0be14bb"
+        },
+        "openQuote": {
+          "txId": "008c60e0010d99141647c6e0b468f9870fd9ff2b41bec55ef932a86cf4d6c3ab13",
+          "status": "SucceedEntirely",
+          "blockHeight": 1005,
+          "durationMs": 18706,
+          "transactionHash": "ed775152d63c53d01edbf91b99ca95d5bbf54576cfb0071629ed28fe12feb71d",
+          "entryPoint": "publishOracleQuote"
+        },
+        "mint": {
+          "txId": "0094124c88a00df3538178b61388adbbe8f67f6129d487e37a2d37b0c9ad394652",
+          "status": "SucceedEntirely",
+          "blockHeight": 1008,
+          "durationMs": 17344,
+          "transactionHash": "217599d3592dad154865a13e1b3536de6aceee0cb770d8132c565cd09484f630",
+          "entryPoint": "mintTestCollateral"
+        },
+        "open": {
+          "txId": "00acb9eadf000d30a89962a82bc3e195e569bfac3776ae4dbab82e19a9a577d957",
+          "status": "SucceedEntirely",
+          "blockHeight": 1012,
+          "durationMs": 24022
+        },
+        "riskQuote": {
+          "txId": "00dc6c691876cf678cf26046b1cd55b6f419bc984e5bc5531b3d0c809dc1f28100",
+          "status": "SucceedEntirely",
+          "blockHeight": 1015,
+          "durationMs": 18626,
+          "transactionHash": "9633ccffa93cc1be1e7694487d22730ec550adea0bc6cf44b5a2d3a137936fee",
+          "entryPoint": "publishOracleQuote"
+        },
+        "riskClose": {
+          "txId": "0015de1bdea9be789236b11c92f002fb9358e38c90015ffa251b663578f174d4a9",
+          "status": "SucceedEntirely",
+          "blockHeight": 1019,
+          "durationMs": 24042
+        },
+        "ownerClaim": {
+          "txId": "009810c89a21ff50c439c8e4e798701373be375fe1029adacf235a87b2a53a8348",
+          "status": "SucceedEntirely",
+          "blockHeight": 1023,
+          "durationMs": 23998
+        }
+      },
+      "timings": {
+        "quotePublishToReceiptMs": 18626,
+        "riskCloseTransactionMs": 24042,
+        "measuredFrom": "host wall clock around proof generation, balancing, submission and receipt wait; not a chain consensus latency benchmark",
+        "riskCloseStartedAtUnixSeconds": 1790375336,
+        "riskQuoteAgeAtRiskCloseSubmitMs": 18872
+      },
+      "observations": {
+        "publicFixedCollateralAtoms": "1000000000",
+        "collateralMtIndex": "50",
+        "ownerShieldedBalanceAfterOpenAtoms": "0",
+        "operatorShieldedBalanceAfterRiskCloseAtoms": "0",
+        "ownerShieldedBalanceAfterClaimAtoms": "1000000000",
+        "operatorShieldedBalanceAfterClaimAtoms": "0",
+        "testedOpenAndRiskClosePublicFieldsExcludeSelectedSecretsSaltsSizeAndGuard": true,
+        "testedClaimPublicFieldsExcludeSelectedSecretsSaltsSizeAndGuard": true,
+        "committedRecipientDisclosedByCircuitDuringOwnerClaim": true,
+        "exactRecipientKeyHexFoundInIndexedRawFields": false,
+        "positionSideInferenceFromOpenAndClosePrices": "The selected quotes imply long-side adverse risk; this is a semantic inference, not a plaintext side field."
+      },
+      "quotePublicAudits": {
+        "oracle-open": {
+          "txId": "008c60e0010d99141647c6e0b468f9870fd9ff2b41bec55ef932a86cf4d6c3ab13",
+          "transactionHash": "ed775152d63c53d01edbf91b99ca95d5bbf54576cfb0071629ed28fe12feb71d",
+          "blockHeight": 1005,
+          "entryPoint": "publishOracleQuote",
+          "publisherSecretFoundInTestedPublicFields": false
+        },
+        "oracle-risk": {
+          "txId": "00dc6c691876cf678cf26046b1cd55b6f419bc984e5bc5531b3d0c809dc1f28100",
+          "transactionHash": "9633ccffa93cc1be1e7694487d22730ec550adea0bc6cf44b5a2d3a137936fee",
+          "blockHeight": 1015,
+          "entryPoint": "publishOracleQuote",
+          "publisherSecretFoundInTestedPublicFields": false
+        }
+      },
+      "finalIndependentLedgerReadback": {
+        "oraclePriceTicks": "84000000000",
+        "oracleSequence": "2",
+        "positionEntryOraclePriceTicks": "100000000000",
+        "positionEntryOracleSequence": "1",
+        "positionActive": false,
+        "closedUnclaimed": false,
+        "settled": true,
+        "fixedEscrowCoinAtoms": "1000000000",
+        "escrowMtIndex": "50",
+        "readAfterFinalizedOwnerClaim": true
+      },
+      "recoveryBundleState": {
+        "status": "complete",
+        "directoryMode": "700",
+        "manifestMode": "600",
+        "pendingOperation": null
+      }
+    }
+  ],
+  "limitations": [
+    "Test collateral is permissionlessly minted, fixed and valueless. This is a custody primitive, not economic PnL/LP settlement or a functioning perp.",
+    "Both scenarios use a local authenticated demo oracle; oracle prices, sequences and timestamps are public. The adverse-only risk-close plus the public open/close quote pair makes side semantically inferable after close.",
+    "Operator and owner proofs are capability-authorized; submitter identity is not cryptographically bound. The risk operator receives original private terms and position salt from an out-of-band service that this runner does not model.",
+    "Owner claim returns the full fixed lot and does not account for liquidation loss, fees, funding, bad debt, LP reserves or liquidator rewards.",
+    "The public raw-field scan checks only selected byte encodings and fixed-width integer encodings in the returned raw/indexed action fields. It is not a general privacy proof or side-channel audit.",
+    "Owner DUST sponsors operator transaction fees while the operator shielded key remains distinct. This does not prove independently funded operator fee authority."
+  ]
+}

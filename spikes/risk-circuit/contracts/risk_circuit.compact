@@ -1,0 +1,201 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Phase 2 feasibility spike only. Amounts are fixture units normalized by
+// 1,000,000 from src/risk/calculator.ts; prices are integer USD/BTC units.
+// This is a pure risk predicate and arithmetic circuit, not a perp or a
+// settlement contract. Nothing here stores positions, reads an oracle feed,
+// or transfers collateral.
+export type Amount = Uint<64>;
+
+export struct QuotientRemainder {
+  quotient: Amount;
+  remainder: Amount;
+}
+
+// Compact 0.31.1 has no integer division operator. The prover supplies a
+// quotient/remainder witness; the circuit constrains it below, so an incorrect
+// witness cannot change the arithmetic result.
+witness quotientRemainder(numerator: Amount, denominator: Amount): QuotientRemainder;
+
+export struct RiskInput {
+  sideIsLong: Boolean;
+  notional: Amount;
+  entryPrice: Amount;
+  markPrice: Amount;
+  borrowFee: Amount;
+  fundingFee: Amount;
+  fundingCredit: Amount;
+  exitCost: Amount;
+  protectiveBuffer: Amount;
+  profitPayoutCap: Amount;
+}
+
+export struct RiskResult {
+  pnlIsLoss: Boolean;
+  pnlMagnitude: Amount;
+  currentNotional: Amount;
+  maintenance: Amount;
+  equityIsNegative: Boolean;
+  equityMagnitude: Amount;
+  isLiquidatable: Boolean;
+  shouldProtectiveClose: Boolean;
+  traderPayout: Amount;
+  profitPaid: Amount;
+  insuranceShortfall: Amount;
+}
+
+// This helper rounds non-negative ratios up, matching the TypeScript
+// reference's ceilDiv. A zero numerator remains zero.
+circuit ceilDiv(numerator: Amount, denominator: Amount): Amount {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    division.quotient * denominator + division.remainder == numerator,
+    "INVALID_DIVISION_WITNESS"
+  );
+  if (division.remainder == 0) {
+    return division.quotient;
+  }
+  return (division.quotient + 1) as Amount;
+}
+
+circuit floorDiv(numerator: Amount, denominator: Amount): Amount {
+  assert(denominator > 0, "DIVISOR_ZERO");
+  const division = quotientRemainder(numerator, denominator);
+  assert(division.remainder < denominator, "INVALID_DIVISION_REMAINDER");
+  assert(
+    division.quotient * denominator + division.remainder == numerator,
+    "INVALID_DIVISION_WITNESS"
+  );
+  return division.quotient;
+}
+
+circuit assertFreshOracleTimestamp(
+  observedAt: Uint<64>,
+  maxAgeSeconds: Uint<64>
+): [] {
+  // A bounded timestamp sum prevents Uint<64> wraparound. This spike accepts
+  // timestamps through 4e9 seconds (the Unix 2106 boundary) and max ages up
+  // to one day; production policy should make these protocol constants.
+  assert(observedAt <= 4000000000, "ORACLE_TIMESTAMP_OUT_OF_RANGE");
+  assert(maxAgeSeconds <= 86400, "ORACLE_MAX_AGE_TOO_LARGE");
+  assert(blockTimeGte(disclose(observedAt)), "ORACLE_TIMESTAMP_IN_FUTURE");
+  // Inclusive freshness: a quote exactly maxAge old is accepted.
+  assert(
+    blockTimeLt(disclose((observedAt + maxAgeSeconds + 1) as Uint<64>)),
+    "ORACLE_STALE"
+  );
+}
+
+circuit assertOracleSequenceAdvances(
+  sequence: Uint<64>,
+  previouslyAcceptedSequence: Uint<64>
+): [] {
+  // The caller must anchor previouslyAcceptedSequence to authenticated state.
+  // This isolated circuit proves only the monotonic predicate itself.
+  assert(sequence > previouslyAcceptedSequence, "ORACLE_SEQUENCE_NOT_NEWER");
+}
+
+// The selected constants match the TypeScript risk fixtures after dividing
+// amount atoms by 1e6: 1,000 collateral, 5,000 max notional, 500 bps
+// maintenance, and at most 500 profit atoms per fixed risk slot.
+export circuit assessBtcRisk(
+  input: RiskInput,
+  oracleObservedAt: Uint<64>,
+  oracleMaxAgeSeconds: Uint<64>,
+  oracleSequence: Uint<64>,
+  previouslyAcceptedOracleSequence: Uint<64>
+): RiskResult {
+  assertFreshOracleTimestamp(oracleObservedAt, oracleMaxAgeSeconds);
+  assertOracleSequenceAdvances(oracleSequence, previouslyAcceptedOracleSequence);
+
+  const collateral: Amount = 1000;
+  const fixedProfitLiability: Amount = 500;
+  const basisPoints: Amount = 10000;
+  const maintenanceBps: Amount = 500;
+
+  assert(input.notional > 0, "NOTIONAL_ZERO");
+  assert(input.notional <= 5000, "NOTIONAL_EXCEEDS_FIXED_SLOT_LEVERAGE");
+  assert(input.entryPrice > 0, "ENTRY_PRICE_ZERO");
+  assert(input.markPrice > 0, "MARK_PRICE_ZERO");
+  assert(input.entryPrice <= 1000000000, "ENTRY_PRICE_OUT_OF_RANGE");
+  assert(input.markPrice <= 1000000000, "MARK_PRICE_OUT_OF_RANGE");
+  assert(input.borrowFee <= 1000000, "BORROW_FEE_OUT_OF_RANGE");
+  assert(input.fundingFee <= 1000000, "FUNDING_FEE_OUT_OF_RANGE");
+  assert(input.fundingCredit <= 1000000, "FUNDING_CREDIT_OUT_OF_RANGE");
+  assert(input.fundingFee == 0 || input.fundingCredit == 0, "FUNDING_SIGN_AMBIGUOUS");
+  assert(input.exitCost <= 1000000, "EXIT_COST_OUT_OF_RANGE");
+  assert(input.protectiveBuffer <= 1000000, "PROTECTIVE_BUFFER_OUT_OF_RANGE");
+  assert(input.profitPayoutCap <= fixedProfitLiability, "PAYOUT_CAP_EXCEEDS_FIXED_LIABILITY");
+
+  const pnlIsLoss = input.sideIsLong
+    ? input.markPrice < input.entryPrice
+    : input.markPrice > input.entryPrice;
+  const priceDelta = input.markPrice >= input.entryPrice
+    ? input.markPrice - input.entryPrice
+    : input.entryPrice - input.markPrice;
+
+  const pnlNumerator = (input.notional * priceDelta) as Amount;
+  // floor(negative rational) has the magnitude ceil(positive rational).
+  // Profits round down, matching the reference's signed floor division.
+  const pnlMagnitude = pnlIsLoss
+    ? ceilDiv(pnlNumerator, input.entryPrice)
+    : floorDiv(pnlNumerator, input.entryPrice);
+
+  const currentNotional = ceilDiv((input.notional * input.markPrice) as Amount, input.entryPrice);
+  const maintenance = ceilDiv((currentNotional * maintenanceBps) as Amount, basisPoints);
+  const fees = (input.borrowFee + input.fundingFee) as Amount;
+
+  // Represent signed equity as sign + magnitude instead of pretending Compact
+  // has signed i128 arithmetic. Credits reduce losses or increase gains.
+  const lossAndFees = (pnlMagnitude + fees) as Amount;
+  const creditCoversLoss = input.fundingCredit >= lossAndFees;
+  const netLoss = creditCoversLoss ? 0 : lossAndFees - input.fundingCredit;
+  const grossEquity = (collateral + pnlMagnitude + input.fundingCredit) as Amount;
+  const equityIsNegative = pnlIsLoss
+    ? (!creditCoversLoss && netLoss > collateral)
+    : fees > grossEquity;
+  const lossEquityMagnitude = (creditCoversLoss
+    ? collateral + (input.fundingCredit - lossAndFees)
+    : (netLoss > collateral ? netLoss - collateral : collateral - netLoss)) as Amount;
+  const gainEquityMagnitude = (fees > grossEquity ? fees - grossEquity : grossEquity - fees) as Amount;
+  const equityMagnitude = (pnlIsLoss ? lossEquityMagnitude : gainEquityMagnitude) as Amount;
+
+  const isLiquidatable = equityIsNegative || equityMagnitude <= maintenance;
+  const buffer = equityMagnitude > maintenance && equityMagnitude > input.exitCost
+    ? equityMagnitude - maintenance - input.exitCost
+    : 0;
+  const shouldProtectiveClose = !equityIsNegative &&
+    equityMagnitude > maintenance &&
+    equityMagnitude > input.exitCost &&
+    buffer <= input.protectiveBuffer;
+
+  const payoutCap = (collateral + input.profitPayoutCap) as Amount;
+  const payoutBeforeCap = equityMagnitude > input.exitCost
+    ? equityMagnitude - input.exitCost
+    : 0;
+  const traderPayout = equityIsNegative || equityMagnitude <= input.exitCost
+    ? 0
+    : (payoutBeforeCap < payoutCap ? payoutBeforeCap : payoutCap);
+  const insuranceShortfall = (equityIsNegative
+    ? equityMagnitude + input.exitCost
+    : (equityMagnitude < input.exitCost ? input.exitCost - equityMagnitude : 0)) as Amount;
+  const profitPaid = traderPayout > collateral ? traderPayout - collateral : 0;
+
+  return RiskResult{
+    pnlIsLoss: disclose(pnlIsLoss),
+    pnlMagnitude: disclose(pnlMagnitude),
+    currentNotional: disclose(currentNotional),
+    maintenance: disclose(maintenance),
+    equityIsNegative: disclose(equityIsNegative),
+    equityMagnitude: disclose(equityMagnitude),
+    isLiquidatable: disclose(isLiquidatable),
+    shouldProtectiveClose: disclose(shouldProtectiveClose),
+    traderPayout: disclose(traderPayout),
+    profitPaid: disclose(profitPaid),
+    insuranceShortfall: disclose(insuranceShortfall)
+  };
+}
