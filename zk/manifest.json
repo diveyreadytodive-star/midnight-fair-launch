@@ -1,0 +1,37 @@
+{
+  "network": "preprod",
+  "source": "local Compact compile",
+  "sourceHash": "6730a2f36f90394c6a2b5038bf25d26d249c67c830864f2f0dfa057084b4148b",
+  "files": [
+    {
+      "path": "keys/mintTestPaymentCoin.prover",
+      "bytes": 5204685,
+      "sha256": "d62aa59ece47657549b33cd047338037d7971860a4b480036b8119ccc1480af2"
+    },
+    {
+      "path": "keys/registerBid.prover",
+      "bytes": 19476785,
+      "sha256": "4d5711a0916c53db7f5d7f926498f1d6942d24a5aa7a8941b9fac48d45ef2f99"
+    },
+    {
+      "path": "keys/mintTestPaymentCoin.verifier",
+      "bytes": 2119,
+      "sha256": "6882b1dcbf4757473d6647a88036192493dc92b86569ec115b0feb6896d6850c"
+    },
+    {
+      "path": "keys/registerBid.verifier",
+      "bytes": 2119,
+      "sha256": "f9068801f1090c2c21ca909e6cc1171601e26bb50fbc4014491b417a203a0602"
+    },
+    {
+      "path": "zkir/mintTestPaymentCoin.bzkir",
+      "bytes": 463,
+      "sha256": "c8f3d01d579c0be7abfa8f49f0f925f23ec6ea84bd272eb88ca2e4e78469d139"
+    },
+    {
+      "path": "zkir/registerBid.bzkir",
+      "bytes": 3973,
+      "sha256": "efae97da4aab88aee46ec3d3ca3cc3c0a64b732c24d9e1c7c652406aa0dcf49a"
+    }
+  ]
+}
