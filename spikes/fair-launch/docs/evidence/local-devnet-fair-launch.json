@@ -1,0 +1,257 @@
+{
+  "checkedAt": "2026-09-26T12:42:38.714Z",
+  "mode": "actual Local Devnet; loopback endpoints only; valueless test assets; no Docker start/reset",
+  "runId": "9a1c884f-edb3-4462-ae13-a8cebbc256fb",
+  "contractAddress": "cbf9a11c7d6a6564c4afec2f89958f7269389cf41de63ad9a8ee5fdbb0a35e59",
+  "productBoundary": "four fixed sealed-bid slots with on-chain uniform-price settlement and shielded self-claims; no bonding curve or production token",
+  "fixture": {
+    "inventoryAtoms": "600",
+    "reservePriceAtoms": "8",
+    "depositLotAtomsPerRegisteredBid": "5000",
+    "registeredBidCount": 4,
+    "occupiedSlots": 4,
+    "perSlotDepositedAtoms": [
+      "5000",
+      "5000",
+      "5000",
+      "5000"
+    ],
+    "slotFunded": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "bidPublications": "Commitment hashes only; bid prices, quantities, salts and recipient keys are omitted from public evidence.",
+    "expectedOutcome": {
+      "clearingPriceAtoms": "10",
+      "allocationsAtoms": [
+        "300",
+        "300",
+        "0",
+        "0"
+      ],
+      "refundsAtoms": [
+        "2000",
+        "2000",
+        "5000",
+        "5000"
+      ],
+      "totalDepositedAtoms": "20000",
+      "totalClearingPaymentAtoms": "6000",
+      "totalRefundedAtoms": "14000"
+    }
+  },
+  "readback": {
+    "settled": true,
+    "cancelled": false,
+    "clearingPriceAtoms": "10",
+    "allocationsAtoms": [
+      "300",
+      "300",
+      "0",
+      "0"
+    ],
+    "refundsAtoms": [
+      "2000",
+      "2000",
+      "5000",
+      "5000"
+    ],
+    "tokenClaimed": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "refundClaimed": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "proceedsAvailable": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "proceedsClaimed": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "slotFunded": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "inventoryRemainderAvailable": false,
+    "bidderPaymentBalancesAtoms": [
+      "2000",
+      "2000",
+      "5000",
+      "5000"
+    ],
+    "bidderSaleBalancesAtoms": [
+      "300",
+      "300",
+      "0",
+      "0"
+    ],
+    "treasuryPaymentBalanceAtoms": "6000",
+    "operatorRemainingSaleBalanceAtoms": "0"
+  },
+  "publicDisclosure": [
+    "Registration slots, commitment hashes and fixed 5,000-unit deposits are public; registration timing may link a slot to wallet activity.",
+    "After settlement, clearing price, per-slot allocations, refunds and claim flags are public. Given the fixed deposits, observers can derive each slot's charge and infer allocated quantity from the public clearing price.",
+    "The runner does not parse raw transaction encodings to verify disclosure of max prices, quantities, salts or recipient keys; no lifetime bid-size privacy claim is made."
+  ],
+  "privacyBoundary": "The circuit accepts bid openings as private inputs and stores commitments in the public ledger. This run verifies contract state and claims, not raw transaction privacy.",
+  "receipts": [
+    {
+      "stage": "deploy",
+      "txId": "00bc01102440a7c62a949570f4003bb4630eec54d1f6d67d97fad83413f54839e3",
+      "transactionHash": "5949e9dfa51cf89cb4962e2e8d07ebde23ec46d857c16116c32d43181aca81a4",
+      "blockHeight": 9380,
+      "entryPoint": "deploy"
+    },
+    {
+      "stage": "mint-sale-inventory",
+      "txId": "000fa664d13ba2b1ad670f2a3d26901289bbcee74a54527039e08ddf34b16a000f",
+      "transactionHash": "d50c5345bef13c50c4ae887e4295d657929f89970aa8405608f6b6737dd9dcaa",
+      "blockHeight": 9383,
+      "entryPoint": "mintTestSaleCoin"
+    },
+    {
+      "stage": "fund-contract-inventory",
+      "txId": "00a0254b9ab1a6d3d31588c4333efe0cf8c41337090caf4abb24b4da5fe143d61a",
+      "transactionHash": "5bb9d6acc899862217ab921539da973847c43744c82840a19ec4d7ea823b7476",
+      "blockHeight": 9387,
+      "entryPoint": "fundSaleInventory"
+    },
+    {
+      "stage": "mint-payment-lot-0",
+      "txId": "00c49a144309d999b8bf97f821b8a201cde5848d20de94181b9c6d36d09e85689d",
+      "transactionHash": "e0cc7bedae5bdd24d38cd81d9448f99889711274e0e6884ca4c67a53f6c602be",
+      "blockHeight": 9390,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "mint-payment-lot-1",
+      "txId": "00200e23028e7175aab9d9235dcf2c997f053af7975c6a25755713ad82a65ef252",
+      "transactionHash": "64a7f233ebf30e8a9cc12e7225d3bdcc6bf055bb99f9796edf18b1cd9fc742db",
+      "blockHeight": 9393,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "mint-payment-lot-2",
+      "txId": "008cc7dd63085346ccc02d538317811f93717e69d763e79d5b360fdec5f623d82b",
+      "transactionHash": "f12f35670123c45524c645177fdc53b55ffe558a3b28661c884bdbc7cc6dadf8",
+      "blockHeight": 9396,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "mint-payment-lot-3",
+      "txId": "004e96ed77defcedc3611cb5fbd16dd9ab510cdfc7bb7c64f6c9bd966737b9ad64",
+      "transactionHash": "349c9af744ca80907cc97822e02cc8d8ee34307974f8333d187ec6faf868a77e",
+      "blockHeight": 9399,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "register-bid-0",
+      "txId": "004f5d21281fdc78d68d875eea8f297fc816768ba7c6aef865c21af28e125bc8cf",
+      "transactionHash": "bf07279fbfe53afcca7ec020211bcfaaa7b1f05937cac27695ebe0e7b3e0f6e4",
+      "blockHeight": 9403,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "register-bid-1",
+      "txId": "0019e5fb2cadf9530ba21908fc2dd6ed13cadfd60cbb2791597d42955e6a04dd68",
+      "transactionHash": "e2ad6bd3204993af6bbcd1ac4991f3c2d0e05e0e0a135f813fd4868a1e1772c8",
+      "blockHeight": 9407,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "register-bid-2",
+      "txId": "0099e7e66fde278277536668877f1ff35199c05c954539764fcc6d90fba03cd8e9",
+      "transactionHash": "a01a58ef81dfa9e5dbfd473839335d410ec41192dc566bd528a905060a2e0fa4",
+      "blockHeight": 9411,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "register-bid-3",
+      "txId": "0024d017bcff4584d49c2e57e3caaee15ac40c9574baaada810db29c5d5c945fe2",
+      "transactionHash": "1ca3c6677388237fcaade9a1304b2fc60157e9ccf58ef98d63ef6fa7d65f1f77",
+      "blockHeight": 9415,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "settle-four-registered-bids",
+      "txId": "0049cc3c3ee9534aa7832a9f5805d0a124032ec5651292d45a1d34337f511b133f",
+      "transactionHash": "a2a8407b97968bd0c5c0c043a082e5b851ad78302b4ab5c696eb92ad420d4f8c",
+      "blockHeight": 9462,
+      "entryPoint": "settle"
+    },
+    {
+      "stage": "claim-refund-0",
+      "txId": "00cc2a722c715cf218f448281d28980119cb5265a61c81d11c95f6de75d3744787",
+      "transactionHash": "94ab740147ca1fabc8d1d8a02eaeef66e594360b914b2dc66a65cad661d83b20",
+      "blockHeight": 9466,
+      "entryPoint": "claimRefund"
+    },
+    {
+      "stage": "claim-refund-1",
+      "txId": "0010691d5533d9d7cf18e2a3e6e5a8aaa9f5b7c37d32d6bead01af4171faa0f959",
+      "transactionHash": "92ff0f6063a37b813e05064f03dcbdbd3446aec41ea646fe5b7e21946c2286b8",
+      "blockHeight": 9470,
+      "entryPoint": "claimRefund"
+    },
+    {
+      "stage": "claim-refund-2",
+      "txId": "0024ab8765508a5e8b2c75875ff9c4672906a62dac5ae82ecc179c69956309e5be",
+      "transactionHash": "f18f7d7a01eaeaf52cab8f46c70fd7ad627d59f5c786e32bd6b2c8997a050764",
+      "blockHeight": 9474,
+      "entryPoint": "claimRefund"
+    },
+    {
+      "stage": "claim-refund-3",
+      "txId": "00be5410207762dc121e157b4558001fb99058cec49bb4e7b651189972b935d9b8",
+      "transactionHash": "5cb18b508f38983a81308edbbcb8ce1014766cf02da8772ae903b3cb6ea989dd",
+      "blockHeight": 9478,
+      "entryPoint": "claimRefund"
+    },
+    {
+      "stage": "claim-sale-proceeds-0",
+      "txId": "0008bb002db601c37a49c8df7872907f2b3d47afd799dd5a0488a39782be97f485",
+      "transactionHash": "f4809cdd63962303ec0cd1d5a9edadf8094b04ec7d9549b01eb78fee98adf8fb",
+      "blockHeight": 9482,
+      "entryPoint": "claimProceeds"
+    },
+    {
+      "stage": "claim-sale-proceeds-1",
+      "txId": "00dd9ab60da4d40c94a08b8dc1e9072f9dee473a01d0602b5721fc57f80d250b23",
+      "transactionHash": "a9b328a30d2b06c4293c8d0c27431250b6329075d5f309da6ba9a791356242c1",
+      "blockHeight": 9485,
+      "entryPoint": "claimProceeds"
+    },
+    {
+      "stage": "claim-sale-tokens-0",
+      "txId": "00355e26d3bcda6bd5ae3b8562218af5a3c230c137461a178cef127cf098d5e070",
+      "transactionHash": "2e3dd96ef9f4d03c881643706dddc0244b96a727837f85dc4b9380fc725c39c8",
+      "blockHeight": 9489,
+      "entryPoint": "claimTokens"
+    },
+    {
+      "stage": "claim-sale-tokens-1",
+      "txId": "009e2ad2a73aad9423db037b222f31aef34ddd8e8d2e290e73306cb67f245fa1e8",
+      "transactionHash": "b61cfa1baf7d6126ad0bcd9c7cf32362c20375d57cf6302090c4ff04fabae3bd",
+      "blockHeight": 9493,
+      "entryPoint": "claimTokens"
+    }
+  ],
+  "feeSponsorDustRaw": "1249999520915067999994910",
+  "implementationLimit": "Shielded test asset claims are verified for this Local Devnet fixture; no production token or launch-market guarantee is established."
+}

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createSilenceServer } from "./api/http-server.ts";
+import { createFairLaunchCreateAdapter } from "./api/fair-launch-create.ts";
 
 export { createSilenceServer } from "./api/http-server.ts";
 export type * from "./api/http-server.ts";
@@ -16,7 +17,10 @@ if (isDirectExecution()) {
   if (!Number.isSafeInteger(port) || port < 0 || port > 65_535) {
     process.exitCode = 1;
   } else {
-    const server = createSilenceServer();
+    const fairLaunchCreateAdapter = process.env.FAIR_LAUNCH_CREATE_ENABLED === "1"
+      ? createFairLaunchCreateAdapter()
+      : undefined;
+    const server = createSilenceServer({ fairLaunchCreateAdapter });
     server.once("error", () => {
       process.exitCode = 1;
     });

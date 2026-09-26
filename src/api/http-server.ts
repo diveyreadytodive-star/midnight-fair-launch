@@ -1,7 +1,17 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { realpath, readFile } from "node:fs/promises";
+import { isIP } from "node:net";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  FairLaunchCreateBusyError,
+  FairLaunchCreateUnavailableError,
+  FairLaunchInputError,
+  FairLaunchRecoveryRequiredError,
+  readFairLaunchCatalog,
+  type FairLaunchCreateAdapter,
+  type FairLaunchEntry,
+} from "./fair-launch-create.ts";
 
 export type MarketSymbol = "BTC-USD";
 export type CandleInterval = "15m" | "1h" | "4h" | "1d";
@@ -131,6 +141,8 @@ export interface SilenceServerOptions {
   readonly dataProvider?: SilenceDataProvider;
   readonly walletAuthenticator?: WalletAuthenticator;
   readonly openAdapter?: OpenPositionAdapter;
+  readonly fairLaunchCreateAdapter?: FairLaunchCreateAdapter;
+  readonly fairLaunchCatalogPath?: string;
   readonly webRoot?: string;
   readonly maxBodyBytes?: number;
 }
@@ -487,6 +499,180 @@ async function readJsonBody(request: IncomingMessage, maximumBytes: number): Pro
   }
 }
 
+function isLoopbackHost(hostname: string): boolean {
+  const unwrapped = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (unwrapped === "localhost") return true;
+  if (isIP(unwrapped) === 4) return unwrapped.split(".")[0] === "127";
+  return isIP(unwrapped) === 6 && unwrapped === "::1";
+}
+
+function isLoopbackAddress(address: string | undefined): boolean {
+  if (!address) return false;
+  const normalized = address.toLowerCase().split("%", 1)[0] ?? "";
+  if (normalized.startsWith("::ffff:")) return isLoopbackHost(normalized.slice("::ffff:".length));
+  return isLoopbackHost(normalized);
+}
+
+function requireFairLaunchSameOriginLoopback(request: IncomingMessage): void {
+  if (!isLoopbackAddress(request.socket.remoteAddress)) {
+    throw new HttpFailure(403, "local_demo_only", "Fair Launch creation is available only from this machine.");
+  }
+  const origin = request.headers.origin;
+  const host = request.headers.host;
+  if (typeof origin !== "string" || typeof host !== "string") {
+    throw new HttpFailure(403, "same_origin_required", "Fair Launch creation requires a same-origin browser request.");
+  }
+  try {
+    const originUrl = new URL(origin);
+    const hostUrl = new URL(`http://${host}`);
+    if (origin !== originUrl.origin || originUrl.protocol !== "http:" || !isLoopbackHost(originUrl.hostname) ||
+        originUrl.host.toLowerCase() !== hostUrl.host.toLowerCase() || hostUrl.protocol !== "http:" ||
+        hostUrl.username || hostUrl.password || hostUrl.pathname !== "/" || hostUrl.search || hostUrl.hash) {
+      throw new Error("origin mismatch");
+    }
+  } catch {
+    throw new HttpFailure(403, "same_origin_required", "Fair Launch creation requires a same-origin browser request.");
+  }
+  const fetchSite = request.headers["sec-fetch-site"];
+  if (typeof fetchSite === "string" && fetchSite !== "same-origin") {
+    throw new HttpFailure(403, "same_origin_required", "Fair Launch creation requires a same-origin browser request.");
+  }
+}
+
+function serializeFairLaunchEntry(value: unknown): FairLaunchEntry {
+  if (!isRecord(value) || typeof value.id !== "string" || value.id.length < 1 || value.id.length > 256 ||
+      typeof value.contractAddress !== "string" || !/^[0-9a-f]{64}$/i.test(value.contractAddress) ||
+      value.id !== value.contractAddress ||
+      !isRecord(value.metadata) || !isRecord(value.config) ||
+      !["commit", "open", "settled", "cancelled", "unknown"].includes(String(value.phase)) ||
+      typeof value.createdAt !== "string" || !Number.isFinite(Date.parse(value.createdAt)) ||
+      typeof value.metadataAnchored !== "boolean" ||
+      !(value.metadataCommitmentHex === null || (typeof value.metadataCommitmentHex === "string" && /^[0-9a-f]{64}$/i.test(value.metadataCommitmentHex))) ||
+      value.artworkBytesAnchored !== false ||
+      (value.evidenceSource !== "recorded-local-devnet-evidence" && value.evidenceSource !== "verified-local-devnet-create") ||
+      !isRecord(value.receipts)) {
+    throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+  }
+
+  const metadata = value.metadata;
+  const nullMetadata = metadata.name === null && metadata.ticker === null && metadata.imageUrl === null && metadata.description === null;
+  if (!nullMetadata && (typeof metadata.name !== "string" || typeof metadata.ticker !== "string" ||
+      !(metadata.imageUrl === null || typeof metadata.imageUrl === "string") || typeof metadata.description !== "string")) {
+    throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+  }
+  const config = value.config;
+  const amounts = [config.inventoryAtoms, config.reservePriceAtoms, config.depositLotAtoms];
+  const isPositiveUint64 = (amount: unknown): amount is string => typeof amount === "string" && /^[1-9]\d{0,19}$/.test(amount) && BigInt(amount) <= 18_446_744_073_709_551_615n;
+  if (!amounts.every(isPositiveUint64) ||
+      !Number.isSafeInteger(config.commitWindowSeconds) || Number(config.commitWindowSeconds) < 300 || Number(config.commitWindowSeconds) > 86_400 ||
+      !Number.isSafeInteger(config.openWindowSeconds) || Number(config.openWindowSeconds) < 300 || Number(config.openWindowSeconds) > 86_400 ||
+      BigInt(config.inventoryAtoms as string) * BigInt(config.reservePriceAtoms as string) > BigInt(config.depositLotAtoms as string)) {
+    throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+  }
+
+  const commitDeadlineUnixSeconds = value.commitDeadlineUnixSeconds;
+  const openDeadlineUnixSeconds = value.openDeadlineUnixSeconds;
+  if ((commitDeadlineUnixSeconds !== undefined && !isPositiveUint64(commitDeadlineUnixSeconds)) ||
+      (openDeadlineUnixSeconds !== undefined && !isPositiveUint64(openDeadlineUnixSeconds)) ||
+      ((commitDeadlineUnixSeconds === undefined) !== (openDeadlineUnixSeconds === undefined)) ||
+      (commitDeadlineUnixSeconds !== undefined && openDeadlineUnixSeconds !== undefined &&
+        BigInt(commitDeadlineUnixSeconds) >= BigInt(openDeadlineUnixSeconds))) {
+    throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+  }
+
+  const receipts = value.receipts;
+  const receipt = (candidate: unknown) => {
+    if (!isRecord(candidate) || typeof candidate.txId !== "string" || candidate.txId.length < 1 || candidate.txId.length > 256 ||
+        typeof candidate.transactionHash !== "string" || candidate.transactionHash.length < 1 || candidate.transactionHash.length > 256 ||
+        !Number.isSafeInteger(candidate.blockHeight) || Number(candidate.blockHeight) < 0) {
+      throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+    }
+    return { txId: candidate.txId, transactionHash: candidate.transactionHash, blockHeight: Number(candidate.blockHeight) };
+  };
+
+  let settlementOutput: FairLaunchEntry["settlement"] = undefined;
+  if (value.settlement !== undefined) {
+    if (!isRecord(value.settlement)) throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+    const settlement = value.settlement;
+    const nonnegativeAtoms = (candidate: unknown): candidate is string =>
+      typeof candidate === "string" && /^(?:0|[1-9]\d{0,19})$/.test(candidate) && BigInt(candidate) <= 18_446_744_073_709_551_615n;
+    const fixedSlots = (candidate: unknown, predicate: (item: unknown) => boolean): candidate is unknown[] =>
+      Array.isArray(candidate) && candidate.length === 4 && candidate.every(predicate);
+    if (!nonnegativeAtoms(settlement.clearingPriceAtoms) ||
+        !fixedSlots(settlement.allocationsAtoms, nonnegativeAtoms) || !fixedSlots(settlement.refundsAtoms, nonnegativeAtoms) ||
+        !fixedSlots(settlement.tokenClaimed, (item) => typeof item === "boolean") ||
+        !fixedSlots(settlement.refundClaimed, (item) => typeof item === "boolean")) {
+      throw new HttpFailure(503, "fair_launch_unavailable", "The verified launch catalog is temporarily unavailable.");
+    }
+    settlementOutput = {
+      clearingPriceAtoms: settlement.clearingPriceAtoms,
+      allocationsAtoms: settlement.allocationsAtoms as string[],
+      refundsAtoms: settlement.refundsAtoms as string[],
+      tokenClaimed: settlement.tokenClaimed as boolean[],
+      refundClaimed: settlement.refundClaimed as boolean[],
+    };
+  }
+
+  const output: FairLaunchEntry = {
+    id: value.id,
+    contractAddress: value.contractAddress,
+    metadata: nullMetadata ? { name: null, ticker: null, imageUrl: null, description: null } : {
+      name: metadata.name as string,
+      ticker: metadata.ticker as string,
+      imageUrl: metadata.imageUrl as string | null,
+      description: metadata.description as string,
+    },
+    config: {
+      inventoryAtoms: config.inventoryAtoms as string,
+      reservePriceAtoms: config.reservePriceAtoms as string,
+      depositLotAtoms: config.depositLotAtoms as string,
+      commitWindowSeconds: Number(config.commitWindowSeconds),
+      openWindowSeconds: Number(config.openWindowSeconds),
+    },
+    phase: value.phase as FairLaunchEntry["phase"],
+    createdAt: value.createdAt,
+    metadataAnchored: value.metadataAnchored,
+    metadataCommitmentHex: value.metadataCommitmentHex as string | null,
+    artworkBytesAnchored: false,
+    evidenceSource: value.evidenceSource,
+    receipts: {
+      deploy: receipt(receipts.deploy),
+      mint: receipt(receipts.mint),
+      fund: receipt(receipts.fund),
+    },
+    ...(commitDeadlineUnixSeconds !== undefined && openDeadlineUnixSeconds !== undefined
+      ? { commitDeadlineUnixSeconds, openDeadlineUnixSeconds }
+      : {}),
+    ...(settlementOutput ? { settlement: settlementOutput } : {}),
+  };
+  return output;
+}
+
+function serializeFairLaunchSnapshot(value: unknown): {
+  live: boolean;
+  writable: boolean;
+  network: "local-devnet";
+  mode: "local-devnet-operator-demo";
+  capabilities: { canCreate: boolean };
+  launches: FairLaunchEntry[];
+} {
+  if (!isRecord(value) || typeof value.live !== "boolean" || typeof value.writable !== "boolean" ||
+      value.network !== "local-devnet" || value.mode !== "local-devnet-operator-demo" ||
+      !isRecord(value.capabilities) || typeof value.capabilities.canCreate !== "boolean" || !Array.isArray(value.launches)) {
+    throw new HttpFailure(503, "fair_launch_unavailable", "Fair Launch data is temporarily unavailable.");
+  }
+  const launches = value.launches.map(serializeFairLaunchEntry);
+  const writable = value.writable && value.live && value.capabilities.canCreate;
+  return {
+    live: value.live,
+    writable,
+    network: "local-devnet",
+    mode: "local-devnet-operator-demo",
+    capabilities: { canCreate: writable },
+    launches,
+  };
+}
+
 async function makeOwnerCapability(
   request: IncomingMessage,
   authenticator: WalletAuthenticator | undefined,
@@ -544,6 +730,62 @@ async function routeApi(
   const { pathname, searchParams } = url;
   const method = request.method ?? "GET";
   const provider = options.dataProvider;
+
+  if (pathname === "/api/fair-launch/launches" && method === "GET") {
+    let snapshot;
+    if (options.fairLaunchCreateAdapter) {
+      snapshot = await options.fairLaunchCreateAdapter.getSnapshot();
+    } else {
+      snapshot = {
+        live: false,
+        writable: false,
+        network: "local-devnet" as const,
+        mode: "local-devnet-operator-demo" as const,
+        capabilities: { canCreate: false },
+        launches: await readFairLaunchCatalog(options.fairLaunchCatalogPath),
+      };
+    }
+    jsonResponse(response, 200, serializeFairLaunchSnapshot(snapshot));
+    return;
+  }
+
+  if (pathname === "/api/fair-launch/create" && method === "POST") {
+    requireFairLaunchSameOriginLoopback(request);
+    if (!options.fairLaunchCreateAdapter) {
+      request.resume();
+      throw new HttpFailure(503, "create_unavailable", "Local Devnet token creation is not enabled.");
+    }
+    const body = await readJsonBody(request, options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES);
+    try {
+      const launch = serializeFairLaunchEntry(await options.fairLaunchCreateAdapter.create(body));
+      if (launch.evidenceSource !== "verified-local-devnet-create") {
+        throw new Error("create adapter returned an unverified entry");
+      }
+      jsonResponse(response, 201, { status: "confirmed", launch });
+    } catch (error) {
+      if (error instanceof FairLaunchInputError) {
+        throw new HttpFailure(400, "invalid_launch", error.message);
+      }
+      if (error instanceof FairLaunchCreateBusyError) {
+        throw new HttpFailure(409, "create_busy", "A Fair Launch create operation is already running.");
+      }
+      if (error instanceof FairLaunchCreateUnavailableError) {
+        throw new HttpFailure(503, "create_unavailable", "Local Devnet token creation is not available.");
+      }
+      if (error instanceof FairLaunchRecoveryRequiredError) {
+        jsonResponse(response, 503, {
+          error: {
+            code: "create_recovery_required",
+            message: "A partial Local Devnet operation needs manual recovery. No retry was made.",
+            operationId: error.operationId,
+          },
+        });
+        return;
+      }
+      throw new HttpFailure(503, "create_failed", "The launch could not be confirmed. Check the recovery status before retrying.");
+    }
+    return;
+  }
 
   if (pathname === "/api/v1/market/BTC-USD" && method === "GET") {
     if (!provider) throw new HttpFailure(503, "market_unavailable", "The market data is temporarily unavailable.");

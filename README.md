@@ -1,8 +1,36 @@
-# VeilIntent — private quote approval and shielded payment on Midnight
+# Midnight Fair Launch — sealed-bid token auction
+
+**Actual Midnight Local Devnet prototype. Test assets only; not a production token launch, live market, or investment service.** The current lead is a fixed-inventory sealed-bid auction with four registered bidder slots, a 600-unit sale inventory, an 8-unit reserve price, and a 5,000-unit public test deposit for each slot.
+
+The completed Local Devnet run is recorded in [the full evidence JSON](spikes/fair-launch/docs/evidence/local-devnet-fair-launch.json) and a [web-root-safe summary](web/fair-launch-evidence.json) generated from that same file; the summary is not independent proof. The 20 successful transaction receipts span blocks 9380–9493. The contract settled at 10 TEST: allocations were 300/300/0/0, bidder payment balances after claims were 2,000/2,000/5,000/5,000, sale-token balances were 300/300/0/0, and the treasury held 6,000 TEST. This proves the recorded Local Devnet fixture and its claims, not a production launch or general privacy guarantee. See [the Fair Launch spike notes](spikes/fair-launch/README.md) for reproduction boundaries and limitations.
+
+The run used an **8-minute commit window** (`commitWindowSeconds=480`) for the Local Devnet demo. The product proposal's **30-minute window is only an intended product setting**; the recorded run did not exercise 30 minutes. The contract supports four fixed slots. A marginal pro-rata allocation with a non-integral result is rejected, so the current implementation does not round remainder units among bidders.
+
+After settlement, the clearing price, per-slot allocations, refunds, and claim flags are public; because each deposit is fixed, an observer can derive each slot's charge and infer allocated quantity. The runner did not inspect raw transaction encodings, so there is no claim that maximum prices, quantities, salts, or recipient keys remain hidden on chain. The MVP has no bonding curve, post-launch trading, or production token.
+
+The [Fair Launch page](web/fair-launch.html) now has Explore, Create, and contract-specific auction detail views. Explore lists only verified contracts from the [catalog](web/fair-launch-catalog.json). In an opt-in, localhost-only **operator-sponsored Local Devnet demo**, Create actually deployed, minted, and funded two more test launches: `Midnight Moth Test` (CLI) and `Night Bloom Test` (browser button). Their six new receipts and distinct contract addresses are in the catalog, and their inventory and metadata commitments were independently read back from the indexer. This is not permissionless wallet-signed token creation. The public/static page can browse and preview, but cannot submit Create, bid, or claim without the local backend; browser bid and claim adapters remain unimplemented.
+
+## Build and test
+
+From the repository root:
+
+```sh
+npm ci
+npm run setup:compiler
+npm run compile
+npm run typecheck
+npm test
+```
+
+`npm test` compiles all three Compact contracts (SILENCE, Fair Launch, and VeilIntent), typechecks them, and passed **102/102 tests** in this checkout: 77 repository/web tests, 11 Fair Launch tests, and 14 VeilIntent tests. `npm run test:fair-launch:chain -- --prepare-only` and `--preflight-only` are available for a new isolated Local Devnet auction run; `--execute` submits transactions and is one-shot. The current checkout already contains the completed auction evidence and protected recovery state. Do not rerun `--execute` here. A fresh run requires a fresh, isolated Local Devnet checkout/state and a valueless Local Devnet-only seed in `FAIR_LAUNCH_LOCAL_TEST_SEED`; never use a Preprod or real-wallet seed. Full details are in the spike README.
+
+## Archived VeilIntent and SILENCE context
+
+### VeilIntent — private quote approval and shielded payment on Midnight
 
 **Valueless Local Devnet prototype, not a live payment or asset-exchange service.** This VeilIntent checkout is published on the submission repository's `main`; the original SILENCE research remains at [silence](https://github.com/diveyreadytodive-star/silence). A buyer locks a standardized public 150-unit test-token lot, an approved seller posts a public quote of 100, and a limited test-agent role proves that the quote satisfies the buyer's private per-intent maximum unit price and total budget. These limits define the buyer's **ceiling for that intent**. Their exact values are known to the trusted prover, while the public escrow and quote still narrow the possible range; this is scoped field privacy, not full transaction anonymity. The seller claims 100 in its own shielded wallet; the buyer separately claims the 50-unit remainder. Actual quote, lot, deadline, settlement status, and later recipient disclosures remain observable.
 
-The [Compact spike](spikes/veil-intent/README.md) compiles seven proof circuits and passes **14/14 VeilIntent simulator/recovery tests**. Separately, the repository-wide `npm test` result is **74/74 tests total**: those 14 VeilIntent tests plus 60 existing tests under `tests/` and `web/` for the retained SILENCE/repository code. The 74-test total is not a VeilIntent-only count. One [actual Local Devnet flow](spikes/veil-intent/docs/evidence/local-devnet-veil-intent.json) finalized deploy/mint/intent/quote/approval/two claims at blocks 4222–4246. Its seven receipts and final ledger were independently re-queried, and separate buyer/seller wallet readback confirmed 50/100 test units. This proves a **one-to-one policy-gated payment** with valueless assets. It does not prove goods delivery, an atomic token swap, a reusable multi-intent mandate, independent agent key isolation, Preprod, or a browser trading flow. See [scope and acceptance decisions](docs/veil-intent-implementation-decisions.md).
+The [Compact spike](spikes/veil-intent/README.md) compiles seven proof circuits and passes **14/14 VeilIntent simulator/recovery tests**. Before Fair Launch was added, the repository-wide suite passed **74/74 tests**: those 14 VeilIntent tests plus 60 existing tests under `tests/` and `web/` for the retained SILENCE/repository code. That count is historical and predates the current Fair Launch suite. One [actual Local Devnet flow](spikes/veil-intent/docs/evidence/local-devnet-veil-intent.json) finalized deploy/mint/intent/quote/approval/two claims at blocks 4222–4246. Its seven receipts and final ledger were independently re-queried, and separate buyer/seller wallet readback confirmed 50/100 test units. This proves a **one-to-one policy-gated payment** with valueless assets. It does not prove goods delivery, an atomic token swap, a reusable multi-intent mandate, independent agent key isolation, Preprod, or a browser trading flow. See [scope and acceptance decisions](docs/veil-intent-implementation-decisions.md).
 
 Prior Midnight winner [Latch](https://midnight.network/blog/celebrating-seven-winners-from-mlh-x-midnight-july-hack) already demonstrated the private AI-agent spending-policy idea. VeilIntent's specific verified step is **seller-authenticated public quote → proof against a hidden buyer ceiling → actual shielded seller payout and buyer change**. We do not claim to have invented private agent allowances. [Competitor and scope comparison](docs/veil-intent-competitive-positioning.md).
 
@@ -16,7 +44,7 @@ npm run setup:compiler
 npm test
 ```
 
-The root test command compiles both VeilIntent's seven circuits and the preserved SILENCE contract, typechecks both, then runs the VeilIntent simulator and repository/web tests. The recorded Local Devnet receipts can be inspected without any wallet seed. Re-running the acceptance transaction requires a separate funded **valueless Local Devnet-only** test seed and a new protected recovery bundle; it is not part of the public quick start.
+The root test command now includes Fair Launch as described above. The archived VeilIntent receipts can be inspected without any wallet seed. Re-running its acceptance transaction requires a separate funded **valueless Local Devnet-only** test seed and a new protected recovery bundle; it is not part of the public quick start.
 
 For the read-only web demo, run `node --import tsx src/server.ts` from the repository root and open `http://127.0.0.1:3000/`. The payment screen replays recorded results only; Evidence and the browser-only simulator are separate views. Replay sends no transaction, simulation creates no Compact proof, and the page connects neither a live wallet nor an LLM.
 
@@ -24,7 +52,7 @@ The original SILENCE work below is preserved as reusable research. Its receipts 
 
 ---
 
-# SILENCE — Private Perps on Midnight (archived pivot source)
+### SILENCE — Private Perps on Midnight (archived pivot source)
 
 **Experimental hackathon prototype. Test assets only. Not a live trading venue.**
 

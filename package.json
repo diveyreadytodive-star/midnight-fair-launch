@@ -7,11 +7,12 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "compile": "node scripts/compile.mjs && npm --prefix spikes/veil-intent run compile",
+    "compile": "node scripts/compile.mjs && npm --prefix spikes/fair-launch run compile && npm --prefix spikes/veil-intent run compile",
     "setup:compiler": "node scripts/setup-compiler.mjs",
-    "typecheck": "node scripts/typecheck.mjs && npm --prefix spikes/veil-intent run typecheck",
+    "typecheck": "node scripts/typecheck.mjs && npm --prefix spikes/fair-launch run typecheck && npm --prefix spikes/veil-intent run typecheck",
     "test:contract": "node --import tsx --test tests/contract/*.test.ts",
-    "test": "npm run compile && npm run typecheck && node scripts/run-tests.mjs && node --import tsx --test spikes/veil-intent/tests/*.test.ts",
+    "test": "npm run compile && npm run typecheck && node scripts/run-tests.mjs && node --import tsx --test spikes/fair-launch/tests/*.test.ts && node --import tsx --test spikes/veil-intent/tests/*.test.ts",
+    "test:fair-launch:chain": "npm --prefix spikes/fair-launch run test:chain --",
     "chain:up": "docker compose up -d --wait",
     "chain:down": "docker compose down",
     "test:chain": "node --import tsx scripts/test-local-chain.ts"

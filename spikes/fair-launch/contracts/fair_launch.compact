@@ -1,0 +1,677 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Fixed four-slot sealed batch auction spike. Price and quantity stay private
+// circuit inputs until settlement; commitment hashes and aggregate outcomes
+// are public. Claims move the two distinct shielded test assets independently.
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+type Wide = Uint<128>;
+
+export struct BidOpening {
+  maxPrice: Amount;
+  quantity: Amount;
+  refundRecipient: ZswapCoinPublicKey;
+  tokenRecipient: ZswapCoinPublicKey;
+  salt: Bytes32;
+}
+
+struct BidPayload {
+  networkDomain: Bytes32;
+  contractAddress: Bytes32;
+  slot: Amount;
+  maxPrice: Amount;
+  quantity: Amount;
+  refundRecipient: ZswapCoinPublicKey;
+  tokenRecipient: ZswapCoinPublicKey;
+}
+
+struct AuthorityPayload {
+  networkDomain: Bytes32;
+  purposeDomain: Bytes32;
+  secret: Bytes32;
+}
+
+struct Division {
+  quotient: Wide;
+  remainder: Wide;
+}
+
+witness quotientRemainder(numerator: Wide, denominator: Wide): Division;
+
+export ledger networkDomain: Bytes32;
+export ledger saleInventory: Amount;
+export ledger reservePrice: Amount;
+export ledger depositLot: Amount;
+export ledger commitDeadline: Amount;
+export ledger openDeadline: Amount;
+export ledger paymentTokenDomain: Bytes32;
+export ledger saleTokenDomain: Bytes32;
+export ledger inventoryAuthorityCommitment: Bytes32;
+export ledger saleRecipient: ZswapCoinPublicKey;
+export ledger registeredBidCount: Amount;
+export ledger slot0Commitment: Bytes32;
+export ledger slot1Commitment: Bytes32;
+export ledger slot2Commitment: Bytes32;
+export ledger slot3Commitment: Bytes32;
+export ledger slot0Funded: Boolean;
+export ledger slot1Funded: Boolean;
+export ledger slot2Funded: Boolean;
+export ledger slot3Funded: Boolean;
+export ledger paymentCoin0: QualifiedShieldedCoinInfo;
+export ledger paymentCoin1: QualifiedShieldedCoinInfo;
+export ledger paymentCoin2: QualifiedShieldedCoinInfo;
+export ledger paymentCoin3: QualifiedShieldedCoinInfo;
+export ledger proceedsCoin0: QualifiedShieldedCoinInfo;
+export ledger proceedsCoin1: QualifiedShieldedCoinInfo;
+export ledger proceedsCoin2: QualifiedShieldedCoinInfo;
+export ledger proceedsCoin3: QualifiedShieldedCoinInfo;
+export ledger saleInventoryCoin: QualifiedShieldedCoinInfo;
+export ledger saleInventoryMinted: Boolean;
+export ledger saleInventoryFunded: Boolean;
+export ledger settled: Boolean;
+export ledger cancelled: Boolean;
+export ledger clearingPrice: Amount;
+export ledger allocated0: Amount;
+export ledger allocated1: Amount;
+export ledger allocated2: Amount;
+export ledger allocated3: Amount;
+export ledger refund0: Amount;
+export ledger refund1: Amount;
+export ledger refund2: Amount;
+export ledger refund3: Amount;
+export ledger refundClaimed0: Boolean;
+export ledger refundClaimed1: Boolean;
+export ledger refundClaimed2: Boolean;
+export ledger refundClaimed3: Boolean;
+export ledger proceedsAvailable0: Boolean;
+export ledger proceedsAvailable1: Boolean;
+export ledger proceedsAvailable2: Boolean;
+export ledger proceedsAvailable3: Boolean;
+export ledger proceedsClaimed0: Boolean;
+export ledger proceedsClaimed1: Boolean;
+export ledger proceedsClaimed2: Boolean;
+export ledger proceedsClaimed3: Boolean;
+export ledger tokenClaimed0: Boolean;
+export ledger tokenClaimed1: Boolean;
+export ledger tokenClaimed2: Boolean;
+export ledger tokenClaimed3: Boolean;
+export ledger inventoryRemainderAvailable: Boolean;
+
+constructor(
+  networkDomain_: Bytes32,
+  saleInventory_: Amount,
+  reservePrice_: Amount,
+  depositLot_: Amount,
+  commitDeadline_: Amount,
+  openDeadline_: Amount,
+  paymentTokenDomain_: Bytes32,
+  saleTokenDomain_: Bytes32,
+  inventoryAuthorityCommitment_: Bytes32,
+  saleRecipient_: ZswapCoinPublicKey
+) {
+  assert(saleInventory_ > 0, "SALE_INVENTORY_ZERO");
+  assert(reservePrice_ > 0, "RESERVE_PRICE_ZERO");
+  assert(depositLot_ > 0, "DEPOSIT_LOT_ZERO");
+  assert(commitDeadline_ > 0 && commitDeadline_ < openDeadline_, "INVALID_AUCTION_DEADLINES");
+  assert(openDeadline_ <= 4000000000, "OPEN_DEADLINE_OUT_OF_RANGE");
+  assert(paymentTokenDomain_ != saleTokenDomain_, "AUCTION_ASSETS_MUST_DIFFER");
+  networkDomain = disclose(networkDomain_);
+  saleInventory = disclose(saleInventory_);
+  reservePrice = disclose(reservePrice_);
+  depositLot = disclose(depositLot_);
+  commitDeadline = disclose(commitDeadline_);
+  openDeadline = disclose(openDeadline_);
+  paymentTokenDomain = disclose(paymentTokenDomain_);
+  saleTokenDomain = disclose(saleTokenDomain_);
+  inventoryAuthorityCommitment = disclose(inventoryAuthorityCommitment_);
+  saleRecipient = disclose(saleRecipient_);
+  registeredBidCount = 0;
+  saleInventoryMinted = false;
+  saleInventoryFunded = false;
+  settled = false;
+  cancelled = false;
+  clearingPrice = 0;
+  allocated0 = 0;
+  allocated1 = 0;
+  allocated2 = 0;
+  allocated3 = 0;
+  refund0 = 0;
+  refund1 = 0;
+  refund2 = 0;
+  refund3 = 0;
+  refundClaimed0 = false;
+  refundClaimed1 = false;
+  refundClaimed2 = false;
+  refundClaimed3 = false;
+  proceedsAvailable0 = false;
+  proceedsAvailable1 = false;
+  proceedsAvailable2 = false;
+  proceedsAvailable3 = false;
+  proceedsClaimed0 = false;
+  proceedsClaimed1 = false;
+  proceedsClaimed2 = false;
+  proceedsClaimed3 = false;
+  tokenClaimed0 = false;
+  tokenClaimed1 = false;
+  tokenClaimed2 = false;
+  tokenClaimed3 = false;
+  inventoryRemainderAvailable = false;
+}
+
+export pure circuit deriveInventoryAuthorityCommitment(
+  networkDomain_: Bytes32,
+  authoritySecret: Bytes32
+): Bytes32 {
+  const payload = AuthorityPayload{
+    networkDomain: networkDomain_,
+    purposeDomain: pad(32, "fl:inventory:v1"),
+    secret: authoritySecret
+  };
+  return persistentHash<AuthorityPayload>(payload);
+}
+
+export pure circuit computeBidCommitment(
+  networkDomain_: Bytes32,
+  contractAddress: Bytes32,
+  slot: Amount,
+  opening: BidOpening
+): Bytes32 {
+  const payload = BidPayload{
+    networkDomain: networkDomain_,
+    contractAddress: contractAddress,
+    slot: slot,
+    maxPrice: opening.maxPrice,
+    quantity: opening.quantity,
+    refundRecipient: opening.refundRecipient,
+    tokenRecipient: opening.tokenRecipient
+  };
+  return persistentCommit<BidPayload>(payload, opening.salt);
+}
+
+export pure circuit paymentTestTokenDomain(): Bytes32 {
+  return pad(32, "fair-launch:test-payment:v1");
+}
+
+export pure circuit saleTestTokenDomain(): Bytes32 {
+  return pad(32, "fair-launch:test-sale:v1");
+}
+
+export circuit mintTestPaymentCoin(value: Amount, nonce: Bytes32): ShieldedCoinInfo {
+  assert(value > 0, "TEST_PAYMENT_AMOUNT_ZERO");
+  return mintShieldedToken(
+    paymentTestTokenDomain(),
+    disclose(value),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+export circuit mintTestSaleCoin(value: Amount, nonce: Bytes32, authoritySecret: Bytes32): ShieldedCoinInfo {
+  assert(!saleInventoryMinted, "SALE_INVENTORY_ALREADY_MINTED");
+  assert(value == saleInventory, "INVALID_SALE_INVENTORY_AMOUNT");
+  assert(
+    deriveInventoryAuthorityCommitment(networkDomain, authoritySecret) == inventoryAuthorityCommitment,
+    "UNAUTHORIZED_INVENTORY_FUNDER"
+  );
+  const minted = mintShieldedToken(
+    saleTestTokenDomain(),
+    disclose(value),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+  saleInventoryMinted = disclose(true);
+  return minted;
+}
+
+export circuit fundSaleInventory(coin: ShieldedCoinInfo, authoritySecret: Bytes32): [] {
+  assert(!saleInventoryFunded, "SALE_INVENTORY_ALREADY_FUNDED");
+  assert(saleInventoryMinted, "SALE_INVENTORY_NOT_MINTED");
+  assert(!settled && !cancelled, "AUCTION_CLOSED");
+  assert(
+    deriveInventoryAuthorityCommitment(networkDomain, authoritySecret) == inventoryAuthorityCommitment,
+    "UNAUTHORIZED_INVENTORY_FUNDER"
+  );
+  assert(coin.value == saleInventory, "INVALID_SALE_INVENTORY_AMOUNT");
+  assert(coin.color == tokenType(saleTokenDomain, kernel.self()), "INVALID_SALE_TOKEN");
+  receiveShielded(disclose(coin));
+  saleInventoryCoin.writeCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  saleInventoryFunded = disclose(true);
+  inventoryRemainderAvailable = disclose(true);
+  return [];
+}
+
+export circuit registerBid(slot: Amount, opening: BidOpening, paymentCoin: ShieldedCoinInfo): [] {
+  const publicSlot = disclose(slot);
+  assert(!settled && !cancelled, "AUCTION_CLOSED");
+  assert(saleInventoryFunded, "SALE_INVENTORY_NOT_FUNDED");
+  assert(blockTimeLt(disclose(commitDeadline)), "COMMIT_PHASE_CLOSED");
+  assert(publicSlot == registeredBidCount && publicSlot < 4, "INVALID_BID_SLOT");
+  assert(opening.maxPrice >= reservePrice, "BID_BELOW_RESERVE");
+  assert(opening.quantity > 0, "BID_QUANTITY_ZERO");
+  assertDepositCovers(opening.maxPrice, opening.quantity);
+  assert(paymentCoin.value == depositLot, "INVALID_DEPOSIT_LOT");
+  assert(paymentCoin.color == tokenType(paymentTokenDomain, kernel.self()), "INVALID_PAYMENT_TOKEN");
+  const commitment = computeBidCommitment(networkDomain, kernel.self().bytes, publicSlot, opening);
+  receiveShielded(disclose(paymentCoin));
+  if (publicSlot == 0) {
+    slot0Commitment = disclose(commitment);
+    slot0Funded = disclose(true);
+    paymentCoin0.writeCoin(disclose(paymentCoin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  } else if (publicSlot == 1) {
+    slot1Commitment = disclose(commitment);
+    slot1Funded = disclose(true);
+    paymentCoin1.writeCoin(disclose(paymentCoin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  } else if (publicSlot == 2) {
+    slot2Commitment = disclose(commitment);
+    slot2Funded = disclose(true);
+    paymentCoin2.writeCoin(disclose(paymentCoin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  } else {
+    slot3Commitment = disclose(commitment);
+    slot3Funded = disclose(true);
+    paymentCoin3.writeCoin(disclose(paymentCoin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+  }
+  registeredBidCount = disclose((registeredBidCount + 1) as Amount);
+  return [];
+}
+
+circuit eligibleDemand(
+  threshold: Amount,
+  opening0: BidOpening,
+  opening1: BidOpening,
+  opening2: BidOpening,
+  opening3: BidOpening
+): Wide {
+  const q0 = (registeredBidCount > 0 && opening0.maxPrice >= threshold) ? (opening0.quantity as Wide) : 0;
+  const q1 = (registeredBidCount > 1 && opening1.maxPrice >= threshold) ? (opening1.quantity as Wide) : 0;
+  const q2 = (registeredBidCount > 2 && opening2.maxPrice >= threshold) ? (opening2.quantity as Wide) : 0;
+  const q3 = (registeredBidCount > 3 && opening3.maxPrice >= threshold) ? (opening3.quantity as Wide) : 0;
+  return (((q0 + q1) as Wide) + ((q2 + q3) as Wide)) as Wide;
+}
+
+circuit eligibleDemandAbove(
+  threshold: Amount,
+  opening0: BidOpening,
+  opening1: BidOpening,
+  opening2: BidOpening,
+  opening3: BidOpening
+): Wide {
+  const q0 = (registeredBidCount > 0 && opening0.maxPrice > threshold) ? (opening0.quantity as Wide) : 0;
+  const q1 = (registeredBidCount > 1 && opening1.maxPrice > threshold) ? (opening1.quantity as Wide) : 0;
+  const q2 = (registeredBidCount > 2 && opening2.maxPrice > threshold) ? (opening2.quantity as Wide) : 0;
+  const q3 = (registeredBidCount > 3 && opening3.maxPrice > threshold) ? (opening3.quantity as Wide) : 0;
+  return (((q0 + q1) as Wide) + ((q2 + q3) as Wide)) as Wide;
+}
+
+circuit exactProRata(quantity: Amount, remaining: Amount, demand: Wide): Amount {
+  assert(demand > 0, "MARGINAL_DEMAND_ZERO");
+  const numerator = (quantity * remaining) as Wide;
+  const division = quotientRemainder(numerator, demand);
+  assert(division.quotient <= numerator, "INVALID_DIVISION_QUOTIENT");
+  assert(division.remainder < demand, "INVALID_DIVISION_REMAINDER");
+  assert(
+    (division.quotient as Field) * (demand as Field) + (division.remainder as Field) == (numerator as Field),
+    "INVALID_DIVISION_WITNESS"
+  );
+  assert(division.remainder == 0, "NON_INTEGRAL_MARGINAL_ALLOCATION");
+  return division.quotient as Amount;
+}
+
+circuit candidateAllocation(
+  clearingPrice_: Amount,
+  opening: BidOpening,
+  higherDemand: Wide,
+  marginalDemand: Wide,
+  oversubscribed: Boolean
+): Amount {
+  const supply = saleInventory as Wide;
+  const remaining = (supply - higherDemand) as Amount;
+  return opening.maxPrice > clearingPrice_
+    ? opening.quantity
+    : opening.maxPrice == clearingPrice_
+      ? (oversubscribed ? exactProRata(opening.quantity, remaining, marginalDemand) : opening.quantity)
+      : 0;
+}
+
+circuit assertDepositCovers(price: Amount, quantity: Amount): [] {
+  assert(price > 0, "MAX_PRICE_ZERO");
+  const budget = depositLot as Wide;
+  const division = quotientRemainder(budget, price as Wide);
+  assert(division.quotient <= budget, "INVALID_BUDGET_QUOTIENT");
+  assert(division.remainder < (price as Wide), "INVALID_BUDGET_REMAINDER");
+  assert(
+    (division.quotient as Field) * (price as Field) + (division.remainder as Field) == (budget as Field),
+    "INVALID_BUDGET_DIVISION_WITNESS"
+  );
+  assert((quantity as Wide) <= division.quotient, "DEPOSIT_INSUFFICIENT");
+  return [];
+}
+
+circuit settleWithCandidate(
+  oversubscribed_: Boolean,
+  clearingPrice_: Amount,
+  allocation0_: Amount,
+  allocation1_: Amount,
+  allocation2_: Amount,
+  allocation3_: Amount,
+  opening0: BidOpening,
+  opening1: BidOpening,
+  opening2: BidOpening,
+  opening3: BidOpening
+): [] {
+  assert(!settled && !cancelled, "AUCTION_CLOSED");
+  assert(saleInventoryFunded, "SALE_INVENTORY_NOT_FUNDED");
+  assert(registeredBidCount > 0, "NO_REGISTERED_BIDS");
+  assert(blockTimeGte(disclose(commitDeadline)), "COMMIT_PHASE_OPEN");
+  assert(blockTimeLt(disclose(openDeadline)), "OPENING_DEADLINE_PASSED");
+  if (registeredBidCount > 0) {
+    assert(computeBidCommitment(networkDomain, kernel.self().bytes, 0, opening0) == slot0Commitment, "SLOT0_OPENING_MISMATCH");
+  }
+  if (registeredBidCount > 1) {
+    assert(computeBidCommitment(networkDomain, kernel.self().bytes, 1, opening1) == slot1Commitment, "SLOT1_OPENING_MISMATCH");
+  }
+  if (registeredBidCount > 2) {
+    assert(computeBidCommitment(networkDomain, kernel.self().bytes, 2, opening2) == slot2Commitment, "SLOT2_OPENING_MISMATCH");
+  }
+  if (registeredBidCount > 3) {
+    assert(computeBidCommitment(networkDomain, kernel.self().bytes, 3, opening3) == slot3Commitment, "SLOT3_OPENING_MISMATCH");
+  }
+  const price = disclose(clearingPrice_);
+  const a0 = disclose(allocation0_);
+  const a1 = disclose(allocation1_);
+  const a2 = disclose(allocation2_);
+  const a3 = disclose(allocation3_);
+  assert(price >= reservePrice, "CLEARING_PRICE_BELOW_RESERVE");
+  const supply = saleInventory as Wide;
+  const demandAtPrice = eligibleDemand(price, opening0, opening1, opening2, opening3);
+  const higherDemand = eligibleDemandAbove(price, opening0, opening1, opening2, opening3);
+  const oversubscribed = disclose(oversubscribed_);
+  if (oversubscribed) {
+    assert(demandAtPrice >= supply, "AUCTION_NOT_OVERSUBSCRIBED");
+    assert(higherDemand < supply, "CLEARING_PRICE_TOO_LOW");
+  } else {
+    assert(demandAtPrice < supply, "AUCTION_IS_OVERSUBSCRIBED");
+    assert(price == reservePrice, "UNDERDEMANDED_PRICE_NOT_RESERVE");
+  }
+  const marginalDemand = demandAtPrice - higherDemand;
+  if (registeredBidCount > 0) {
+    assert(a0 == candidateAllocation(price, opening0, higherDemand, marginalDemand, oversubscribed), "SLOT0_ALLOCATION_MISMATCH");
+  } else {
+    assert(a0 == 0, "UNREGISTERED_SLOT0_ALLOCATION");
+  }
+  if (registeredBidCount > 1) {
+    assert(a1 == candidateAllocation(price, opening1, higherDemand, marginalDemand, oversubscribed), "SLOT1_ALLOCATION_MISMATCH");
+  } else {
+    assert(a1 == 0, "UNREGISTERED_SLOT1_ALLOCATION");
+  }
+  if (registeredBidCount > 2) {
+    assert(a2 == candidateAllocation(price, opening2, higherDemand, marginalDemand, oversubscribed), "SLOT2_ALLOCATION_MISMATCH");
+  } else {
+    assert(a2 == 0, "UNREGISTERED_SLOT2_ALLOCATION");
+  }
+  if (registeredBidCount > 3) {
+    assert(a3 == candidateAllocation(price, opening3, higherDemand, marginalDemand, oversubscribed), "SLOT3_ALLOCATION_MISMATCH");
+  } else {
+    assert(a3 == 0, "UNREGISTERED_SLOT3_ALLOCATION");
+  }
+  const allocated = (((a0 as Wide) + (a1 as Wide) + (a2 as Wide) + (a3 as Wide)) as Wide);
+  assert(allocated <= supply, "ALLOCATION_EXCEEDS_INVENTORY");
+  const paid0Wide = (price * a0) as Wide;
+  const paid1Wide = (price * a1) as Wide;
+  const paid2Wide = (price * a2) as Wide;
+  const paid3Wide = (price * a3) as Wide;
+  assert(paid0Wide <= (depositLot as Wide) && paid1Wide <= (depositLot as Wide) && paid2Wide <= (depositLot as Wide) && paid3Wide <= (depositLot as Wide), "SETTLEMENT_EXCEEDS_DEPOSIT");
+  const paid0 = paid0Wide as Amount;
+  const paid1 = paid1Wide as Amount;
+  const paid2 = paid2Wide as Amount;
+  const paid3 = paid3Wide as Amount;
+  clearingPrice = disclose(price);
+  allocated0 = disclose(a0);
+  allocated1 = disclose(a1);
+  allocated2 = disclose(a2);
+  allocated3 = disclose(a3);
+  refund0 = disclose(registeredBidCount > 0 ? (depositLot - paid0) as Amount : 0);
+  refund1 = disclose(registeredBidCount > 1 ? (depositLot - paid1) as Amount : 0);
+  refund2 = disclose(registeredBidCount > 2 ? (depositLot - paid2) as Amount : 0);
+  refund3 = disclose(registeredBidCount > 3 ? (depositLot - paid3) as Amount : 0);
+  settled = disclose(true);
+  return [];
+}
+
+export circuit settle(
+  oversubscribed: Boolean,
+  clearingPrice_: Amount,
+  allocation0_: Amount,
+  allocation1_: Amount,
+  allocation2_: Amount,
+  allocation3_: Amount,
+  opening0: BidOpening,
+  opening1: BidOpening,
+  opening2: BidOpening,
+  opening3: BidOpening
+): [] {
+  return settleWithCandidate(
+    oversubscribed,
+    clearingPrice_,
+    allocation0_,
+    allocation1_,
+    allocation2_,
+    allocation3_,
+    opening0,
+    opening1,
+    opening2,
+    opening3
+  );
+}
+
+export circuit cancelAfterOpeningDeadline(): [] {
+  assert(!settled && !cancelled, "AUCTION_CLOSED");
+  assert(registeredBidCount > 0, "NO_REGISTERED_BIDS");
+  assert(blockTimeGte(disclose(openDeadline)), "OPENING_DEADLINE_NOT_PASSED");
+  allocated0 = 0;
+  allocated1 = 0;
+  allocated2 = 0;
+  allocated3 = 0;
+  refund0 = registeredBidCount > 0 ? depositLot : 0;
+  refund1 = registeredBidCount > 1 ? depositLot : 0;
+  refund2 = registeredBidCount > 2 ? depositLot : 0;
+  refund3 = registeredBidCount > 3 ? depositLot : 0;
+  cancelled = disclose(true);
+  return [];
+}
+
+circuit assertSlotCommitment(slot: Amount, opening: BidOpening): [] {
+  const publicSlot = disclose(slot);
+  assert(publicSlot < registeredBidCount && publicSlot < 4, "BID_SLOT_NOT_REGISTERED");
+  const commitment = computeBidCommitment(networkDomain, kernel.self().bytes, publicSlot, opening);
+  if (publicSlot == 0) {
+    assert(commitment == slot0Commitment, "SLOT0_OPENING_MISMATCH");
+  } else if (publicSlot == 1) {
+    assert(commitment == slot1Commitment, "SLOT1_OPENING_MISMATCH");
+  } else if (publicSlot == 2) {
+    assert(commitment == slot2Commitment, "SLOT2_OPENING_MISMATCH");
+  } else {
+    assert(commitment == slot3Commitment, "SLOT3_OPENING_MISMATCH");
+  }
+  return [];
+}
+
+circuit claimRefundForSlot(slot: Amount, opening: BidOpening): [] {
+  const publicSlot = disclose(slot);
+  assert(settled || cancelled, "AUCTION_NOT_FINAL");
+  assertSlotCommitment(publicSlot, opening);
+  const alreadyClaimed = publicSlot == 0 ? refundClaimed0
+    : publicSlot == 1 ? refundClaimed1
+      : publicSlot == 2 ? refundClaimed2
+        : refundClaimed3;
+  const slotFunded = publicSlot == 0 ? slot0Funded
+    : publicSlot == 1 ? slot1Funded
+      : publicSlot == 2 ? slot2Funded
+        : slot3Funded;
+  assert(!alreadyClaimed && slotFunded, "REFUND_ALREADY_CLAIMED");
+  const refundAmount = cancelled ? depositLot : publicSlot == 0 ? refund0
+    : publicSlot == 1 ? refund1
+      : publicSlot == 2 ? refund2
+        : refund3;
+  const paymentCoin = publicSlot == 0 ? paymentCoin0
+    : publicSlot == 1 ? paymentCoin1
+      : publicSlot == 2 ? paymentCoin2
+        : paymentCoin3;
+  if (refundAmount > 0) {
+    const sent = sendShielded(
+      paymentCoin,
+      left<ZswapCoinPublicKey, ContractAddress>(disclose(opening.refundRecipient)),
+      disclose(refundAmount as Wide)
+    );
+    if (!cancelled && refundAmount < depositLot) {
+      assert(sent.change.is_some, "PROCEEDS_CHANGE_MISSING");
+      if (publicSlot == 0) {
+        proceedsCoin0.writeCoin(disclose(sent.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+        proceedsAvailable0 = disclose(true);
+      } else if (publicSlot == 1) {
+        proceedsCoin1.writeCoin(disclose(sent.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+        proceedsAvailable1 = disclose(true);
+      } else if (publicSlot == 2) {
+        proceedsCoin2.writeCoin(disclose(sent.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+        proceedsAvailable2 = disclose(true);
+      } else {
+        proceedsCoin3.writeCoin(disclose(sent.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+        proceedsAvailable3 = disclose(true);
+      }
+    } else {
+      assert(!sent.change.is_some, "UNEXPECTED_REFUND_CHANGE");
+    }
+  }
+  if (publicSlot == 0) {
+    refundClaimed0 = disclose(true);
+  } else if (publicSlot == 1) {
+    refundClaimed1 = disclose(true);
+  } else if (publicSlot == 2) {
+    refundClaimed2 = disclose(true);
+  } else {
+    refundClaimed3 = disclose(true);
+  }
+  return [];
+}
+
+export circuit claimRefund(slot: Amount, opening: BidOpening): [] {
+  return claimRefundForSlot(slot, opening);
+}
+
+export circuit claimProceeds(slot: Amount): [] {
+  const publicSlot = disclose(slot);
+  assert(settled && !cancelled, "AUCTION_NOT_SETTLED");
+  assert(ownPublicKey() == saleRecipient, "ONLY_SALE_RECIPIENT");
+  assert(publicSlot < registeredBidCount && publicSlot < 4, "BID_SLOT_NOT_REGISTERED");
+  const refundClaimed = publicSlot == 0 ? refundClaimed0
+    : publicSlot == 1 ? refundClaimed1
+      : publicSlot == 2 ? refundClaimed2
+        : refundClaimed3;
+  const proceedsClaimed = publicSlot == 0 ? proceedsClaimed0
+    : publicSlot == 1 ? proceedsClaimed1
+      : publicSlot == 2 ? proceedsClaimed2
+        : proceedsClaimed3;
+  const refundAmount = publicSlot == 0 ? refund0
+    : publicSlot == 1 ? refund1
+      : publicSlot == 2 ? refund2
+        : refund3;
+  const hasProceedsCoin = publicSlot == 0 ? proceedsAvailable0
+    : publicSlot == 1 ? proceedsAvailable1
+      : publicSlot == 2 ? proceedsAvailable2
+        : proceedsAvailable3;
+  assert(refundClaimed && !proceedsClaimed && depositLot > refundAmount, "NO_PROCEEDS_FOR_SLOT");
+  const proceedsCoin = publicSlot == 0 ? proceedsCoin0
+    : publicSlot == 1 ? proceedsCoin1
+      : publicSlot == 2 ? proceedsCoin2
+        : proceedsCoin3;
+  const paymentCoin = publicSlot == 0 ? paymentCoin0
+    : publicSlot == 1 ? paymentCoin1
+      : publicSlot == 2 ? paymentCoin2
+        : paymentCoin3;
+  const claimCoin = hasProceedsCoin ? proceedsCoin : paymentCoin;
+  const sent = sendShielded(
+    claimCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(saleRecipient),
+    disclose(claimCoin.value)
+  );
+  assert(!sent.change.is_some, "UNEXPECTED_PROCEEDS_CHANGE");
+  if (publicSlot == 0) {
+    proceedsAvailable0 = disclose(false);
+    proceedsClaimed0 = disclose(true);
+  } else if (publicSlot == 1) {
+    proceedsAvailable1 = disclose(false);
+    proceedsClaimed1 = disclose(true);
+  } else if (publicSlot == 2) {
+    proceedsAvailable2 = disclose(false);
+    proceedsClaimed2 = disclose(true);
+  } else {
+    proceedsAvailable3 = disclose(false);
+    proceedsClaimed3 = disclose(true);
+  }
+  return [];
+}
+
+circuit claimTokensForSlot(slot: Amount, opening: BidOpening): [] {
+  const publicSlot = disclose(slot);
+  assert(settled, "AUCTION_NOT_SETTLED");
+  assert(inventoryRemainderAvailable, "SALE_INVENTORY_EMPTY");
+  assertSlotCommitment(publicSlot, opening);
+  const amount = publicSlot == 0 ? allocated0 : publicSlot == 1 ? allocated1 : publicSlot == 2 ? allocated2 : allocated3;
+  if (publicSlot == 0) {
+    assert(!tokenClaimed0, "TOKENS_ALREADY_CLAIMED");
+    tokenClaimed0 = disclose(true);
+  } else if (publicSlot == 1) {
+    assert(!tokenClaimed1, "TOKENS_ALREADY_CLAIMED");
+    tokenClaimed1 = disclose(true);
+  } else if (publicSlot == 2) {
+    assert(!tokenClaimed2, "TOKENS_ALREADY_CLAIMED");
+    tokenClaimed2 = disclose(true);
+  } else {
+    assert(!tokenClaimed3, "TOKENS_ALREADY_CLAIMED");
+    tokenClaimed3 = disclose(true);
+  }
+  if (amount > 0) {
+    const sent = sendShielded(
+      saleInventoryCoin,
+      left<ZswapCoinPublicKey, ContractAddress>(disclose(opening.tokenRecipient)),
+      disclose(amount as Wide)
+    );
+    if (sent.change.is_some) {
+      saleInventoryCoin.writeCoin(disclose(sent.change.value), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    } else {
+      assert(amount == saleInventoryCoin.value, "UNEXPECTED_INVENTORY_EXHAUSTION");
+      inventoryRemainderAvailable = disclose(false);
+    }
+  }
+  return [];
+}
+
+export circuit claimTokens(slot: Amount, opening: BidOpening): [] {
+  return claimTokensForSlot(slot, opening);
+}
+
+circuit allRegisteredTokenClaimsComplete(): Boolean {
+  return (registeredBidCount == 0 || allocated0 == 0 || tokenClaimed0) &&
+    (registeredBidCount <= 1 || allocated1 == 0 || tokenClaimed1) &&
+    (registeredBidCount <= 2 || allocated2 == 0 || tokenClaimed2) &&
+    (registeredBidCount <= 3 || allocated3 == 0 || tokenClaimed3);
+}
+
+export circuit claimUnsoldInventory(authoritySecret: Bytes32): [] {
+  assert(saleInventoryFunded && inventoryRemainderAvailable, "NO_UNSOLD_INVENTORY");
+  assert(cancelled || (settled && allRegisteredTokenClaimsComplete()), "TOKEN_CLAIMS_PENDING");
+  assert(
+    deriveInventoryAuthorityCommitment(networkDomain, authoritySecret) == inventoryAuthorityCommitment,
+    "UNAUTHORIZED_INVENTORY_FUNDER"
+  );
+  const remaining = saleInventoryCoin.value;
+  const sent = sendShielded(
+    saleInventoryCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(saleRecipient),
+    disclose(remaining)
+  );
+  assert(!sent.change.is_some, "UNEXPECTED_UNSOLD_CHANGE");
+  inventoryRemainderAvailable = disclose(false);
+  return [];
+}
