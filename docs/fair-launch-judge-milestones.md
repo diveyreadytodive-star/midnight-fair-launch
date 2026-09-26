@@ -5,6 +5,7 @@ Updated 2026-09-27 KST. This is an evidence ledger, not a claim that the Goal is
 | Gate | Required proof | Current result |
 | --- | --- | --- |
 | Public Explore and explanation | Open the deployed Pages URL in a separate browser and inspect verified launches | **Passed:** three recorded Local Devnet launch cards visible on the public URL; settled outcomes belong to the original contract only |
+| Fresh-clone reproducibility | Install lockfile, set up Compact, compile/typecheck/test from the published repository | **Passed:** public commit `fef27d2`, `npm ci`, Compact 0.31.1, `npm test` 116/116; see [record](evidence/fresh-clone-2026-09-27.md) |
 | Interactive no-wallet judge path | Change a bid at the public URL and observe a newly calculated price/allocation/refund with an explicit simulation label | **Passed:** public `judge-demo.html` returned 10 TEST, 300/300/0/0 and 2000/2000/5000/5000 for the example, explicitly saying no new transaction |
 | KO/EN | Switch public Explore/Create/detail/demo and retain preference | **Passed** on public Explore, Create, detail, and demo; wallet-error variants still need a real wallet for runtime validation |
 | Targeted Local Devnet raw-field scan | Re-query all receipts and inspect raw/structured fields for direct protected-value encodings | **Partial:** 20 receipts re-queried; exact 32-byte salts and recipient keys had no direct matches; numeric patterns were ambiguous against unrelated controls. See [scan report](evidence/fair-launch-targeted-raw-scan.md). This does not prove full privacy. |

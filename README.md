@@ -41,6 +41,8 @@ npm test
 
 The root suite compiles/tests inherited SILENCE and VeilIntent research as well as Fair Launch. The current auction, catalog, simulation, wallet-preflight, and locale tests are under `spikes/fair-launch/tests/` and `web/*.test.mjs`. A passing local suite proves code paths, not a public wallet-signed transaction.
 
+The public repository at commit `fef27d2` also passed a [fresh-clone `npm ci` → compiler setup → `npm test` run (116/116)](docs/evidence/fresh-clone-2026-09-27.md).
+
 To inspect the UI locally without enabling writes:
 
 ```sh
