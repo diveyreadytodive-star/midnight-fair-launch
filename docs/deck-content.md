@@ -27,4 +27,4 @@ The deck's privacy goal is limited to **reducing active-position liquidation-map
 - [Fee sponsorship runner](https://github.com/diveyreadytodive-star/silence/blob/main/spikes/two-stage-claim/scripts/test-local-chain.ts)
 - [Integrated risk-custody simulator privacy boundary](https://github.com/diveyreadytodive-star/silence/blob/main/spikes/integrated-risk-custody/README.md)
 
-The repository is not pushed yet, so these paths become live after the first source push. The PPTX contains a timed Korean speaker outline and these source URLs in its slide notes.
+The public repository is now available on `main`; the listed source paths resolve after the first source push. The PPTX contains a timed Korean speaker outline and these source URLs in its slide notes.

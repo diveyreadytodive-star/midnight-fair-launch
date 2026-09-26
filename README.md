@@ -58,4 +58,4 @@ If any step fails, the final project description will narrow to the verified pri
 | `spikes/` | Isolated risk, two-stage claim, LP, oracle and integrated custody feasibility tests; each labels its own verification scope |
 | `tests/`, `docs/evidence/` | Tests and environment-labeled verification |
 
-The verified BlindAid project was used only to evaluate SDK/compiler and local-stack patterns. Its student-eligibility contract, wallet state and UI are not SILENCE's design. The root project passed a clean temporary install (`npm ci`), its own compiler setup, contract compile, typecheck, and all then-current tests. The current local suite passes 58/58. An actual remote GitHub fresh-clone check and wallet/browser trading flow are still pending.
+The verified BlindAid project was used only to evaluate SDK/compiler and local-stack patterns. Its student-eligibility contract, wallet state and UI are not SILENCE's design. The public GitHub `main` checkpoint was independently cloned and passed `npm ci`, its own Compact setup, contract compile, typecheck, and 58/58 root tests. Wallet/browser trading, variable payout, and Preprod contract execution remain unverified.
