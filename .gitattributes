@@ -1,1 +1,3 @@
 web/assets/*.js -diff linguist-generated=true
+web/zk/keys/* -diff linguist-generated=true
+web/zk/zkir/* -diff linguist-generated=true

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 const source = resolve('spikes/fair-launch/generated/fair_launch');
 const destination = resolve('.local/browser-build/zk');
+const sourceHash = createHash('sha256').update(await readFile(resolve('spikes/fair-launch/contracts/fair_launch.compact'))).digest('hex');
 const circuits = ['mintTestPaymentCoin', 'registerBid'];
 const extensions = [['keys', 'prover'], ['keys', 'verifier'], ['zkir', 'bzkir']];
 const files = [];
@@ -19,5 +20,5 @@ for (const [directory, extension] of extensions) {
   }
 }
 
-await writeFile(resolve(destination, 'manifest.json'), JSON.stringify({ network: 'preprod', source: 'local Compact compile', files }, null, 2) + '\n', { mode: 0o600 });
+await writeFile(resolve(destination, 'manifest.json'), JSON.stringify({ network: 'preprod', source: 'local Compact compile', sourceHash, files }, null, 2) + '\n', { mode: 0o600 });
 process.stdout.write(JSON.stringify({ destination, files: files.map(({ path, bytes }) => ({ path, bytes })) }) + '\n');
