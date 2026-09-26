@@ -343,6 +343,63 @@ test('an LP cannot replay its loss-coin claim', () => {
   );
 });
 
+test('break-even payout returns the full trader lot without consuming LP reserve', () => {
+  const fixture = fundedPosition();
+  const paid = claim(fixture, fixture.state, COLLATERAL);
+  const state = ledger(paid.context.currentQueryContext.state);
+  assert.equal(state.settled, true);
+  assert.equal(state.reserveFunded, true);
+  assert.equal(state.reserveCoin.value, RESERVE);
+  assert.equal(state.lpLossClaimable, false);
+  assert.deepEqual(outputs(paid).map((output) => output.coinInfo.value), [COLLATERAL]);
+});
+
+test('diagnostic full-send keeps owner authentication and untouched LP reserve', () => {
+  const fixture = fundedPosition();
+  const context = () => createCircuitContext(fixture.contractAddress, fixture.ownerKey, fixture.state as never, {});
+  assert.throws(
+    () => fixture.contract.circuits.diagnosticClaimFull(context(), new Uint8Array(32).fill(1), fixture.ownerRecipient),
+    /NOT_POSITION_OWNER/,
+  );
+  const paid = fixture.contract.circuits.diagnosticClaimFull(context(), OWNER_SECRET, fixture.ownerRecipient);
+  const state = ledger(paid.context.currentQueryContext.state);
+  assert.equal(state.settled, true);
+  assert.equal(state.reserveFunded, true);
+  assert.equal(state.reserveCoin.value, RESERVE);
+  assert.deepEqual(outputs(paid).map((output) => output.coinInfo.value), [COLLATERAL]);
+});
+
+test('diagnostic static loss branch retains the 200-unit LP claim coin', () => {
+  const fixture = fundedPosition();
+  const context = () => createCircuitContext(fixture.contractAddress, fixture.ownerKey, fixture.state as never, {});
+  assert.throws(
+    () => fixture.contract.circuits.diagnosticClaimLoss(context(), 800n, new Uint8Array(32).fill(1), fixture.ownerRecipient),
+    /NOT_POSITION_OWNER/,
+  );
+  const paid = fixture.contract.circuits.diagnosticClaimLoss(context(), 800n, OWNER_SECRET, fixture.ownerRecipient);
+  const state = ledger(paid.context.currentQueryContext.state);
+  assert.equal(state.settled, true);
+  assert.equal(state.lpLossClaimable, true);
+  assert.equal(state.lpLossCoin.value, 200n);
+  assert.equal(state.reserveCoin.value, RESERVE);
+  assert.deepEqual(outputs(paid).map((output) => output.coinInfo.value).sort((a, b) => a < b ? -1 : 1), [200n, 800n]);
+});
+
+test('diagnostic static profit branch preserves the 300-unit reserve change', () => {
+  const fixture = fundedPosition();
+  const paid = fixture.contract.circuits.diagnosticClaimProfit(
+    createCircuitContext(fixture.contractAddress, fixture.ownerKey, fixture.state as never, {}),
+    1200n,
+    OWNER_SECRET,
+    fixture.ownerRecipient,
+  );
+  const state = ledger(paid.context.currentQueryContext.state);
+  assert.equal(state.settled, true);
+  assert.equal(state.reserveFunded, true);
+  assert.equal(state.reserveCoin.value, 300n);
+  assert.deepEqual(outputs(paid).map((output) => output.coinInfo.value).sort((a, b) => a < b ? -1 : 1), [200n, 300n, 1000n]);
+});
+
 test('settlement is one-shot', () => {
   const fixture = fundedPosition();
   const paid = claim(fixture, fixture.state, 1000n);

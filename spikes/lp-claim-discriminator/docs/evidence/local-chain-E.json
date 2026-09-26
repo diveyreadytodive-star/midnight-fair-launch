@@ -1,0 +1,53 @@
+{
+  "checkedAt": "2026-09-26T01:19:08.388Z",
+  "mode": "one-fresh-loopback-local-devnet-contract-instance",
+  "testOnlyValuelessAsset": true,
+  "results": {
+    "E-two-coin": {
+      "circuit": "claimFullWithReserve",
+      "changeStored": false,
+      "reserveValue": "500",
+      "reserveMtIndex": "76"
+    }
+  },
+  "finalShieldedBalances": {
+    "E-two-coin": "1000"
+  },
+  "receipts": {
+    "E-two-coin:deploy": {
+      "txId": "00bd904627aa08ef3d0fe5146210ffabcbeeb1772315fc78c3f4e6174562b41a59",
+      "status": "SucceedEntirely",
+      "blockHeight": 2699
+    },
+    "E-two-coin:mint-reserve": {
+      "txId": "003de68b9ed48caf8555e9620237c97fdb7d36fa774e60a44a82b84cb37a32e984",
+      "status": "SucceedEntirely",
+      "blockHeight": 2702
+    },
+    "E-two-coin:fund-reserve": {
+      "txId": "000cd62091d3fc4064c023827b2fd7aa7a1a9f57a10aeb64bc678c2cb6d34055d8",
+      "status": "SucceedEntirely",
+      "blockHeight": 2706
+    },
+    "E-two-coin:mint": {
+      "txId": "00fa983f63b7ed2ad46a237b096df17bbe329b273872f3bd5cf5395897a6ed54b9",
+      "status": "SucceedEntirely",
+      "blockHeight": 2709
+    },
+    "E-two-coin:open": {
+      "txId": "00d5365630a71f353fca8943832d4ba8776fba98c1dee441d3e59a7247d0c232ed",
+      "status": "SucceedEntirely",
+      "blockHeight": 2713
+    },
+    "E-two-coin:claim": {
+      "txId": "006bbdf66113673a2a732b4c48e5f9d3aeed05426db0ef047d2579c9e94b2e7490",
+      "status": "SucceedEntirely",
+      "blockHeight": 2717
+    }
+  },
+  "limitations": [
+    "Local Devnet only; all collateral is freely minted and valueless.",
+    "The A/B/C, D and E evidence files compare full send, partial send, change writeCoin, a public variable-payout branch, and a second funded coin left untouched; this does not model a market or LP solvency.",
+    "No raw transaction payloads, proof inputs, seeds, wallet keys, or private state are included."
+  ]
+}

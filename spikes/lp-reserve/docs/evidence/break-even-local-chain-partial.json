@@ -1,0 +1,32 @@
+{
+  "checkedAtUtc": "2026-09-26T01:10:01Z",
+  "environment": "valueless Local Devnet, separate fresh LP reserve contract",
+  "contractAddress": "867680f9b95c4cfadf4d46323507d769c1361a827d9df32df737b0abfe85591c",
+  "finalized": {
+    "deploy": { "sdkIdentifier": "009c752b85c1adb30db33e2115753a77a8e598136b61fe2695756d0676c2d354b2", "blockHeight": 2587 },
+    "mintReserve": { "sdkIdentifier": "005a3058020e8d23f3cf0bd27216156b9de22cd14ae0ea171fbf6516d0e6ab2daf", "blockHeight": 2590 },
+    "fundReserve": { "sdkIdentifier": "00bc388336274ce4c8499be2c5ec55cf861ed9355acb6d4a7c8766b8da7ffbd081", "blockHeight": 2594 },
+    "mintTrader": { "sdkIdentifier": "00adf73cce3ff1f44160ae57f8ee54d807bed2d6b5566cc9c1296eaa88e33af49e", "blockHeight": 2597 },
+    "openPosition": { "sdkIdentifier": "003d612eed2babab901d05d2d8db3d4fe0ae6031ca03be572701944f785eab46a8", "blockHeight": 2601 }
+  },
+  "claimAttempt": {
+    "payout": "1000",
+    "result": "Proof-server /check HTTP 400 before claim transaction submission",
+    "txIdentifier": null,
+    "receiptObserved": false
+  },
+  "independentPublicReadback": {
+    "positionActive": true,
+    "settled": false,
+    "traderCoin": { "value": "1000", "mtIndex": "74" },
+    "reserveCoin": { "value": "500", "mtIndex": "72" },
+    "lpLossClaimable": false
+  },
+  "recovery": "The new 0700/0600 Git-ignored .local/recovery manifest, test-only seeds, claim witnesses and wallet state were retained. No retry was attempted on this contract.",
+  "interpretation": "The original LP contract also rejects a full break-even payout that creates no change. Because the isolated discriminator's full, partial, change-write, and variable-payout circuits all finalized, the prior LP /check 400 is not explained by partial send or change writeCoin alone. Its exact composite-circuit cause remains unproven.",
+  "limits": [
+    "Only permissionlessly minted valueless Local Devnet test tokens are involved.",
+    "No claim transaction or owner payout succeeded; this is a partial failure, not LP settlement evidence.",
+    "The protected recovery material is local and excluded from Git; no private payload is in this evidence."
+  ]
+}

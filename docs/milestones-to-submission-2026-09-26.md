@@ -21,6 +21,10 @@
 
 **M1 확인(2026-09-26 09:31 KST):** 첫 Lore 커밋 `77c9378`을 공개 `main`에 푸시했다. 별도 폴더에서 원격 저장소를 새로 clone해 `npm ci`(취약점 0건), Compact 설치·3회로 컴파일·typecheck·58/58 루트 테스트를 통과했고 `midnightntwrk` 토픽을 확인했다. 마일스톤의 *공개 재현 체크포인트*는 완료이며, 이후 추가 코드는 각자 다시 검증한다.
 
+**M2 중간 판정(2026-09-26 10:10 KST):** A/B/C/D로 분리한 전액·부분·잔돈 기록·공개 변동 지급은 모두 새 Local Devnet 계약에서 확정됐다. 반면 원래 LP 계약은 800 지급뿐 아니라 1,000 전액 지급도 `/check` HTTP 400으로 거절됐다. 즉 `sendShielded` 부분 지급이나 `writeCoin` 하나만의 문제는 아니며, 원래 LP 회로의 더 큰 조합에서 실패한다. 가치 없는 두 실패 계약의 복구 기록은 보호 저장돼 있고, 원인 미확정인 동안 LP 정산 완료로 승격하지 않는다. [판별 실험](../spikes/lp-claim-discriminator/README.md)과 [전액 실패](../spikes/lp-reserve/docs/evidence/break-even-local-chain-partial.json).
+
+**M2 기술 문턱 통과(2026-09-26 10:41 KST, 제한된 범위):** 손실·이익을 **각각 독립 공개 회로**로 나누자 실제 Local Devnet에서 거래자 800/LP 후속 200 청구와 거래자 1,200/LP 잔돈 300의 후속 지출이 모두 확정됐다. [손실 영수증](../spikes/lp-reserve/docs/evidence/diagnostic-loss-static-local-chain.json), [이익 영수증](../spikes/lp-reserve/docs/evidence/diagnostic-profit-static-local-chain.json). 변동 지급·잔돈 재사용의 기술 가능성은 입증했으므로 M3 통합을 시작할 수 있다. 다만 지급액은 **호출자가 지정**했고 오라클·PnL과 연결되지 않았으며, 공개 회로명과 금액이 손익을 누출한다. 이것은 경제적으로 올바른 perp 완료가 아니다. 원래 단일 `claim`의 `/check` 400은 미해결이므로 제품에는 검증된 정적 분기만 고려한다.
+
 | 마일스톤 / 목표 시각(KST) | 완료 조건 | 중단·범위 축소 기준 |
 |---|---|---|
 | **M1 공개 재현 체크포인트 — 9/26 13:00** | 복구 비밀 덮어쓰기/삭제와 웹 개인 DOM 누출을 수정한 코드가 컴파일·타입 검사·루트 58+ 테스트·각 spike 테스트를 통과한다. 비밀 스캔, staged 리뷰, Lore 커밋, 공개 repo 푸시, 원격 fresh clone 설치/컴파일/테스트와 `midnightntwrk` 토픽을 독립 확인한다. | 한 고위험 복구·비밀 누출 이슈라도 남으면 푸시하지 않는다. 타임박스가 지나면 불완전한 체인 runner는 공개 커밋에서 제외하고, 검증된 코드와 증거만 먼저 푸시한다. |

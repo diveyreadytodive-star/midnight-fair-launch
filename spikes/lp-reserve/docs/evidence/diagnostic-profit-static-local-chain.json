@@ -1,0 +1,57 @@
+{
+  "checkedAt": "2026-09-26T01:38:45.131Z",
+  "mode": "isolated-local-devnet-static-profit-accounting-diagnostic",
+  "contractAddress": "2f49c53284b1c668b0543200da96aba1ede7d79a164830b341d9bf5fb33ff0d4",
+  "receipts": {
+    "diagnostic-profit-staticDeploy": {
+      "txId": "00c7df6fe4400b02a035b5a05c2b9cfe034cd71c62a24b15d7f99df1cb712b02c6",
+      "status": "SucceedEntirely",
+      "blockHeight": 2889
+    },
+    "diagnostic-profit-staticReserveMint": {
+      "txId": "00e9caa679201e7011429ae5f105f611705b71261dcf034bcae4e6a79c30194b5b",
+      "status": "SucceedEntirely",
+      "blockHeight": 2893
+    },
+    "diagnostic-profit-staticReserveFund": {
+      "txId": "0027908436d3c6a83b26790ebe0e0c8055c4c678a6078fe3392067abb13f3377dc",
+      "status": "SucceedEntirely",
+      "blockHeight": 2897
+    },
+    "diagnostic-profit-staticTraderMint": {
+      "txId": "0007b76fc5051d3d4f21be5167667a1c000394385251e5487d2a07255d8306365a",
+      "status": "SucceedEntirely",
+      "blockHeight": 2900
+    },
+    "diagnostic-profit-staticOpen": {
+      "txId": "00442dfe02809c8e4af30cad9d648606f3387d5feeb738e045680b8dcd12559150",
+      "status": "SucceedEntirely",
+      "blockHeight": 2904
+    },
+    "diagnostic-profit-staticOwnerClaim": {
+      "txId": "009c6c6a88654a80cb43f5cc52a88b57248328b2a410652ab1dd8fa6eeffbc18c7",
+      "status": "SucceedEntirely",
+      "blockHeight": 2909
+    },
+    "diagnostic-profit-staticLpRemainderSpend": {
+      "txId": "00fce7896775f252e994bfa4f672d113072723a225e588bf5b01f28dfd1768cf71",
+      "status": "SucceedEntirely",
+      "blockHeight": 2913
+    }
+  },
+  "publicReadback": {
+    "settled": true,
+    "traderPayout": "1200",
+    "reserveInputMtIndex": "93",
+    "reserveChangeValueAtOwnerClaim": "300",
+    "reserveChangeMtIndexAtOwnerClaim": "96",
+    "reserveFundedAfterLaterLpSpend": false
+  },
+  "ownerShieldedBalance": "1200",
+  "lpShieldedBalanceAfterLaterSpend": "300",
+  "limitations": [
+    "Valueless Local Devnet only. The 1200-unit profit payout is a public caller-supplied amount, not oracle/PnL-validated.",
+    "The diagnostic static profit circuit reveals its payout regime in the public entry point name and is not a privacy-preserving product settlement.",
+    "The LP shielded key differs, but Local Devnet DUST fees are sponsored from the same genesis wallet key in the test process."
+  ]
+}

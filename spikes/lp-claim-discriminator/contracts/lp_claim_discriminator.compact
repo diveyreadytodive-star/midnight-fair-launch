@@ -1,0 +1,193 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export type Bytes32 = Bytes<32>;
+export type Amount = Uint<64>;
+
+export ledger escrowCoin: QualifiedShieldedCoinInfo;
+export ledger changeCoin: QualifiedShieldedCoinInfo;
+export ledger reserveCoin: QualifiedShieldedCoinInfo;
+export ledger collateralLocked: Boolean;
+export ledger changeStored: Boolean;
+export ledger reserveFunded: Boolean;
+export ledger settled: Boolean;
+
+constructor() {
+  collateralLocked = false;
+  changeStored = false;
+  reserveFunded = false;
+  settled = false;
+}
+
+export pure circuit testTokenDomain(): Bytes32 {
+  return pad(32, "silence:lpclaimdisc:v1");
+}
+
+export pure circuit collateralUnits(): Amount {
+  return 1000;
+}
+
+export pure circuit partialPayoutUnits(): Amount {
+  return 800;
+}
+
+export pure circuit reserveUnits(): Amount {
+  return 500;
+}
+
+// Local Devnet only: freely mintable and valueless test token.
+export circuit mintTestCoin(value: Amount, nonce: Bytes32): ShieldedCoinInfo {
+  assert(value > 0, "TEST_COIN_AMOUNT_ZERO");
+  return mintShieldedToken(
+    testTokenDomain(),
+    disclose(value),
+    disclose(nonce),
+    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+  );
+}
+
+export circuit openCollateral(coin: ShieldedCoinInfo): [] {
+  assert(!collateralLocked, "COLLATERAL_ALREADY_LOCKED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(coin.value == collateralUnits(), "INVALID_COLLATERAL_AMOUNT");
+  assert(
+    coin.color == tokenType(testTokenDomain(), kernel.self()),
+    "INVALID_COLLATERAL_TOKEN"
+  );
+  receiveShielded(disclose(coin));
+  escrowCoin.writeCoin(
+    disclose(coin),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+  collateralLocked = true;
+  return [];
+}
+
+// E setup: lock an additional real test coin so a later full trader payout
+// leaves a second contract-owned QSCI untouched. This tests only the
+// two-held-coin proof boundary, not LP accounting or authorization.
+export circuit fundReserve(coin: ShieldedCoinInfo): [] {
+  assert(!reserveFunded, "RESERVE_ALREADY_FUNDED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  assert(coin.value == reserveUnits(), "INVALID_RESERVE_AMOUNT");
+  assert(coin.color == tokenType(testTokenDomain(), kernel.self()), "INVALID_RESERVE_TOKEN");
+  receiveShielded(disclose(coin));
+  reserveCoin.writeCoin(
+    disclose(coin),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+  reserveFunded = true;
+  return [];
+}
+
+// A: baseline full send from a committed QualifiedShieldedCoinInfo. There is
+// no change coin because the entire 1,000-unit input is spent.
+export circuit claimFullPayout(recipient: ZswapCoinPublicKey): [] {
+  assert(collateralLocked, "COLLATERAL_NOT_LOCKED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  const paid = sendShielded(
+    escrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(collateralUnits())
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_FULL_PAYOUT_CHANGE");
+  collateralLocked = false;
+  settled = true;
+  return [];
+}
+
+// B: the same committed input is partially sent, but the returned change coin
+// is deliberately not stored in a ledger field. This isolates sendShielded's
+// partial-send check from QualifiedShieldedCoinInfo.writeCoin.
+export circuit claimPartialWithoutLedgerWrite(recipient: ZswapCoinPublicKey): [] {
+  assert(collateralLocked, "COLLATERAL_NOT_LOCKED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  const paid = sendShielded(
+    escrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(partialPayoutUnits())
+  );
+  assert(paid.change.is_some, "EXPECTED_PARTIAL_PAYOUT_CHANGE");
+  assert(
+    paid.change.value.value == collateralUnits() - partialPayoutUnits(),
+    "PARTIAL_PAYOUT_CHANGE_MISMATCH"
+  );
+  collateralLocked = false;
+  settled = true;
+  return [];
+}
+
+// C: identical partial send to B, followed by storing the generated change
+// coin in a contract-owned ledger cell. This isolates the additional
+// sendShielded-change -> writeCoin edge.
+export circuit claimPartialWithLedgerWrite(recipient: ZswapCoinPublicKey): [] {
+  assert(collateralLocked, "COLLATERAL_NOT_LOCKED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  const paid = sendShielded(
+    escrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(partialPayoutUnits())
+  );
+  assert(paid.change.is_some, "EXPECTED_PARTIAL_PAYOUT_CHANGE");
+  assert(
+    paid.change.value.value == collateralUnits() - partialPayoutUnits(),
+    "PARTIAL_PAYOUT_CHANGE_MISMATCH"
+  );
+  changeCoin.writeCoin(
+    disclose(paid.change.value),
+    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+  );
+  collateralLocked = false;
+  changeStored = true;
+  settled = true;
+  return [];
+}
+
+// D: same partial spend and change write as C, but selected by a disclosed
+// caller-supplied payout in one circuit. This isolates the original LP claim's
+// public amount and dynamic branch from the fixed-amount C circuit.
+export circuit claimVariablePayout(payoutUnits: Amount, recipient: ZswapCoinPublicKey): [] {
+  assert(collateralLocked, "COLLATERAL_NOT_LOCKED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  const publicPayout = disclose(payoutUnits);
+  assert(publicPayout > 0, "PAYOUT_ZERO");
+  assert(publicPayout <= collateralUnits(), "PAYOUT_EXCEEDS_COLLATERAL");
+  const paid = sendShielded(
+    escrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(publicPayout)
+  );
+  if (publicPayout < collateralUnits()) {
+    assert(paid.change.is_some, "EXPECTED_VARIABLE_CHANGE");
+    assert(paid.change.value.value == collateralUnits() - publicPayout, "VARIABLE_CHANGE_MISMATCH");
+    changeCoin.writeCoin(
+      disclose(paid.change.value),
+      right<ZswapCoinPublicKey, ContractAddress>(kernel.self())
+    );
+    changeStored = true;
+  } else {
+    assert(!paid.change.is_some, "UNEXPECTED_VARIABLE_CHANGE");
+  }
+  collateralLocked = false;
+  settled = true;
+  return [];
+}
+
+// E: one full trader send while a separate 500-unit reserve QSCI remains in
+// the contract. If this proves on chain, merely holding two coins is not the
+// original LP claim's /check failure.
+export circuit claimFullWithReserve(recipient: ZswapCoinPublicKey): [] {
+  assert(collateralLocked, "COLLATERAL_NOT_LOCKED");
+  assert(reserveFunded, "RESERVE_NOT_FUNDED");
+  assert(!settled, "POSITION_ALREADY_SETTLED");
+  const paid = sendShielded(
+    escrowCoin,
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(recipient)),
+    disclose(collateralUnits())
+  );
+  assert(!paid.change.is_some, "UNEXPECTED_FULL_PAYOUT_CHANGE");
+  collateralLocked = false;
+  settled = true;
+  return [];
+}

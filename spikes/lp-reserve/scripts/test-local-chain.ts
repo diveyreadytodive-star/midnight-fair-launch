@@ -42,7 +42,13 @@ Reflect.set(globalThis as object, 'WebSocket', WebSocket);
 
 const spikeDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const artifactsDir = resolve(spikeDir, 'generated/lp_reserve');
-const evidencePath = resolve(spikeDir, 'docs/evidence/local-chain.json');
+const selectedCase = process.env.SILENCE_LP_RESERVE_CASE?.trim() ?? '';
+const evidencePath = resolve(spikeDir,
+  selectedCase === 'break-even' ? 'docs/evidence/break-even-local-chain.json'
+    : selectedCase === 'diagnostic-full-auth' ? 'docs/evidence/diagnostic-full-auth-local-chain.json'
+      : selectedCase === 'diagnostic-loss-static' ? 'docs/evidence/diagnostic-loss-static-local-chain.json'
+        : selectedCase === 'diagnostic-profit-static' ? 'docs/evidence/diagnostic-profit-static-local-chain.json'
+      : 'docs/evidence/local-chain.json');
 const recoveryRoot = resolve(spikeDir, '.local/recovery');
 const recoveryPath = join(recoveryRoot, 'manifest.json');
 const ownerWalletDir = join(recoveryRoot, 'owner-wallet');
@@ -401,6 +407,9 @@ async function shieldedBalance(wallet: WalletContext, color: string): Promise<bi
 
 async function main(): Promise<void> {
   assertLocalNetworkOnly();
+  if (selectedCase && selectedCase !== 'break-even' && selectedCase !== 'diagnostic-full-auth' && selectedCase !== 'diagnostic-loss-static' && selectedCase !== 'diagnostic-profit-static') {
+    throw new Error('SILENCE_LP_RESERVE_CASE accepts only break-even or a diagnostic-full-auth/loss-static/profit-static isolated run.');
+  }
   if (existsSync(recoveryPath)) {
     throw new Error('Pending or uncertain recovery material already exists at ' + recoveryPath + '; inspect and reconcile it before any new chain run.');
   }
@@ -506,6 +515,159 @@ async function main(): Promise<void> {
       assert.ok(afterOpen.traderCoin.mt_index > 0n, 'Trader coin must have a committed mt_index.');
       return { address: deployment.address, initialReserveIndex: afterReserve.reserveCoin.mt_index };
     };
+
+    if (selectedCase === 'break-even' || selectedCase === 'diagnostic-full-auth') {
+      const label = selectedCase;
+      const circuit = selectedCase === 'break-even' ? 'claim' : 'diagnosticClaimFull';
+      const claimArgs = selectedCase === 'break-even'
+        ? [TEST_TOKEN_ATOMS, ownerSecret, ownerRecipient]
+        : [ownerSecret, ownerRecipient];
+      setStage(label + '-case');
+      const simple = await openFixture(label);
+      setStage(label + ':owner-claim');
+      const ownerClaimed = await invoke(ownerRuntime, compiled, simple.address, circuit, claimArgs);
+      runReceipts[label + 'OwnerClaim'] = ownerClaimed.receipt;
+      await Promise.all([owner.wallet.waitForSyncedState(), lp.wallet.waitForSyncedState()]);
+      const finalState = await readLedger(ownerRuntime.publicDataProvider, contractModule, simple.address);
+      const ownerBalance = await shieldedBalance(owner, tokenColor.value);
+      const lpBalance = await shieldedBalance(lp, tokenColor.value);
+      assert.equal(finalState.positionActive, false);
+      assert.equal(finalState.settled, true);
+      assert.equal(finalState.lpLossClaimable, false);
+      assert.equal(finalState.reserveCoin.value, RESERVE_ATOMS);
+      assert.equal(ownerBalance, TEST_TOKEN_ATOMS);
+      assert.equal(lpBalance, 0n);
+      mkdirSync(dirname(evidencePath), { recursive: true });
+      writeFileSync(evidencePath, JSON.stringify({
+        checkedAt: new Date().toISOString(),
+        mode: 'isolated-local-devnet-' + label + '-accounting-diagnostic',
+        claimCircuit: circuit,
+        contractAddress: simple.address,
+        receipts: runReceipts,
+        publicReadback: {
+          positionActive: finalState.positionActive,
+          settled: finalState.settled,
+          reserveValue: finalState.reserveCoin.value.toString(),
+          reserveMtIndex: finalState.reserveCoin.mt_index.toString(),
+          lpLossClaimable: finalState.lpLossClaimable,
+        },
+        ownerShieldedBalance: ownerBalance.toString(),
+        lpShieldedBalance: lpBalance.toString(),
+        limitations: [
+          'Valueless Local Devnet only; no oracle or PnL verification. The diagnostic-full-auth circuit is not a valid economic exit for a losing position.',
+          'This tests full trader payout after funding a separate LP reserve; it does not test partial payout, change spendability or production fee-key separation.',
+        ],
+      }, null, 2) + '\n', { mode: 0o600 });
+      setStage('acceptance-complete');
+      safeCleanup = true;
+      process.stdout.write('PASS: ' + label + ' owner claim finalized; reserve unchanged and owner received the fixed test lot.\n');
+      return;
+    }
+
+    if (selectedCase === 'diagnostic-loss-static') {
+      const label = selectedCase;
+      setStage(label + '-case');
+      const loss = await openFixture(label);
+      setStage(label + ':owner-claim');
+      const ownerClaimed = await invoke(ownerRuntime, compiled, loss.address, 'diagnosticClaimLoss', [LOSS_PAYOUT_ATOMS, ownerSecret, ownerRecipient]);
+      runReceipts[label + 'OwnerClaim'] = ownerClaimed.receipt;
+      const afterOwnerClaim = await readLedger(ownerRuntime.publicDataProvider, contractModule, loss.address);
+      assert.equal(afterOwnerClaim.settled, true);
+      assert.equal(afterOwnerClaim.lpLossClaimable, true);
+      assert.equal(afterOwnerClaim.lpLossCoin.value, TEST_TOKEN_ATOMS - LOSS_PAYOUT_ATOMS);
+      assert.ok(afterOwnerClaim.lpLossCoin.mt_index > 0n);
+      await Promise.all([owner.wallet.waitForSyncedState(), lp.wallet.waitForSyncedState()]);
+      assert.equal(await shieldedBalance(owner, tokenColor.value), LOSS_PAYOUT_ATOMS);
+      assert.equal(await shieldedBalance(lp, tokenColor.value), 0n);
+      setStage(label + ':lp-claim');
+      const lpClaimed = await invoke(lpRuntime, compiled, loss.address, 'claimLpLoss', [lpSecret, lpRecipient]);
+      runReceipts[label + 'LpClaim'] = lpClaimed.receipt;
+      await lp.wallet.waitForSyncedState();
+      const finalState = await readLedger(lpRuntime.publicDataProvider, contractModule, loss.address);
+      const lpBalance = await shieldedBalance(lp, tokenColor.value);
+      assert.equal(finalState.lpLossClaimable, false);
+      assert.equal(lpBalance, TEST_TOKEN_ATOMS - LOSS_PAYOUT_ATOMS);
+      mkdirSync(dirname(evidencePath), { recursive: true });
+      writeFileSync(evidencePath, JSON.stringify({
+        checkedAt: new Date().toISOString(),
+        mode: 'isolated-local-devnet-static-loss-accounting-diagnostic',
+        contractAddress: loss.address,
+        receipts: runReceipts,
+        publicReadback: {
+          settled: finalState.settled,
+          traderPayout: LOSS_PAYOUT_ATOMS.toString(),
+          lpLossCoinValueAtOwnerClaim: afterOwnerClaim.lpLossCoin.value.toString(),
+          lpLossCoinMtIndexAtOwnerClaim: afterOwnerClaim.lpLossCoin.mt_index.toString(),
+          lpLossClaimableAfterLpClaim: finalState.lpLossClaimable,
+          reserveValue: finalState.reserveCoin.value.toString(),
+        },
+        ownerShieldedBalance: LOSS_PAYOUT_ATOMS.toString(),
+        lpShieldedBalance: lpBalance.toString(),
+        limitations: [
+          'Valueless Local Devnet only. The 800-unit loss payout is a public caller-supplied amount, not oracle/PnL-validated.',
+          'The diagnostic static loss circuit reveals its payout regime in the public entry point name and is not a privacy-preserving product settlement.',
+          'The LP shielded key differs, but Local Devnet DUST fees are sponsored from the same genesis wallet key in the test process.',
+        ],
+      }, null, 2) + '\n', { mode: 0o600 });
+      setStage('acceptance-complete');
+      safeCleanup = true;
+      process.stdout.write('PASS: static 800-unit loss settled and LP later claimed the 200-unit coin.\n');
+      return;
+    }
+
+    if (selectedCase === 'diagnostic-profit-static') {
+      const label = selectedCase;
+      setStage(label + '-case');
+      const profit = await openFixture(label);
+      setStage(label + ':owner-claim');
+      const ownerClaimed = await invoke(ownerRuntime, compiled, profit.address, 'diagnosticClaimProfit', [PROFIT_PAYOUT_ATOMS, ownerSecret, ownerRecipient]);
+      runReceipts[label + 'OwnerClaim'] = ownerClaimed.receipt;
+      const afterOwnerClaim = await readLedger(ownerRuntime.publicDataProvider, contractModule, profit.address);
+      assert.equal(afterOwnerClaim.settled, true);
+      assert.equal(afterOwnerClaim.reserveFunded, true);
+      assert.equal(afterOwnerClaim.reserveCoin.value, RESERVE_ATOMS - (PROFIT_PAYOUT_ATOMS - TEST_TOKEN_ATOMS));
+      assert.ok(afterOwnerClaim.reserveCoin.mt_index > 0n);
+      assert.notEqual(afterOwnerClaim.reserveCoin.mt_index, profit.initialReserveIndex);
+      await Promise.all([owner.wallet.waitForSyncedState(), lp.wallet.waitForSyncedState()]);
+      const ownerBalance = await shieldedBalance(owner, tokenColor.value);
+      const lpBalanceBefore = await shieldedBalance(lp, tokenColor.value);
+      assert.equal(ownerBalance, PROFIT_PAYOUT_ATOMS);
+      assert.equal(lpBalanceBefore, 0n);
+      setStage(label + ':lp-spend-remainder');
+      const lpSpent = await invoke(lpRuntime, compiled, profit.address, 'withdrawReserveRemainder', [lpSecret, lpRecipient]);
+      runReceipts[label + 'LpRemainderSpend'] = lpSpent.receipt;
+      await lp.wallet.waitForSyncedState();
+      const finalState = await readLedger(lpRuntime.publicDataProvider, contractModule, profit.address);
+      const lpBalanceAfter = await shieldedBalance(lp, tokenColor.value);
+      assert.equal(finalState.reserveFunded, false);
+      assert.equal(lpBalanceAfter - lpBalanceBefore, RESERVE_ATOMS - (PROFIT_PAYOUT_ATOMS - TEST_TOKEN_ATOMS));
+      mkdirSync(dirname(evidencePath), { recursive: true });
+      writeFileSync(evidencePath, JSON.stringify({
+        checkedAt: new Date().toISOString(),
+        mode: 'isolated-local-devnet-static-profit-accounting-diagnostic',
+        contractAddress: profit.address,
+        receipts: runReceipts,
+        publicReadback: {
+          settled: finalState.settled,
+          traderPayout: PROFIT_PAYOUT_ATOMS.toString(),
+          reserveInputMtIndex: profit.initialReserveIndex.toString(),
+          reserveChangeValueAtOwnerClaim: afterOwnerClaim.reserveCoin.value.toString(),
+          reserveChangeMtIndexAtOwnerClaim: afterOwnerClaim.reserveCoin.mt_index.toString(),
+          reserveFundedAfterLaterLpSpend: finalState.reserveFunded,
+        },
+        ownerShieldedBalance: ownerBalance.toString(),
+        lpShieldedBalanceAfterLaterSpend: lpBalanceAfter.toString(),
+        limitations: [
+          'Valueless Local Devnet only. The 1200-unit profit payout is a public caller-supplied amount, not oracle/PnL-validated.',
+          'The diagnostic static profit circuit reveals its payout regime in the public entry point name and is not a privacy-preserving product settlement.',
+          'The LP shielded key differs, but Local Devnet DUST fees are sponsored from the same genesis wallet key in the test process.',
+        ],
+      }, null, 2) + '\n', { mode: 0o600 });
+      setStage('acceptance-complete');
+      safeCleanup = true;
+      process.stdout.write('PASS: static 1200-unit profit settled; LP later spent and received the indexed 300-unit reserve remainder.\n');
+      return;
+    }
 
     setStage('loss-case');
     const loss = await openFixture('loss');

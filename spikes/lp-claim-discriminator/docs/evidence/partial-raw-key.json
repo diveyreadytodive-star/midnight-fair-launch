@@ -1,0 +1,24 @@
+{
+  "checkedAtUtc": "2026-09-26T00:48:31Z",
+  "environment": "isolated valueless Local Devnet",
+  "contractAddress": "10c3b3e056963c0fe5267aacf1b14ffe7d69cb3253bfa16591d88a605b151713",
+  "finalized": {
+    "deploy": { "sdkIdentifier": "00af0ee3af330f7e26b99b63563f76d330bf1e2144cb1d7b4e20c5f3bf50120386", "blockHeight": 2383 },
+    "mint": { "sdkIdentifier": "00e002fb5bda1048379f9598fe52795e0ca106c1e85a9707daa9e85e5537c38400", "blockHeight": 2386 },
+    "open": { "sdkIdentifier": "0055fa3c6d2a8836dbc6cf2c97a1b5558db38ecd231ee30f1e95c676b87d2a8188", "blockHeight": 2390 }
+  },
+  "claimAttempt": {
+    "case": "A full payout",
+    "result": "Client-side generated contract argument type error: ZswapCoinPublicKey.bytes contained the wallet SDK public-key object rather than Compact-encoded 32-byte key",
+    "txIdentifier": null,
+    "claimReceiptObserved": false,
+    "errorBoundary": "Before proof-server claim or submitted transaction; not the prior LP /check 400"
+  },
+  "independentPublicReadback": { "collateralLocked": true, "settled": false, "escrowValue": "1000", "escrowMtIndex": "55" },
+  "recovery": "Protected 0700/0600 test-only recovery bundle preserved in .local/recovery-raw-key-20260926; no contents published",
+  "limits": [
+    "Only valueless Local Devnet test assets are involved.",
+    "This typed-argument failure does not diagnose the earlier LP proof-server /check HTTP 400.",
+    "The active test contract was not retried or reset; a new contract will be used with Compact-encoded recipient bytes."
+  ]
+}

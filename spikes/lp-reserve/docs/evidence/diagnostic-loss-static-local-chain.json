@@ -1,0 +1,57 @@
+{
+  "checkedAt": "2026-09-26T01:33:20.575Z",
+  "mode": "isolated-local-devnet-static-loss-accounting-diagnostic",
+  "contractAddress": "bead1b1ff0695053631f477abc12f3c5738f5d78de44a8f953e6510a58fc10ca",
+  "receipts": {
+    "diagnostic-loss-staticDeploy": {
+      "txId": "00f863ef63c3052374971be1cd51e4eb8a7eca1507c511b72cd2b23fa9a9adf505",
+      "status": "SucceedEntirely",
+      "blockHeight": 2837
+    },
+    "diagnostic-loss-staticReserveMint": {
+      "txId": "005ab18ae00b233537c1050cbf19a9671f24a90feaf3da79c3b82f0d4b17d5a3cb",
+      "status": "SucceedEntirely",
+      "blockHeight": 2840
+    },
+    "diagnostic-loss-staticReserveFund": {
+      "txId": "00e416d2f23c48d347077b803462faff58443d702cfb3375ba6a52c56c62178a0f",
+      "status": "SucceedEntirely",
+      "blockHeight": 2844
+    },
+    "diagnostic-loss-staticTraderMint": {
+      "txId": "00e6aaa9eca6bc5222510c0151a04cc7f1e4c9dc03176252d7f890d5b26f896ad4",
+      "status": "SucceedEntirely",
+      "blockHeight": 2847
+    },
+    "diagnostic-loss-staticOpen": {
+      "txId": "00d5784f398f118dbf5d347ed862db02e157bb84aef3ac41c7c252808dfc42c555",
+      "status": "SucceedEntirely",
+      "blockHeight": 2851
+    },
+    "diagnostic-loss-staticOwnerClaim": {
+      "txId": "008e356bae6a855e01c629291012e30fdeb6fb027d100a2e6e0080adf5c52ba08d",
+      "status": "SucceedEntirely",
+      "blockHeight": 2855
+    },
+    "diagnostic-loss-staticLpClaim": {
+      "txId": "00187b43b383b8d6042690e80bd9a4a21514fa87b5899a0031b91f1c0c2d8a0c97",
+      "status": "SucceedEntirely",
+      "blockHeight": 2859
+    }
+  },
+  "publicReadback": {
+    "settled": true,
+    "traderPayout": "800",
+    "lpLossCoinValueAtOwnerClaim": "200",
+    "lpLossCoinMtIndexAtOwnerClaim": "89",
+    "lpLossClaimableAfterLpClaim": false,
+    "reserveValue": "500"
+  },
+  "ownerShieldedBalance": "800",
+  "lpShieldedBalance": "200",
+  "limitations": [
+    "Valueless Local Devnet only. The 800-unit loss payout is a public caller-supplied amount, not oracle/PnL-validated.",
+    "The diagnostic static loss circuit reveals its payout regime in the public entry point name and is not a privacy-preserving product settlement.",
+    "The LP shielded key differs, but Local Devnet DUST fees are sponsored from the same genesis wallet key in the test process."
+  ]
+}

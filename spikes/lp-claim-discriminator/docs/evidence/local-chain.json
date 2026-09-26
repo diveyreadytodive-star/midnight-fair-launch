@@ -1,0 +1,93 @@
+{
+  "checkedAt": "2026-09-26T00:54:01.983Z",
+  "mode": "three-fresh-loopback-local-devnet-contract-instances",
+  "testOnlyValuelessAsset": true,
+  "results": {
+    "A-full": {
+      "circuit": "claimFullPayout",
+      "changeStored": false
+    },
+    "B-partial-no-write": {
+      "circuit": "claimPartialWithoutLedgerWrite",
+      "changeStored": false
+    },
+    "C-partial-write": {
+      "circuit": "claimPartialWithLedgerWrite",
+      "changeStored": true,
+      "changeValue": "200",
+      "changeMtIndex": "65"
+    }
+  },
+  "finalShieldedBalances": {
+    "A-full": "1000",
+    "B-partial-no-write": "800",
+    "C-partial-write": "800"
+  },
+  "receipts": {
+    "A-full:deploy": {
+      "txId": "00da8fdea73f479794fed02a68504ec6142a29d3a7c01a9d99a8e79ca7fda5872a",
+      "status": "SucceedEntirely",
+      "blockHeight": 2427
+    },
+    "A-full:mint": {
+      "txId": "00a703f268ed243159b65477a00cce2397b7200c7aabad6c9a522fce9e8a5b2683",
+      "status": "SucceedEntirely",
+      "blockHeight": 2430
+    },
+    "A-full:open": {
+      "txId": "00e346c5f648c1e6288d3a44c308807eeb1483ae9f5bc1e0dc68df103ed228d873",
+      "status": "SucceedEntirely",
+      "blockHeight": 2434
+    },
+    "A-full:claim": {
+      "txId": "002618333b9e454d14270d30b3628f9b227e2ccf89e5be4776c87fa587c181fd4f",
+      "status": "SucceedEntirely",
+      "blockHeight": 2438
+    },
+    "B-partial-no-write:deploy": {
+      "txId": "00e8751dd51a3fa86fb27a41736b9aae4518efe072b046a579885d8a977a225b16",
+      "status": "SucceedEntirely",
+      "blockHeight": 2441
+    },
+    "B-partial-no-write:mint": {
+      "txId": "0080772b5e956152552e1038a7476301a52d22b060b0c7d6edc8d5fa7943d69004",
+      "status": "SucceedEntirely",
+      "blockHeight": 2444
+    },
+    "B-partial-no-write:open": {
+      "txId": "0041c886e555acd1c1dbc75bace1cc0cc4471c2edcd22c952a13502234bd177045",
+      "status": "SucceedEntirely",
+      "blockHeight": 2448
+    },
+    "B-partial-no-write:claim": {
+      "txId": "002f56c5bb4e640bd47797964857d865c922d59b374deb2d163ce9dd8cf3bd7de5",
+      "status": "SucceedEntirely",
+      "blockHeight": 2452
+    },
+    "C-partial-write:deploy": {
+      "txId": "001fb442ef36164c75c624a616a1c45e1aefa643292e461ee6cd607856d354f5ae",
+      "status": "SucceedEntirely",
+      "blockHeight": 2455
+    },
+    "C-partial-write:mint": {
+      "txId": "00b6cb557d7172af2ab0bf7a890ee8201ad3e2df6039309f3b4cd6e2bbef82d887",
+      "status": "SucceedEntirely",
+      "blockHeight": 2458
+    },
+    "C-partial-write:open": {
+      "txId": "007535dc7edb6c51c5994e9f22686fcebb1b37e098ef1b82ab4c7583cab449f23e",
+      "status": "SucceedEntirely",
+      "blockHeight": 2462
+    },
+    "C-partial-write:claim": {
+      "txId": "00eaf7aeb2aa8dff2902d1a30f21a704f944303369e2488a0c896bc31072e4b095",
+      "status": "SucceedEntirely",
+      "blockHeight": 2466
+    }
+  },
+  "limitations": [
+    "Local Devnet only; all collateral is freely minted and valueless.",
+    "This compares proof acceptance for full send, partial send, and partial send plus writeCoin; it does not model a market or LP solvency.",
+    "No raw transaction payloads, proof inputs, seeds, wallet keys, or private state are included."
+  ]
+}

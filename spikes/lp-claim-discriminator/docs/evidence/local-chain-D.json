@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-09-26T00:59:20.112Z",
+  "mode": "one-fresh-loopback-local-devnet-contract-instance",
+  "testOnlyValuelessAsset": true,
+  "results": {
+    "D-variable": {
+      "circuit": "claimVariablePayout",
+      "changeStored": true,
+      "changeValue": "200",
+      "changeMtIndex": "69"
+    }
+  },
+  "finalShieldedBalances": {
+    "D-variable": "800"
+  },
+  "receipts": {
+    "D-variable:deploy": {
+      "txId": "00565d9ab67f95b30fde85d1cbff5d9eed81636851e4599e3ba8cd28cedb5a6d09",
+      "status": "SucceedEntirely",
+      "blockHeight": 2508
+    },
+    "D-variable:mint": {
+      "txId": "00ca2bb4a65bc26317ffcab58b7a60815e345ed0c3fbddb1371028af5e57edbbc1",
+      "status": "SucceedEntirely",
+      "blockHeight": 2511
+    },
+    "D-variable:open": {
+      "txId": "00dc61d2c760ff8c37ebce9e563bc29bfe8492e3a90010586cad5b444521c85bc6",
+      "status": "SucceedEntirely",
+      "blockHeight": 2515
+    },
+    "D-variable:claim": {
+      "txId": "007c78e5b4c2a10e2713e19b2e18a423262bd7c4b7e98e5d6a7544e153725a13cc",
+      "status": "SucceedEntirely",
+      "blockHeight": 2519
+    }
+  },
+  "limitations": [
+    "Local Devnet only; all collateral is freely minted and valueless.",
+    "The A/B/C and D evidence files together compare full send, partial send, change writeCoin, and a public variable-payout branch; this does not model a market or LP solvency.",
+    "No raw transaction payloads, proof inputs, seeds, wallet keys, or private state are included."
+  ]
+}

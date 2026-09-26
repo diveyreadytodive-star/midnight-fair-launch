@@ -24,7 +24,11 @@ From this directory, with the parent project dependencies available:
 npm test
 ```
 
-The two-wallet Local Devnet runner is `npm run test:chain`. It requires
+The two-wallet Local Devnet runner is `npm run test:chain`. The verified
+diagnostic paths set `SILENCE_LP_RESERVE_CASE=diagnostic-loss-static` or
+`SILENCE_LP_RESERVE_CASE=diagnostic-profit-static`; the default all-in-one
+`claim` circuit still fails `/check` and must not be mistaken for a working
+settlement route. The runner requires
 `SILENCE_LOCAL_TEST_SEED` to contain a funded, valueless Local Devnet test seed
 with usable DUST. It derives a temporary independent LP shielded key and uses
 the genesis account as the shared Local Devnet DUST fee sponsor, avoiding new
@@ -42,25 +46,45 @@ recipient salts, private state, phase, addresses, and receipts in
 ## Simulator evidence
 
 Compact 0.31.1 compilation succeeded and the Compact simulator suite passed
-13/13 cases. It confirms the contract rejects an unfunded reserve, wrong
+17/17 cases. It confirms the contract rejects an unfunded reserve, wrong
 reserve/trader token colors, incorrect reserve size, and payout above the two
-funded coins. It also exercises 0, 800, 1,200, and 1,500-unit settlement,
+funded coins. It also exercises 0, 800, 1,000, 1,200, and 1,500-unit settlement,
 recipient binding, separate LP claims to the LP wallet key, one-shot trader and
 LP claims, and a 300-unit remainder represented in the contract ledger after a
 1,200-unit payout. A spike-only `withdrawReserveRemainder` spends that new coin
-in a later simulator call and delivers it to the LP key; the later chain
-transaction must still confirm that it became a committed, spendable coin.
+in a later simulator call and delivers it to the LP key. The separate static
+profit chain run below also confirmed that later spend.
 
 In the 800-unit case the simulator shows the 200-unit `sendShielded` change as
 a contract output and the ledger stores it for the LP claim transaction. That
 separate claim produces one shielded output to the committed LP key when the LP
 key submits it. In the 1,200-unit case the simulator ledger stores the fresh
 300-unit reserve change; the spike's next call spends it through the qualified
-ledger field. These are simulator observations; none proves the change's
-committed `mt_index`, later chain spendability, or actual LP wallet readback.
-Those checks did not pass in the partial Local Devnet attempt below.
+ledger field. The original compound claim's simulator result did not predict
+its chain proof failure. The static loss/profit circuits were therefore tested
+separately with actual receipts and wallet readback below.
 
-## Partial Local Devnet attempt
+## Verified static payout paths on Local Devnet
+
+The original all-in-one `claim` circuit still returns proof-server `/check`
+HTTP 400 even for a full 1,000-unit payout after a real 500-unit LP deposit.
+An owner-authenticated **single-branch** `diagnosticClaimFull` instead finalized
+with the reserve untouched; see [full payout receipt](docs/evidence/diagnostic-full-auth-local-chain.json).
+
+The separate `diagnosticClaimLoss` finalized an 800-unit owner payout at block
+2855. A distinct LP shielded key later submitted `claimLpLoss` at block 2859
+and read back 200 units. [Loss evidence](docs/evidence/diagnostic-loss-static-local-chain.json).
+In another contract, `diagnosticClaimProfit` finalized a 1,200-unit owner
+payout at block 2909, storing a new 300-unit reserve change at `mt_index=96`.
+The LP later spent that exact coin at block 2913 and read back 300 units.
+[Profit evidence](docs/evidence/diagnostic-profit-static-local-chain.json).
+These are **test accounting** results: the caller chooses a public payout;
+the contract does not calculate PnL or consult an oracle. The public circuit
+name and QSCI values reveal the payout regime and amount. The two shielded
+keys differ, but the same local genesis DUST key pays fees in the test
+process. Neither route proves private economic perp settlement.
+
+## Earlier partial Local Devnet attempts
 
 One chain attempt finalized deployment, a real 500-unit LP reserve deposit, a
 1,000-unit trader deposit, and `openPosition`. The subsequent owner claim failed
@@ -70,11 +94,18 @@ shows an active position with 1,000 trader units and 500 LP units. The original
 runner erased its temporary owner secret, LP seed, recipient salts, and wallet
 state on failure, so this valueless fixture cannot be settled from the retained
 artifacts. It is **not** a successful LP claim or reserve-spendability test.
-Sanitized log review found only a generic Proof Server `/check` HTTP 400. The
-claim circuit's partial `sendShielded`/change-ledger path is the narrowest
-candidate, but current logs do not distinguish it from invalid check input or
-key/config lookup. The committed QSCI indices are 45 and 43; no claim reached
-the chain, and no fee error appeared. See [partial chain evidence](docs/evidence/partial-local-chain.json). The
+Sanitized log review found only a generic Proof Server `/check` HTTP 400. A
+separate [claim discriminator](../lp-claim-discriminator/README.md) has since
+finalized full, partial, change-write, and public-variable-payout claims on
+fresh Local Devnet contracts, so none of those features alone explains this
+LP circuit failure. A second fresh LP contract also failed `/check` on an
+exact **1,000-unit break-even owner claim** after locking a 500-unit reserve;
+its protected test-only recovery bundle remains available locally. See
+[break-even partial evidence](docs/evidence/break-even-local-chain-partial.json).
+The large compound circuit remains the suspected boundary; the exact
+prover-level cause is not known. The first contract's committed QSCI indices
+are 45 and 43; no claim reached the chain, and no fee error appeared. See
+[partial chain evidence](docs/evidence/partial-local-chain.json). The
 runner now preserves recovery material with owner-only file permissions and
 refuses duplicate runs while the result is pending or uncertain.
 
@@ -90,13 +121,11 @@ refuses duplicate runs while the result is pending or uncertain.
   ciphertext notifications for arbitrary third-party shielded recipients, so
   an output to a non-caller may not appear in that recipient's wallet without
   a separate synchronization mechanism.
-- The Compact simulator cases pass, but the chain acceptance stopped after an
-  open position. They do not prove LP claim delivery or reserve remainder
-  spendability on a chain, Preprod custody, LP solvency, or reusable reserve
-  operations.
-- In the partial chain run, the reserve deposit has a committed `mt_index`; the
-  profitable partial-spend path has not run on chain. A future accepted run
-  must prove the reserve change's `mt_index` and later spend.
+- The static loss and profit diagnostics establish one later LP wallet claim
+  and one later reserve-change spend on Local Devnet. They do **not** prove
+  price-bound PnL, a production LP reserve, Preprod custody, or the original
+  compound claim circuit. Old failed contracts remain test-only partial
+  fixtures; one has no recovery material and one has protected local recovery.
 - LP settlement is an explicit second transaction. The LP secret commitment
   authorizes the claim and the recipient commitment fixes its destination.
   `ownPublicKey()` is prover-controlled; its equality check is only a

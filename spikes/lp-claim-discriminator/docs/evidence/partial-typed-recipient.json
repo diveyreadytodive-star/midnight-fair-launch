@@ -1,0 +1,24 @@
+{
+  "checkedAtUtc": "2026-09-26T00:42:12Z",
+  "environment": "isolated valueless Local Devnet",
+  "contractAddress": "203df2fadb06b335bd3d3f9816f8035e6212eac7b85b4aad3d8f3a3b090b81ff",
+  "finalized": {
+    "deploy": { "sdkIdentifier": "002fd516405def41a5a0542d56538011e82fbaafec2f0312d2411596d59855479d", "blockHeight": 2316 },
+    "mint": { "sdkIdentifier": "00688b2040af33b8dc477e8ed2c921bf34e92a1ce53e29bc3dd19a97381a63c66b", "blockHeight": 2319 },
+    "open": { "sdkIdentifier": "0019bbd827e7cce179bf2da5b996ddea6e4cdc61a4dfbc67383fef5010748f7a1d", "blockHeight": 2323 }
+  },
+  "claimAttempt": {
+    "case": "A full payout",
+    "result": "Client-side generated contract argument type error: expected ZswapCoinPublicKey struct, received raw key bytes",
+    "txIdentifier": null,
+    "claimReceiptObserved": false,
+    "errorBoundary": "Before a proof-server claim or submitted transaction; not the prior LP /check 400"
+  },
+  "independentPublicReadback": { "collateralLocked": true, "settled": false, "escrowValue": "1000", "escrowMtIndex": "53", "changeStored": false },
+  "recovery": "Protected 0700/0600 test-only recovery bundle preserved outside the active runner path in .local/recovery-typed-recipient-20260926; no contents published",
+  "limits": [
+    "Only valueless Local Devnet test assets are involved.",
+    "This typed-argument failure does not diagnose the earlier LP proof-server /check HTTP 400.",
+    "The active test contract was not retried or reset; a new contract will be used for the corrected discriminator."
+  ]
+}
