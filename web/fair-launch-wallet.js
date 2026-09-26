@@ -22,26 +22,39 @@ export function dustLabel(balance, language = 'en') {
   return `${new Intl.NumberFormat(language === 'ko' ? 'ko-KR' : 'en-US').format(whole)}${fraction ? `.${fraction}` : ''} tDUST`;
 }
 
+export function assessWalletNetwork(configuration, connection) {
+  if (connection?.status !== 'connected') return { status: 'disconnected', network: '' };
+  const configured = String(configuration?.networkId ?? '').toLowerCase();
+  const actual = String(connection.networkId ?? '').toLowerCase();
+  if (!configured || !actual) return { status: 'invalid', network: actual || configured };
+  if (configured !== actual || actual !== 'preprod') return { status: 'mismatch', network: actual };
+  return { status: 'ready', network: actual };
+}
+
 const messages = {
   en: {
     open: 'Connect wallet', connected: 'Wallet connected · read only', missing: 'No compatible Lace or 1AM wallet was detected. Install a Preprod wallet and scan again.',
     found: 'Select a compatible wallet. Connecting requests wallet permission but no transaction or signature.',
-    scanning: 'Scan again', connect: 'Connect selected wallet', connecting: 'Waiting for wallet approval…',
+    scanning: 'Scan again', connect: 'Connect selected wallet', refresh: 'Refresh DUST', connecting: 'Waiting for wallet approval…',
     mismatch: 'Wallet network mismatch. This page requires Preprod.',
     ready: 'Preprod wallet connected. This panel reads DUST balance only; bids and claims remain unavailable.',
+    noDust: 'Preprod wallet connected with 0 tDUST. Generate tDUST in the wallet before any test transaction; bids and claims remain unavailable here.',
     unavailable: 'DUST balance unavailable. Check wallet permissions and connection.',
     rejected: 'Wallet connection was cancelled or permission was denied.',
     invalid: 'Wallet did not provide the expected network status.',
+    disconnected: 'The wallet reports that this site is disconnected. Reconnect in your wallet, then try again.',
   },
   ko: {
     open: '지갑 연결', connected: '지갑 연결됨 · 읽기 전용', missing: '호환되는 Lace 또는 1AM 지갑을 찾지 못했습니다. Preprod 지갑을 설치한 뒤 다시 확인하세요.',
     found: '지갑을 선택하세요. 연결 권한만 요청하며 서명이나 거래는 요청하지 않습니다.',
-    scanning: '다시 검색', connect: '선택한 지갑 연결', connecting: '지갑 승인 대기 중…',
+    scanning: '다시 검색', connect: '선택한 지갑 연결', refresh: 'DUST 다시 읽기', connecting: '지갑 승인 대기 중…',
     mismatch: '지갑 네트워크가 맞지 않습니다. 이 페이지는 Preprod를 사용합니다.',
     ready: 'Preprod 지갑에 연결했습니다. DUST 잔액만 읽으며 입찰·청구는 아직 사용할 수 없습니다.',
+    noDust: 'Preprod 지갑에 연결했지만 tDUST가 0입니다. 테스트 거래 전에 지갑에서 tDUST를 생성하세요. 이 화면의 입찰·청구는 아직 사용할 수 없습니다.',
     unavailable: 'DUST 잔액을 읽지 못했습니다. 지갑 권한과 연결 상태를 확인하세요.',
     rejected: '지갑 연결을 취소했거나 권한을 거부했습니다.',
     invalid: '지갑이 필요한 네트워크 상태를 반환하지 않았습니다.',
+    disconnected: '지갑이 이 사이트의 연결이 끊겼다고 보고합니다. 지갑에서 다시 연결한 뒤 시도하세요.',
   },
 };
 
@@ -53,9 +66,11 @@ export function initFairLaunchWallet(doc = document, browser = window) {
 
   function render() {
     $('#walletButton').textContent = message(state.api && state.network === 'preprod' ? 'connected' : 'open');
-    $('#walletStatus').textContent = message(state.status);
-    $('#walletConnect').textContent = state.providers.length ? message('connect') : message('scanning');
-    $('#walletConnect').disabled = state.connecting || Boolean(state.api && state.network === 'preprod');
+    $('#walletStatus').textContent = state.status === 'mismatch' && state.network
+      ? `${message('mismatch')} (${state.network})`
+      : message(state.status);
+    $('#walletConnect').textContent = state.api ? message('refresh') : state.providers.length ? message('connect') : message('scanning');
+    $('#walletConnect').disabled = state.connecting;
     $('#walletReadout').hidden = state.dust == null || state.network !== 'preprod';
     if (state.dust != null && state.network === 'preprod') $('#walletDust').textContent = dustLabel(state.dust, language());
     $('#walletNetwork').textContent = state.network || '—';
@@ -75,12 +90,22 @@ export function initFairLaunchWallet(doc = document, browser = window) {
     }
     select.hidden = state.providers.length < 2;
     state.status = state.providers.length ? 'found' : 'missing';
-    if (state.api && state.network === 'preprod') state.status = state.dust == null ? 'unavailable' : 'ready';
+    if (state.api && state.network === 'preprod') state.status = state.dust == null ? 'unavailable' : BigInt(state.dust) === 0n ? 'noDust' : 'ready';
     render();
   }
 
   async function connect() {
-    if (state.connecting || state.api) return;
+    if (state.connecting) return;
+    if (state.api && state.network === 'preprod') {
+      state.connecting = true;
+      try {
+        state.dust = await state.api.getDustBalance();
+        dustLabel(state.dust);
+        state.status = BigInt(state.dust) === 0n ? 'noDust' : 'ready';
+      } catch { state.dust = null; state.status = 'unavailable'; }
+      finally { state.connecting = false; render(); }
+      return;
+    }
     if (!state.providers.length) { scan(); return; }
     const selected = state.providers[Number($('#walletProvider').value || 0)];
     if (!selected) return;
@@ -93,17 +118,15 @@ export function initFairLaunchWallet(doc = document, browser = window) {
         state.status = 'invalid'; return;
       }
       const [configuration, connection] = await Promise.all([api.getConfiguration(), api.getConnectionStatus()]);
-      const configured = String(configuration?.networkId ?? '').toLowerCase();
-      const actual = String(connection?.networkId ?? configured).toLowerCase();
-      state.network = actual || configured;
-      if (configured && actual && configured !== actual) state.status = 'mismatch';
-      else if (state.network !== 'preprod') state.status = 'mismatch';
+      const network = assessWalletNetwork(configuration, connection);
+      state.network = network.network;
+      if (network.status !== 'ready') state.status = network.status;
       else {
         state.api = api;
         try {
           state.dust = await api.getDustBalance();
           dustLabel(state.dust);
-          state.status = 'ready';
+          state.status = BigInt(state.dust) === 0n ? 'noDust' : 'ready';
         } catch { state.status = 'unavailable'; }
       }
     } catch { state.status = 'rejected'; }

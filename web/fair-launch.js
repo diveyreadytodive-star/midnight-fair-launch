@@ -1,5 +1,5 @@
-import { createLocaleController } from './fair-launch-locale.js';
-import { initFairLaunchWallet } from './fair-launch-wallet.js';
+import { createLocaleController, translateText } from './fair-launch-locale.js';
+import { initFairLaunchWallet } from './fair-launch-wallet.js?v=2';
 
 const LAUNCHES_URL = '/api/fair-launch/launches';
 const CREATE_URL = '/api/fair-launch/create';
@@ -246,7 +246,7 @@ function verifiedCatalogEntry(entry) {
 
 function initializePage() {
   const $ = (selector) => document.querySelector(selector);
-  createLocaleController();
+  const locale = createLocaleController();
   initFairLaunchWallet();
   const viewNodes = {
     explore: $('#exploreView'),
@@ -288,7 +288,7 @@ function initializePage() {
     article.setAttribute('role', 'listitem');
     const link = makeElement('a', 'launch-card-link');
     link.href = '#/token/' + encodeURIComponent(launch.id || launch.contractAddress);
-    link.setAttribute('aria-label', launchLabel(launch) + ', ' + phaseLabel(launch.phase) + ', ' + shortAddress(launch.contractAddress));
+    link.setAttribute('aria-label', translateText(launchLabel(launch), locale.language) + ', ' + translateText(phaseLabel(launch.phase), locale.language) + ', ' + shortAddress(launch.contractAddress));
 
     const art = makeElement('div', 'launch-card-art');
     art.setAttribute('aria-hidden', 'true');
@@ -692,6 +692,10 @@ function initializePage() {
   }
 
   function bindEvents() {
+    $('#localeToggle').addEventListener('click', () => {
+      renderCatalog();
+      if (currentRoute.view === 'detail') renderDetail(currentRoute.id);
+    });
     searchInput.addEventListener('input', renderCatalog);
     document.querySelectorAll('[data-filter]').forEach((button) => {
       button.addEventListener('click', () => {
