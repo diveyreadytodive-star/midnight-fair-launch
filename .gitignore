@@ -10,7 +10,9 @@ generated/
 managed/
 .tools/
 .cache/
+.omx/
 artifacts/.build/
+artifacts/output/VeilIntent-Demo-Draft-*.mp4
 .env
 .env.*
 !.env.example

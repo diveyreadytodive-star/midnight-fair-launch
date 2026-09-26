@@ -2,6 +2,8 @@
 
 **상태: 제출 전 초안.** `codex/veil-intent` 브랜치의 실제 Local Devnet 증거를 기준으로 쓴다. 별도 공개 저장소 `veil-intent`의 기본 `main`에 웹·덱·증거를 반영하고 `midnightntwrk` 토픽을 확인했다. 기본 빌드 명령을 고친 뒤 새 폴더에서 `npm ci`(취약점 0), 자체 Compact 설치, `npm test`의 SILENCE 3회로·VeilIntent 7회로 컴파일/타입 검사, **60+14개 테스트**를 통과했다. 이후 새 커밋이 생기면 최종 fresh clone을 다시 확인한다. Google Slides·영상·실제 폼 영수증은 아직 없다.
 
+실제 제출 주소: https://tally.so/r/Np20VW — 2026-09-26에 현재 양식을 읽기 전용 확인했다. Academy 업로드는 Explorer·Scholar 두 칸(각 10 MB), 폼 문구상 최대 2점이다. 입력·업로드·최종 Submit은 아직 하지 않았다.
+
 ## Team / Project Name
 
 VeilIntent — Private Quote Approval and Shielded Payment on Midnight
@@ -48,7 +50,7 @@ Agent의 승인은 자금 이동이 아닙니다. 판매자가 자신의 고정 
 
 https://diveyreadytodive-star.github.io/veil-intent/
 
-GitHub Pages 빌드 `built`, 외부 HTTP 200, HTML·증거 JSON이 로컬 검증 파일과 byte-for-byte 일치하고, 별도 브라우저에서 영수증 7건 로딩과 오류 로그 0을 확인했다. **정적 기록 데모**다. 브라우저의 가격·예산 검사는 로컬 시뮬레이션이며 이 URL에서 실제 지갑 연결이나 새로운 체인 거래는 할 수 없다. 폼 설명에도 같은 제한을 적는다.
+새 GitHub Pages 빌드 `303b4cb`가 `built` 상태이며, 외부 브라우저에서 첫 화면의 예치150·판매자 지급100·구매자 반환50과 7단계 영수증 재생 로딩, 오류 로그 0을 확인했다. **완료된 Local Devnet 증거를 인터랙티브하게 재생하는 정적 데모**다. 재생은 새로운 거래를 제출하지 않는다. 별도 표시된 가격·예산 검사는 브라우저 시뮬레이션이며 Compact 증명이나 지갑 연결이 없다. 폼 설명에도 같은 제한을 적는다.
 
 ## Midnight Academy certificates
 
