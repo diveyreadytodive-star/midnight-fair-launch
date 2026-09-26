@@ -1,80 +1,15 @@
-const views = [
-  { tab: document.querySelector("#tab-agent"), panel: document.querySelector("#panel-agent"), name: "agent" },
-  { tab: document.querySelector("#tab-seller"), panel: document.querySelector("#panel-seller"), name: "seller" },
-  { tab: document.querySelector("#tab-observer"), panel: document.querySelector("#panel-observer"), name: "observer" },
-];
-
+const $ = (selector) => document.querySelector(selector);
+const pageViews = [...document.querySelectorAll("[data-page-view]")];
 const state = {
   evidence: null,
-  view: "agent",
   replayIndex: 0,
   replayTimer: null,
+  homeTimer: null,
+  homeStep: 0,
   reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   // Deliberately in-memory only. Never persisted, serialized, logged, or copied into attributes.
   privatePolicy: null,
 };
-
-const $ = (selector) => document.querySelector(selector);
-
-function shortHash(value) {
-  const raw = String(value || "");
-  return raw.length > 22 ? `${raw.slice(0, 10)}…${raw.slice(-8)}` : raw;
-}
-
-function formatUnitPrice(ticks) {
-  const price = Number(ticks) / 1_000_000;
-  return Number.isFinite(price) ? price.toFixed(2) : "—";
-}
-
-function formatInteger(value) {
-  const amount = Number(value);
-  return Number.isFinite(amount) ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount) : "—";
-}
-
-function clearPrivatePolicy() {
-  state.privatePolicy = null;
-  const form = $("#policy-checker");
-  form.reset();
-  const result = $("#policy-result");
-  result.textContent = "";
-  result.hidden = true;
-  result.classList.remove("is-rejected", "is-error");
-}
-
-function activateView(nextView, { focus = false } = {}) {
-  if (nextView !== "agent") clearPrivatePolicy();
-  state.view = nextView;
-  for (const view of views) {
-    const active = view.name === nextView;
-    view.tab.classList.toggle("is-active", active);
-    view.tab.setAttribute("aria-selected", String(active));
-    view.tab.tabIndex = active ? 0 : -1;
-    view.panel.hidden = !active;
-  }
-  if (focus) views.find((view) => view.name === nextView)?.tab.focus();
-}
-
-for (const view of views) {
-  view.tab.addEventListener("click", () => activateView(view.name));
-}
-
-$(".main-nav a[href='#technical-evidence']").addEventListener("click", () => activateView("observer"));
-
-document.querySelector(".view-tabs").addEventListener("keydown", (event) => {
-  const currentIndex = views.findIndex((view) => view.name === state.view);
-  let nextIndex = currentIndex;
-  if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % views.length;
-  else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + views.length) % views.length;
-  else if (event.key === "Home") nextIndex = 0;
-  else if (event.key === "End") nextIndex = views.length - 1;
-  else return;
-  event.preventDefault();
-  activateView(views[nextIndex].name, { focus: true });
-});
-
-window.addEventListener("pagehide", clearPrivatePolicy);
-window.addEventListener("pagehide", stopReplay);
-document.addEventListener("visibilitychange", () => { if (document.hidden) stopReplay(); });
 
 const replayStages = {
   deploy: {
@@ -114,11 +49,59 @@ const replayStages = {
   },
 };
 
+const homeReplaySteps = [
+  ["Checking private policy", "Recorded Compact approval"],
+  ["Releasing seller payment", "Recorded Local Devnet claim"],
+  ["Returning buyer remainder", "Recorded Local Devnet claim"],
+];
+
+function shortHash(value) {
+  const raw = String(value || "");
+  return raw.length > 22 ? `${raw.slice(0, 10)}…${raw.slice(-8)}` : raw;
+}
+
+function formatUnitPrice(ticks) {
+  const price = Number(ticks) / 1_000_000;
+  return Number.isFinite(price) ? price.toFixed(2) : "—";
+}
+
+function formatInteger(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount) : "—";
+}
+
+function setPageView() {
+  const requested = new URLSearchParams(window.location.search).get("view");
+  const activeView = ["evidence", "simulator"].includes(requested) ? requested : "home";
+  document.body.dataset.view = activeView;
+  for (const view of pageViews) view.hidden = view.dataset.pageView !== activeView;
+  for (const link of document.querySelectorAll("[data-nav-view]")) {
+    if (link.dataset.navView === activeView) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  document.title = activeView === "evidence" ? "VeilIntent · Recorded evidence" : activeView === "simulator" ? "VeilIntent · Policy simulator" : "VeilIntent · Private payment";
+}
+
+function clearPrivatePolicy() {
+  state.privatePolicy = null;
+  const form = $("#policy-checker");
+  form.reset();
+  const result = $("#policy-result");
+  result.textContent = "";
+  result.hidden = true;
+  result.classList.remove("is-rejected", "is-error");
+}
+
 function stopReplay() {
   if (state.replayTimer !== null) window.clearInterval(state.replayTimer);
   state.replayTimer = null;
   $("#replay-play").textContent = "Play replay";
   $("#replay-play").setAttribute("aria-pressed", "false");
+}
+
+function stopHomeReplay() {
+  if (state.homeTimer !== null) window.clearTimeout(state.homeTimer);
+  state.homeTimer = null;
 }
 
 function showReplayStep(index) {
@@ -129,20 +112,14 @@ function showReplayStep(index) {
   const receipt = receipts[index];
   const details = replayStages[receipt.stage];
   const record = state.evidence;
-  const escrow = formatInteger(record.publicEscrowAtoms);
-  const quantity = formatInteger(record.publicQuote.quantity);
-  const unitPrice = formatUnitPrice(record.publicQuote.unitPriceTicks);
-  const quoteTotal = formatInteger(record.publicQuote.totalAtoms);
-  const sellerBalance = formatInteger(record.finalReadback.sellerShieldedBalanceAtoms);
-  const buyerBalance = formatInteger(record.finalReadback.buyerShieldedBalanceAtoms);
   const evidenceText = {
     deploy: `Contract address ${shortHash(record.contractAddress)} and block ${receipt.blockHeight} are recorded.`,
-    mintTestCoin: `Mint receipt at block ${receipt.blockHeight}. A per-step mint amount is not recorded; the aggregate escrow field is ${escrow} test units.`,
-    createIntent: `Intent receipt at block ${receipt.blockHeight}. The aggregate public escrow field is ${escrow} test units; no per-step ledger snapshot is recorded.`,
-    submitQuote: `Quote receipt at block ${receipt.blockHeight}. The recorded quote is ${quantity} items × ${unitPrice} test units per item = ${quoteTotal} test units; no per-step ledger snapshot is recorded.`,
+    mintTestCoin: `Mint receipt at block ${receipt.blockHeight}. A per-step mint amount is not recorded; aggregate escrow is ${formatInteger(record.publicEscrowAtoms)} test units.`,
+    createIntent: `Intent receipt at block ${receipt.blockHeight}. Aggregate public escrow is ${formatInteger(record.publicEscrowAtoms)} test units; no per-step ledger snapshot is recorded.`,
+    submitQuote: `Quote receipt at block ${receipt.blockHeight}. Recorded quote: ${formatInteger(record.publicQuote.quantity)} items × ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each = ${formatInteger(record.publicQuote.totalAtoms)} test units; no per-step ledger snapshot is recorded.`,
     approveQuote: `Approval receipt at block ${receipt.blockHeight}. Aggregate final readback marks the intent ${record.finalReadback.intentExecuted ? "executed" : "not executed"}; per-step state and check results are not recorded.`,
-    sellerClaimPayout: `Seller claim receipt at block ${receipt.blockHeight}. Separate final wallet readback: ${sellerBalance} test units at the seller; no per-step balance snapshot is recorded.`,
-    claimBuyerRemainder: `Buyer remainder receipt at block ${receipt.blockHeight}. Separate final wallet readback: ${buyerBalance} test units at the buyer; no per-step balance snapshot is recorded.`,
+    sellerClaimPayout: `Seller claim receipt at block ${receipt.blockHeight}. Separate final wallet readback: ${formatInteger(record.finalReadback.sellerShieldedBalanceAtoms)} test units at the seller; no per-step balance snapshot is recorded.`,
+    claimBuyerRemainder: `Buyer remainder receipt at block ${receipt.blockHeight}. Separate final wallet readback: ${formatInteger(record.finalReadback.buyerShieldedBalanceAtoms)} test units at the buyer; no per-step balance snapshot is recorded.`,
   };
   $("#replay-step-index").textContent = `STEP ${String(index + 1).padStart(2, "0")} / ${String(receipts.length).padStart(2, "0")}`;
   $("#replay-step-title").textContent = details.title;
@@ -212,62 +189,9 @@ $("#replay-reset").addEventListener("click", () => {
   showReplayStep(0);
 });
 
-window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
-  state.reducedMotion = event.matches;
-  if (state.reducedMotion) stopReplay();
-  $("#replay-play").disabled = !state.evidence || state.reducedMotion;
-  $("#replay-motion-note").hidden = !state.reducedMotion;
-});
-
-$("#replay-motion-note").hidden = !state.reducedMotion;
-
-function validateEvidence(record) {
-  if (record.kind !== "recorded-static-evidence" || record.network !== "Midnight Local Devnet") throw new Error("Unexpected evidence source.");
-  if (!Array.isArray(record.receipts) || record.receipts.length !== 7 || record.receipts.some((r) => !replayStages[r.stage] || !r.txId || !r.transactionHash || !Number.isInteger(r.blockHeight))) throw new Error("Incomplete receipt sequence.");
-  if (BigInt(record.publicEscrowAtoms) !== BigInt(record.finalReadback.sellerShieldedBalanceAtoms) + BigInt(record.finalReadback.buyerShieldedBalanceAtoms)) throw new Error("Payment conservation check failed.");
-  if (record.blockRange.first !== record.receipts[0].blockHeight || record.blockRange.last !== record.receipts.at(-1).blockHeight) throw new Error("Unexpected block range.");
-}
-
-function renderEvidence(record) {
-  validateEvidence(record);
-  state.evidence = record;
-  $("#recorded-date").textContent = `Checked ${new Date(record.recordedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" })}`;
-  $("#record-status").textContent = "Seven recorded receipts · static data";
-  $("#record-status").classList.add("is-loaded");
-  $("#hero-escrow").textContent = formatInteger(record.publicEscrowAtoms);
-  $("#hero-quote").textContent = formatInteger(record.publicQuote.totalAtoms);
-  $("#hero-seller").textContent = formatInteger(record.finalReadback.sellerShieldedBalanceAtoms);
-  $("#hero-buyer").textContent = formatInteger(record.finalReadback.buyerShieldedBalanceAtoms);
-  $("#boundary-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} test units`;
-  $("#boundary-quote").textContent = `${formatInteger(record.publicQuote.quantity)} items × ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each = ${formatInteger(record.publicQuote.totalAtoms)}`;
-  $("#hero-receipt-count").textContent = `${record.receipts.length} recorded receipts`;
-  $("#hero-block-range").textContent = `Blocks ${record.blockRange.first}–${record.blockRange.last}`;
-  $("#agent-order-summary").textContent = `${formatInteger(record.publicQuote.quantity)} items · ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each`;
-  $("#agent-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} public units`;
-  $("#quote-quantity").textContent = formatInteger(record.publicQuote.quantity);
-  $("#quote-unit-price").textContent = formatUnitPrice(record.publicQuote.unitPriceTicks);
-  $("#quote-total").textContent = formatInteger(record.publicQuote.totalAtoms);
-  $("#seller-payout").textContent = formatInteger(record.finalReadback.sellerShieldedBalanceAtoms);
-  $("#seller-balance").textContent = `${formatInteger(record.finalReadback.sellerShieldedBalanceAtoms)} units`;
-  $("#buyer-balance").textContent = `${formatInteger(record.finalReadback.buyerShieldedBalanceAtoms)} units`;
-  $("#observer-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} units`;
-  $("#observer-quote").textContent = `${formatInteger(record.publicQuote.totalAtoms)} units`;
-  $("#observer-block-range").textContent = `${record.blockRange.first}–${record.blockRange.last}`;
-  $("#observer-intent-state").textContent = record.finalReadback.intentExecuted ? "EXECUTED" : "NOT EXECUTED";
-  $("#observer-seller-balance").textContent = `${formatInteger(record.finalReadback.sellerShieldedBalanceAtoms)} units`;
-  $("#observer-buyer-balance").textContent = `${formatInteger(record.finalReadback.buyerShieldedBalanceAtoms)} units`;
-  $("#change-index").textContent = record.finalReadback.buyerChangeCoinMtIndexBeforeClaim;
-  $("#contract-address").textContent = record.contractAddress;
-  $("#copy-address").disabled = false;
-  $("#check-policy").disabled = false;
-  renderReplay(record.receipts);
-  renderReceipts(record.receipts);
-}
-
 function renderReceipts(receipts) {
   const list = $("#receipt-timeline");
   list.replaceChildren();
-  $("#receipt-range").textContent = `BLOCKS ${state.evidence.blockRange.first}–${state.evidence.blockRange.last}`;
   const labels = {
     deploy: "Contract deployed",
     mintTestCoin: "Public test lot minted",
@@ -299,14 +223,62 @@ function renderReceipts(receipts) {
   });
 }
 
+function validateEvidence(record) {
+  if (record.kind !== "recorded-static-evidence" || record.network !== "Midnight Local Devnet") throw new Error("Unexpected evidence source.");
+  const expectedStages = Object.keys(replayStages);
+  if (!Array.isArray(record.receipts) || record.receipts.length !== expectedStages.length || record.receipts.some((receipt, index) => receipt.stage !== expectedStages[index] || !receipt.txId || !receipt.transactionHash || !Number.isInteger(receipt.blockHeight))) throw new Error("Incomplete receipt sequence.");
+  if (record.finalReadback.intentExecuted !== true || record.finalReadback.buyerRemainderClaimable !== false) throw new Error("The recorded policy approval is unavailable.");
+  const quoteValue = BigInt(record.publicQuote.quantity) * BigInt(record.publicQuote.unitPriceTicks);
+  if (quoteValue !== BigInt(record.publicQuote.totalAtoms) * 1_000_000n) throw new Error("The recorded quote arithmetic does not match.");
+  if (BigInt(record.finalReadback.sellerShieldedBalanceAtoms) !== BigInt(record.publicQuote.totalAtoms)) throw new Error("The seller readback does not match the quote.");
+  if (BigInt(record.publicEscrowAtoms) !== BigInt(record.finalReadback.sellerShieldedBalanceAtoms) + BigInt(record.finalReadback.buyerShieldedBalanceAtoms)) throw new Error("Payment conservation check failed.");
+  if (record.blockRange.first !== record.receipts[0].blockHeight || record.blockRange.last !== record.receipts.at(-1).blockHeight) throw new Error("Unexpected block range.");
+}
+
+function setHomeResults(record) {
+  const quote = record.publicQuote;
+  $("#home-escrow").textContent = formatInteger(record.publicEscrowAtoms);
+  $("#home-quote").textContent = formatInteger(quote.totalAtoms);
+  $("#home-quote-detail").textContent = `${formatInteger(quote.quantity)} items × ${formatUnitPrice(quote.unitPriceTicks)} TEST / item`;
+  $("#home-seller-result").textContent = `${formatInteger(record.finalReadback.sellerShieldedBalanceAtoms)} TEST`;
+  $("#home-buyer-result").textContent = `${formatInteger(record.finalReadback.buyerShieldedBalanceAtoms)} TEST`;
+  $("#home-policy-status").textContent = "READY";
+}
+
+function renderEvidence(record) {
+  validateEvidence(record);
+  state.evidence = record;
+  setHomeResults(record);
+  $("#boundary-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} test units`;
+  $("#boundary-quote").textContent = `${formatInteger(record.publicQuote.quantity)} items × ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each = ${formatInteger(record.publicQuote.totalAtoms)}`;
+  $("#agent-order-summary").textContent = `${formatInteger(record.publicQuote.quantity)} items · ${formatUnitPrice(record.publicQuote.unitPriceTicks)} test units each`;
+  $("#observer-escrow").textContent = `${formatInteger(record.publicEscrowAtoms)} units`;
+  $("#observer-quote").textContent = `${formatInteger(record.publicQuote.totalAtoms)} units`;
+  $("#observer-block-range").textContent = `${record.blockRange.first}–${record.blockRange.last}`;
+  $("#receipt-range").textContent = `BLOCKS ${record.blockRange.first}–${record.blockRange.last}`;
+  $("#observer-intent-state").textContent = record.finalReadback.intentExecuted ? "EXECUTED" : "NOT EXECUTED";
+  $("#observer-seller-balance").textContent = `${formatInteger(record.finalReadback.sellerShieldedBalanceAtoms)} units`;
+  $("#observer-buyer-balance").textContent = `${formatInteger(record.finalReadback.buyerShieldedBalanceAtoms)} units`;
+  $("#change-index").textContent = record.finalReadback.buyerChangeCoinMtIndexBeforeClaim;
+  $("#contract-address").textContent = record.contractAddress;
+  $("#copy-address").disabled = false;
+  $("#execute-replay").disabled = false;
+  $("#check-policy").disabled = false;
+  renderReplay(record.receipts);
+  renderReceipts(record.receipts);
+}
+
 async function loadEvidence() {
   try {
     const response = await fetch("./veil-intent-evidence.json", { cache: "no-store" });
     if (!response.ok) throw new Error("Static evidence file is unavailable.");
     renderEvidence(await response.json());
   } catch {
-    $("#record-status").textContent = "Recorded evidence unavailable";
-    $("#record-status").classList.remove("is-loaded");
+    $("#execute-replay").disabled = true;
+    $("#home-policy-status").textContent = "UNAVAILABLE";
+    $("#home-policy-status").classList.add("is-unavailable");
+    $("#execution-footnote").textContent = "Recorded evidence unavailable · no live fallback";
+    $("#check-policy").disabled = true;
     $("#receipt-timeline").replaceChildren();
     const note = document.createElement("li");
     note.className = "loading-row";
@@ -317,6 +289,59 @@ async function loadEvidence() {
     $("#replay-step-copy").textContent = "The local record could not be loaded. No live network fallback is used.";
   }
 }
+
+function showHomeReplayStep() {
+  const [title, detail] = homeReplaySteps[state.homeStep];
+  $("#execution-state-title").textContent = title;
+  $("#execution-state-detail").textContent = detail;
+  $(".execution-progress span").style.width = `${((state.homeStep + 1) / homeReplaySteps.length) * 100}%`;
+  $("#execution-next").hidden = !state.reducedMotion;
+  if (state.reducedMotion) return;
+  if (state.homeStep === homeReplaySteps.length - 1) {
+    state.homeTimer = window.setTimeout(finishHomeReplay, 820);
+  } else {
+    state.homeTimer = window.setTimeout(() => {
+      state.homeStep += 1;
+      showHomeReplayStep();
+    }, 820);
+  }
+}
+
+function finishHomeReplay() {
+  stopHomeReplay();
+  $("#execution-status").hidden = true;
+  $("#success-state").hidden = false;
+  $(".payment-card").classList.add("is-complete");
+  $("#success-title").focus();
+}
+
+$("#execute-replay").addEventListener("click", () => {
+  if (!state.evidence || $("#execute-replay").disabled) return;
+  $("#execute-replay").disabled = true;
+  $(".payment-card").classList.add("is-replaying");
+  $("#execution-status").hidden = false;
+  state.homeStep = 0;
+  showHomeReplayStep();
+  $("#execution-state-title").focus();
+});
+
+$("#execution-next").addEventListener("click", () => {
+  if (!state.reducedMotion && $("#execution-next").hidden) return;
+  if (state.homeStep >= homeReplaySteps.length - 1) finishHomeReplay();
+  else {
+    state.homeStep += 1;
+    showHomeReplayStep();
+  }
+});
+
+$("#start-over").addEventListener("click", () => {
+  stopHomeReplay();
+  $(".payment-card").classList.remove("is-replaying", "is-complete");
+  $("#execution-status").hidden = true;
+  $("#success-state").hidden = true;
+  $("#execute-replay").disabled = !state.evidence;
+  $("#execute-replay").focus();
+});
 
 $("#policy-checker").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -344,7 +369,7 @@ $("#policy-checker").addEventListener("submit", (event) => {
   const unitPass = quoteUnit <= state.privatePolicy.unitValue;
   const budgetPass = quoteTotal <= state.privatePolicy.budgetValue;
   if (unitPass && budgetPass) {
-    result.textContent = `Local simulation: this recorded public quote fits the limits entered in this tab. No proof was generated and no transaction was created.`;
+    result.textContent = "Local simulation: this recorded public quote fits the limits entered in this tab. No proof was generated and no transaction was created.";
   } else {
     result.classList.add("is-rejected");
     result.textContent = `Local simulation rejects the recorded quote because ${!unitPass ? "its unit price exceeds the entered cap" : "its total exceeds the entered budget"}. No proof or transaction was created.`;
@@ -378,4 +403,31 @@ $("#copy-address").addEventListener("click", async () => {
   }
 });
 
+window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (event) => {
+  state.reducedMotion = event.matches;
+  if (state.reducedMotion) {
+    stopReplay();
+    stopHomeReplay();
+    $("#replay-play").disabled = true;
+    if (!$("#execution-status").hidden) $("#execution-next").hidden = false;
+  } else {
+    $("#replay-play").disabled = !state.evidence;
+    $("#execution-next").hidden = true;
+    if (!$("#execution-status").hidden) showHomeReplayStep();
+  }
+});
+
+window.addEventListener("pagehide", () => {
+  clearPrivatePolicy();
+  stopReplay();
+  stopHomeReplay();
+});
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) return;
+  stopReplay();
+  stopHomeReplay();
+  if (!$("#execution-status").hidden) $("#execution-next").hidden = false;
+});
+
+setPageView();
 loadEvidence();
