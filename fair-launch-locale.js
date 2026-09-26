@@ -74,6 +74,7 @@ const pairs = [
   ['Connect wallet', '지갑 연결'], ['Check wallet', '지갑 확인'],
   ['Select Midnight wallet', 'Midnight 지갑 선택'],
   ['Network:', '네트워크:'], ['Midnight wallet and proof setup ↗', 'Midnight 지갑·증명 설정 ↗'],
+  ['Check browser proof files ↗', '브라우저 증명 파일 검사 ↗'],
   ['Recorded slot settlement outcomes', '기록된 슬롯별 정산 결과'],
   ['This connection reads Preprod network and DUST status only. It cannot submit Fair Launch bids or claims yet.', 'Preprod 네트워크와 DUST 상태만 읽습니다. Fair Launch 입찰·청구 거래는 아직 제출할 수 없습니다.'],
   ['Install a Preprod-compatible Midnight wallet to try this connection.', '연결을 시험하려면 Preprod를 지원하는 Midnight 지갑을 설치하세요.'],

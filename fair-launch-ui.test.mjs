@@ -121,4 +121,5 @@ test('the UI exposes read-only evidence and keeps wallet actions disabled in mar
   assert.match(html, /id="detailTokenClaimButton"[^>]*disabled/);
   assert.match(html, /id="detailRefundClaimButton"[^>]*disabled/);
   assert.match(html, /fair-launch-evidence\.json/);
+  assert.match(html, /proof-asset-check\.html/);
 });
