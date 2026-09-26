@@ -1,3 +1,6 @@
+import { createLocaleController } from './fair-launch-locale.js';
+import { initFairLaunchWallet } from './fair-launch-wallet.js';
+
 const LAUNCHES_URL = '/api/fair-launch/launches';
 const CREATE_URL = '/api/fair-launch/create';
 const RECORDED_EVIDENCE_URL = './fair-launch-evidence.json';
@@ -243,6 +246,8 @@ function verifiedCatalogEntry(entry) {
 
 function initializePage() {
   const $ = (selector) => document.querySelector(selector);
+  createLocaleController();
+  initFairLaunchWallet();
   const viewNodes = {
     explore: $('#exploreView'),
     create: $('#createView'),

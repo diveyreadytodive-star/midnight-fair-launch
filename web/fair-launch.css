@@ -96,6 +96,23 @@ a { color: inherit; text-decoration: none; }
 .network-pill.is-live i { background: var(--accent); box-shadow: 0 0 8px rgba(197, 242, 117, .45); }
 .topbar-create { display: inline-flex; min-height: 34px; align-items: center; padding: 0 13px; border: 1px solid #435232; border-radius: 7px; background: #1a2314; color: #d8edba; font-size: 10px; font-weight: 650; transition: border-color .15s ease, background .15s ease; }
 .topbar-create:hover { border-color: #718c4c; background: #222d18; }
+.locale-toggle { min-height: 32px; padding: 0 10px; border: 1px solid #435232; border-radius: 7px; background: #1a2314; color: #d8edba; cursor: pointer; font-size: 11px; }
+.wallet-button { min-height: 34px; padding: 0 11px; border: 1px solid #435232; border-radius: 7px; background: #1a2314; color: #d8edba; cursor: pointer; font-size: 10px; white-space: nowrap; }
+.wallet-panel { position: fixed; z-index: 30; top: 74px; right: clamp(12px, 4.2vw, 64px); width: min(355px, calc(100vw - 24px)); padding: 16px; border: 1px solid #394433; border-radius: 9px; background: #111815; box-shadow: 0 18px 45px rgba(0,0,0,.45); }
+.wallet-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wallet-panel-heading strong { color: #e5f0d6; font-size: 13px; }
+.wallet-panel-heading button { padding: 4px 7px; border: 0; background: transparent; color: #aab9a4; cursor: pointer; font-size: 11px; }
+.wallet-panel p { color: #a7b6a8; font-size: 11px; line-height: 1.5; }
+.wallet-panel select, .wallet-panel > button { width: 100%; min-height: 34px; margin: 6px 0; padding: 0 8px; border: 1px solid #3d4b39; border-radius: 5px; background: #1a241a; color: #e2f0d4; font-size: 11px; }
+.wallet-panel > button { cursor: pointer; }
+.wallet-panel > button:disabled { opacity: .6; }
+.wallet-panel #walletReadout { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 10px; border: 1px solid #2c3d29; border-radius: 5px; color: #b7c8b4; font-size: 11px; }
+.wallet-panel > a { display: inline-block; margin-top: 10px; color: var(--accent); font-size: 11px; text-decoration: underline; text-underline-offset: 3px; }
+.judge-demo-callout { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; padding: 13px 16px; border: 1px solid #394433; border-radius: 8px; background: #151d13; }
+.judge-demo-callout div { display: grid; gap: 4px; }
+.judge-demo-callout strong { color: #e4f2d0; font-size: 12px; }
+.judge-demo-callout span { color: #a9b6a1; font-size: 11px; line-height: 1.4; }
+.judge-demo-callout a { flex: 0 0 auto; color: var(--accent); font-size: 11px; font-weight: 650; }
 
 .main-content { width: min(1180px, calc(100% - 48px)); min-height: calc(100vh - 116px); margin: 0 auto; padding: 44px 0 72px; }
 .view { min-height: 62vh; }
@@ -305,6 +322,12 @@ a { color: inherit; text-decoration: none; }
   .primary-nav { gap: 11px; }
   .nav-link { font-size: 9px; }
   .topbar-create { font-size: 8px; }
+  .topbar-actions { gap: 5px; }
+  .topbar-create { display: none; }
+  .primary-nav a[href="./judge-demo.html"] { display: none; }
+  .wallet-button { min-height: 31px; padding-inline: 7px; font-size: 8px; }
+  .locale-toggle { min-height: 31px; padding-inline: 7px; font-size: 9px; }
+  .judge-demo-callout { align-items: flex-start; flex-direction: column; }
   .main-content { width: calc(100% - 24px); padding-top: 24px; }
   .page-heading { flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 22px; }
   .page-heading .primary-button { align-self: flex-start; }
