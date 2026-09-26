@@ -5,7 +5,7 @@ Updated 2026-09-27 KST. This is an evidence ledger, not a claim that the Goal is
 | Gate | Required proof | Current result |
 | --- | --- | --- |
 | Public Explore and explanation | Open the deployed Pages URL in a separate browser and inspect verified launches | **Passed:** three recorded Local Devnet launch cards visible on the public URL; settled outcomes belong to the original contract only |
-| Fresh-clone reproducibility | Install lockfile, set up Compact, compile/typecheck/test from the published repository | **Passed:** public commit `fef27d2`, `npm ci`, Compact 0.31.1, `npm test` 116/116; see [record](evidence/fresh-clone-2026-09-27.md) |
+| Fresh-clone reproducibility | Install lockfile, set up Compact, compile/typecheck/test from the published repository | **Passed:** public commit `30681ec`, `npm ci`, Compact 0.31.1, `npm test` 124/124, browser build and ZK staging; see [record](evidence/fresh-clone-2026-09-27-0630.md) |
 | Interactive no-wallet judge path | Change a bid at the public URL and observe a newly calculated price/allocation/refund with an explicit simulation label | **Passed:** public `judge-demo.html` returned 10 TEST, 300/300/0/0 and 2000/2000/5000/5000 for the example, explicitly saying no new transaction |
 | KO/EN | Switch public Explore/Create/detail/demo and retain preference | **Passed** on public Explore, Create, detail, and demo; wallet-error variants still need a real wallet for runtime validation |
 | 375px responsive smoke | Explore and judge demo fit a narrow viewport; bid and result remain usable | **Passed in a local same-origin 375px iframe:** Explore collapsed to one column, keyboard seal/reveal worked, and the result table fit. This is not a physical-phone or separate mobile-browser test. |
