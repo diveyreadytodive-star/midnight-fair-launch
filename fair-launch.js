@@ -1,4 +1,4 @@
-import { createLocaleController, translateText } from './fair-launch-locale.js';
+import { createLocaleController, translateText } from './fair-launch-locale.js?v=2';
 import { initFairLaunchWallet } from './fair-launch-wallet.js?v=2';
 
 const LAUNCHES_URL = '/api/fair-launch/launches';
@@ -567,7 +567,7 @@ function initializePage() {
             : 'Bid · wallet unavailable';
     $('#actionExplanation').textContent = isSettled
       ? '이 경매는 종료되었습니다. 이 페이지는 개인 지갑 상태를 조회하지 않는 기록용 화면입니다.'
-      : '경매 상태는 검증된 카탈로그에서 읽었습니다. 지갑 연결과 봉인 입찰 제출은 아직 지원하지 않습니다.';
+      : '경매 상태는 검증된 카탈로그에서 읽었습니다. Preprod 지갑 연결은 읽기 전용이며 이 Local Devnet 경매에 입찰을 제출할 수 없습니다.';
     $('#detailTokenClaimButton').disabled = true;
     $('#detailRefundClaimButton').disabled = true;
 

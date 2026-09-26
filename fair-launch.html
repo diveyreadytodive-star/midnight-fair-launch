@@ -7,7 +7,7 @@
     <meta name="description" content="Explore verified test-token fair launches on Midnight Local Devnet." />
     <title>Fair Launch · Explore</title>
     <link rel="stylesheet" href="./fair-launch.css?v=4" />
-    <script type="module" src="./fair-launch.js?v=5"></script>
+    <script type="module" src="./fair-launch.js?v=6"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -260,6 +260,7 @@
               <summary>Privacy and test-network disclosure</summary>
               <div class="disclosure-copy">
                 <p>등록 슬롯, commitment hash, 고정 deposit은 공개됩니다. 정산 뒤에는 clearing price, 슬롯별 allocation/refund와 claim 상태도 공개되며, 고정 deposit으로부터 charge와 수량을 추론할 수 있습니다.</p>
+                <p>정산 운영자는 등록된 모든 입찰의 opening을 받아야 하므로 최대가격·수량·수취인·salt를 볼 수 있습니다. 네 개 슬롯은 등록 순서대로 채워집니다.</p>
                 <p>기록된 실행은 raw transaction encoding을 검사하지 않았습니다. 최대 입찰가, 수량, salt, 수취 주소가 원시 거래에서 숨겨진다는 증거는 없습니다.</p>
                 <p>모든 자산은 가치가 없는 Local Devnet 테스트 자산입니다. 이 MVP에는 bonding curve, DEX/LP 거래, 시장가치, production token이 없습니다.</p>
               </div>
