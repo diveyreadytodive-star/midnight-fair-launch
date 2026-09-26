@@ -12,6 +12,7 @@
     "typecheck": "node scripts/typecheck.mjs && npm --prefix spikes/fair-launch run typecheck && npm --prefix spikes/veil-intent run typecheck",
     "test:contract": "node --import tsx --test tests/contract/*.test.ts",
     "build:browser": "vite build --config vite.browser.config.ts",
+    "stage:browser-artifacts": "node scripts/stage-browser-artifacts.mjs",
     "test": "npm run compile && npm run typecheck && node scripts/run-tests.mjs && node --import tsx --test spikes/fair-launch/tests/*.test.ts && node --import tsx --test spikes/veil-intent/tests/*.test.ts",
     "test:fair-launch:chain": "npm --prefix spikes/fair-launch run test:chain --",
     "chain:up": "docker compose up -d --wait",

@@ -14,6 +14,18 @@ import * as fairLaunch from '../../spikes/fair-launch/generated/fair_launch/cont
 export type CoinRecord = { nonce: Uint8Array; color: Uint8Array; value: bigint };
 type Stage = 'proving' | 'submitted' | 'confirmed';
 
+export async function verifyBrowserZkAssets(assetBaseUrl: string, circuit: 'mintTestPaymentCoin' | 'registerBid') {
+  const provider = new FetchZkConfigProvider(new URL(assetBaseUrl, location.href).href, fetch.bind(window));
+  const [prover, verifier, zkir] = await Promise.all([
+    provider.getProverKey(circuit), provider.getVerifierKey(circuit), provider.getZKIR(circuit),
+  ]);
+  if (prover.length === 0 || verifier.length === 0 || zkir.length === 0) throw new Error('Incomplete ZK artifact set');
+  const hashes = await Promise.all([prover, verifier, zkir].map(async (value) =>
+    toHex(new Uint8Array(await crypto.subtle.digest('SHA-256', value as BufferSource)))));
+  return { circuit, proverBytes: prover.length, verifierBytes: verifier.length, zkirBytes: zkir.length,
+    proverSha256: hashes[0], verifierSha256: hashes[1], zkirSha256: hashes[2] };
+}
+
 function memoryPrivateState(): PrivateStateProvider<string, unknown> & { setContractAddress(address: ContractAddress): void } {
   const states = new Map<string, unknown>();
   const signingKeys = new Map<string, string>();
