@@ -56,7 +56,7 @@
 | 1. 시뮬레이터 | **14/14 PASS**, 잘못된 quote/권한·몫/나머지 witness·수취인·재실행 거절 | 사전 정의된 fixture 범위의 검사이며 보안 감사 아님 |
 | 2. Local Devnet 배포 | **PASS**, 7회로 계약 배포 block 4222 | Preprod 배포 없음 |
 | 3. 자금 흐름 | **PASS**, mint 4225 → intent 4230 → seller quote 4234 → agent approve 4238 → seller claim 4242 → buyer change claim 4246. 별도 인덱서 조회 7/7, 최종 ledger, 새 프로세스의 지갑 잔고 seller100/buyer50 확인 | 실제 상품 인도·두 자산 원자 교환, 실자산, 독립 agent fee signer, 브라우저 거래 없음 |
-| 4. 웹·API | **미검증** | 기존 SILENCE 거래 UI는 VeilIntent 기능 증거가 아니다. 기능 연결 전에는 실행 버튼을 열지 않는다. |
+| 4. 웹·API | **정적 증거 데모 PASS, 브라우저 거래 미검증** | [공개 GitHub Pages](https://diveyreadytodive-star.github.io/veil-intent/)는 Local Devnet 기록 7건과 브라우저 안의 정책 시뮬레이션을 표시한다. 외부 HTTP/영수증 로딩, 데스크톱·390px 모바일 배치, 비공개 입력 삭제, 브라우저 오류 로그 0을 확인했다. 지갑 연결·새 proof·거래 제출 기능은 없다. |
 | 5. 제출 | **미제출** | 새 README·덱·영상·폼의 동일 주장, Academy 파일 첨부와 실제 제출 영수증 필요 |
 
 현재 가장 큰 외부 의존은 테스트 지갑의 DUST·Local Devnet 연결, seller/agent가 각각 자기 비밀을 안전하게 보관하는 실행 도구, Google Slides/영상/폼 제출이다. 사용자 인증서 파일은 저장소에 넣지 않는다.

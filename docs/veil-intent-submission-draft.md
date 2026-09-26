@@ -1,6 +1,6 @@
 # VeilIntent — Midnight Korea Hackathon 제출폼 초안
 
-**상태: 제출 전 초안.** `codex/veil-intent` 브랜치의 실제 Local Devnet 증거를 기준으로 쓴다. 별도 공개 저장소 `veil-intent`의 기본 `main`에 검증된 코드 체크포인트 `02ca351`을 푸시했고 `midnightntwrk` 토픽을 확인했다. 앞으로 웹·덱·문안이 바뀌면 그 저장소에 새 커밋을 반영하고 **최종 fresh clone을 다시 검증**해야 한다. Google Slides·영상·실제 폼 영수증은 아직 없다.
+**상태: 제출 전 초안.** `codex/veil-intent` 브랜치의 실제 Local Devnet 증거를 기준으로 쓴다. 별도 공개 저장소 `veil-intent`의 기본 `main`에 웹·덱·증거를 반영하고 `midnightntwrk` 토픽을 확인했다. 기본 빌드 명령을 고친 뒤 새 폴더에서 `npm ci`(취약점 0), 자체 Compact 설치, `npm test`의 SILENCE 3회로·VeilIntent 7회로 컴파일/타입 검사, **60+14개 테스트**를 통과했다. 이후 새 커밋이 생기면 최종 fresh clone을 다시 확인한다. Google Slides·영상·실제 폼 영수증은 아직 없다.
 
 ## Team / Project Name
 
@@ -44,7 +44,9 @@ Agent의 승인은 자금 이동이 아닙니다. 판매자가 자신의 고정 
 
 ## Demo URL
 
-**미확정.** 외부에서 실제 열리는 VeilIntent 데모만 기입한다. 로컬 페이지나 GitHub 코드 링크를 접속 가능한 제품 URL로 표시하지 않는다.
+https://diveyreadytodive-star.github.io/veil-intent/
+
+GitHub Pages 빌드 `built`, 외부 HTTP 200, HTML·증거 JSON이 로컬 검증 파일과 byte-for-byte 일치하고, 별도 브라우저에서 영수증 7건 로딩과 오류 로그 0을 확인했다. **정적 기록 데모**다. 브라우저의 가격·예산 검사는 로컬 시뮬레이션이며 이 URL에서 실제 지갑 연결이나 새로운 체인 거래는 할 수 없다. 폼 설명에도 같은 제한을 적는다.
 
 ## Midnight Academy certificates
 
@@ -52,7 +54,7 @@ Agent의 승인은 자금 이동이 아닙니다. 판매자가 자신의 고정 
 
 ## 최종 제출 게이트
 
-- [ ] 제출용 기본 브랜치의 공개 repo를 새 폴더에서 clone, 의존성 설치, Compact 컴파일, typecheck, 테스트까지 확인한다.
+- [x] 제출용 기본 브랜치의 공개 repo를 새 폴더에서 clone, 의존성 설치, Compact 컴파일, typecheck, 테스트까지 확인했다. **마지막 제출 커밋 후 한 번 더 확인한다.**
 - [ ] public repo topic `midnightntwrk`와 README·폼 설명의 일치를 확인한다.
 - [ ] 최종 덱의 Google Slides 링크, 3분 이내 영상, 필요 시 외부 접속 데모 URL을 실제 열어 확인한다.
 - [ ] Luma 이름/소속/참가 형태, 대표 연락처, Academy 두 원본 인증서를 확인한다.

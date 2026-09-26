@@ -4,6 +4,8 @@
 
 The [Compact spike](spikes/veil-intent/README.md) compiles seven proof circuits and passes 14 simulator/recovery tests. One [actual Local Devnet flow](spikes/veil-intent/docs/evidence/local-devnet-veil-intent.json) finalized deploy/mint/intent/quote/approval/two claims at blocks 4222–4246. Its seven receipts and final ledger were independently re-queried, and separate buyer/seller wallet readback confirmed 50/100 test units. This proves a **one-to-one policy-gated payment** with valueless assets. It does not prove goods delivery, an atomic token swap, a reusable multi-intent mandate, independent agent key isolation, Preprod, or a browser trading flow. See [scope and acceptance decisions](docs/veil-intent-implementation-decisions.md).
 
+The [public demo](https://diveyreadytodive-star.github.io/veil-intent/) is a static viewer of the recorded Local Devnet receipts plus a **browser-only** private-limit checker. It does not create a Compact proof, connect a wallet, or submit a transaction. Its HTML and sanitized evidence JSON were checked against the verified local files after GitHub Pages built successfully.
+
 From a fresh checkout, run:
 
 ```sh
