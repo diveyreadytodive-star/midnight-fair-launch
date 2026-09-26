@@ -119,6 +119,8 @@ test("GET default catalog lists the recorded historical Local Devnet launch", as
     assert.equal(response.status, 200);
     const body = await response.json() as { launches: FairLaunchEntry[]; capabilities: { canCreate: boolean } };
     assert.equal(body.capabilities.canCreate, false);
+    assert.equal(body.launches.length, 3, "Local Devnet API must not serve the separate Preprod card");
+    assert.ok(body.launches.every((entry) => entry.evidenceSource === "recorded-local-devnet-evidence" || entry.evidenceSource === "verified-local-devnet-create"));
     const historical = body.launches.filter((entry) => entry.evidenceSource === "recorded-local-devnet-evidence");
     assert.equal(historical.length, 1);
     assert.equal(historical[0]?.phase, "settled");

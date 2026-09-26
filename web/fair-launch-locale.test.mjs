@@ -19,6 +19,7 @@ test('visible launch labels round-trip between English and Korean', () => {
 test('Preprod setup language stays distinct from Local Devnet and returns to English', () => {
   assert.equal(translateText('PREPROD · SETUP VERIFIED', 'ko'), 'PREPROD · 설치 검증');
   assert.equal(translateText('PREPROD · 설치 검증', 'en'), 'PREPROD · SETUP VERIFIED');
+  assert.equal(translateText('On-chain commit window', 'ko'), '온체인 입찰 기간');
   assert.equal(translateText('Preprod setup receipts', 'ko'), 'Preprod 설치 영수증');
   assert.equal(translateText('24 hr', 'ko'), '24시간');
   assert.equal(translateText('현재 입찰이 진행 중인 것으로 검증된 테스트넷 경매가 없습니다.', 'en'), 'No verified testnet auctions are currently bidding.');

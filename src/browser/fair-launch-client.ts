@@ -13,6 +13,51 @@ import * as fairLaunch from '../../spikes/fair-launch/generated/fair_launch/cont
 
 export type CoinRecord = { nonce: Uint8Array; color: Uint8Array; value: bigint };
 type Stage = 'proving' | 'submitted' | 'confirmed';
+const PREPROD_INDEXER = 'https://indexer.preprod.midnight.network/api/v4/graphql';
+const PREPROD_INDEXER_WS = 'wss://indexer.preprod.midnight.network/api/v4/graphql/ws';
+
+export async function readPreprodAuction(address: string, expected: {
+  metadataCommitmentHex: string; inventoryAtoms: string; reservePriceAtoms: string; depositLotAtoms: string;
+}) {
+  if (!/^[0-9a-f]{64}$/i.test(address) || !/^[0-9a-f]{64}$/i.test(expected.metadataCommitmentHex)) {
+    throw new Error('Invalid Preprod auction identity');
+  }
+  setNetworkId('preprod');
+  const provider = indexerPublicDataProvider(PREPROD_INDEXER, PREPROD_INDEXER_WS, WebSocket as never);
+  const state = await provider.queryContractState(address as ContractAddress);
+  if (!state) throw new Error('Preprod contract state is unavailable');
+  const ledger = fairLaunch.ledger(((state as { data?: unknown }).data ?? state) as never);
+  if (toHex(ledger.networkDomain) !== expected.metadataCommitmentHex ||
+      ledger.saleInventory !== BigInt(expected.inventoryAtoms) ||
+      ledger.reservePrice !== BigInt(expected.reservePriceAtoms) ||
+      ledger.depositLot !== BigInt(expected.depositLotAtoms) || !ledger.saleInventoryFunded) {
+    throw new Error('Preprod ledger does not match verified setup evidence');
+  }
+  const response = await fetch(PREPROD_INDEXER, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ query: 'query FairLaunchTip { block { height timestamp } }' }), signal: AbortSignal.timeout(15_000) });
+  const result = await response.json() as { data?: { block?: { height?: number; timestamp?: number } }; errors?: unknown[] };
+  const tip = result.data?.block;
+  if (!response.ok || result.errors?.length || !Number.isSafeInteger(tip?.height) || !Number.isSafeInteger(tip?.timestamp)) {
+    throw new Error('Preprod chain time is unavailable');
+  }
+  const chainTime = BigInt(Math.floor(tip!.timestamp! / 1000));
+  const phase = ledger.cancelled ? 'cancelled' : ledger.settled ? 'settled'
+    : chainTime < ledger.commitDeadline ? 'commit'
+      : chainTime < ledger.openDeadline ? 'open' : 'settling';
+  return {
+    phase, registeredBidCount: String(ledger.registeredBidCount), settled: ledger.settled,
+    cancelled: ledger.cancelled, clearingPriceAtoms: String(ledger.clearingPrice),
+    settlement: ledger.settled ? {
+      clearingPriceAtoms: String(ledger.clearingPrice),
+      allocationsAtoms: [ledger.allocated0, ledger.allocated1, ledger.allocated2, ledger.allocated3].map(String),
+      refundsAtoms: [ledger.refund0, ledger.refund1, ledger.refund2, ledger.refund3].map(String),
+      tokenClaimed: [ledger.tokenClaimed0, ledger.tokenClaimed1, ledger.tokenClaimed2, ledger.tokenClaimed3],
+      refundClaimed: [ledger.refundClaimed0, ledger.refundClaimed1, ledger.refundClaimed2, ledger.refundClaimed3],
+    } : null,
+    blockHeight: tip!.height!, chainTimeUnixSeconds: String(chainTime),
+    commitDeadlineUnixSeconds: String(ledger.commitDeadline), openDeadlineUnixSeconds: String(ledger.openDeadline),
+  };
+}
 
 export async function verifyBrowserZkAssets(assetBaseUrl: string, circuit: 'mintTestPaymentCoin' | 'registerBid') {
   const provider = new FetchZkConfigProvider(new URL(assetBaseUrl, location.href).href, fetch.bind(window));

@@ -8,6 +8,7 @@ import {
   FairLaunchCreateUnavailableError,
   FairLaunchInputError,
   FairLaunchRecoveryRequiredError,
+  isLocalDevnetCatalogEntry,
   readFairLaunchCatalog,
   type FairLaunchCreateAdapter,
   type FairLaunchEntry,
@@ -742,7 +743,7 @@ async function routeApi(
         network: "local-devnet" as const,
         mode: "local-devnet-operator-demo" as const,
         capabilities: { canCreate: false },
-        launches: await readFairLaunchCatalog(options.fairLaunchCatalogPath),
+        launches: (await readFairLaunchCatalog(options.fairLaunchCatalogPath)).filter(isLocalDevnetCatalogEntry),
       };
     }
     jsonResponse(response, 200, serializeFairLaunchSnapshot(snapshot));

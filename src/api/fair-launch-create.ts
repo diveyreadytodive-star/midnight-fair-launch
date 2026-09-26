@@ -283,6 +283,12 @@ export async function readFairLaunchCatalog(path = DEFAULT_FAIR_LAUNCH_CATALOG):
   return readCatalogFile(path);
 }
 
+export function isLocalDevnetCatalogEntry(entry: FairLaunchEntry): boolean {
+  const network = (entry as FairLaunchEntry & { network?: unknown }).network;
+  return (network === undefined || network === "local-devnet") &&
+    (entry.evidenceSource === "recorded-local-devnet-evidence" || entry.evidenceSource === "verified-local-devnet-create");
+}
+
 export async function appendFairLaunchCatalogEntry(entry: FairLaunchEntry, path = DEFAULT_FAIR_LAUNCH_CATALOG): Promise<void> {
   const launches = await readCatalogFile(path);
   if (launches.some((launch) => launch.contractAddress === entry.contractAddress)) throw new Error("Launch is already present in the catalog.");
@@ -350,7 +356,7 @@ export function createFairLaunchCreateAdapter(options: FairLaunchCreateAdapterOp
   let running = false;
 
   async function snapshot(includeActiveOperation: boolean): Promise<FairLaunchSnapshot> {
-    const storedLaunches = await readFairLaunchCatalog(catalogPath);
+    const storedLaunches = (await readFairLaunchCatalog(catalogPath)).filter(isLocalDevnetCatalogEntry);
     const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
     const launches = storedLaunches.map((launch): FairLaunchEntry => {
       if (launch.phase === "settled" || launch.phase === "cancelled" || !launch.commitDeadlineUnixSeconds || !launch.openDeadlineUnixSeconds) return launch;

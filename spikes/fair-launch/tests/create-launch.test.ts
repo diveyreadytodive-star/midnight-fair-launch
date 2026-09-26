@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import {
   appendFairLaunchCatalogEntry,
   assertLocalDevnetEndpoints,
+  createFairLaunchCreateAdapter,
   DEFAULT_FAIR_LAUNCH_CATALOG,
   fairLaunchMetadataCommitment,
   readFairLaunchCatalog,
@@ -48,6 +49,18 @@ const verifiedEntry: FairLaunchEntry = {
     fund: { txId: '05'.repeat(33), transactionHash: '06'.repeat(32), blockHeight: 12 },
   },
 };
+
+test('Local Devnet Create snapshot excludes the independent Preprod catalog entry', async () => {
+  const adapter = createFairLaunchCreateAdapter({
+    catalogPath: DEFAULT_FAIR_LAUNCH_CATALOG,
+    enabled: () => false,
+    probe: async () => false,
+  });
+  const snapshot = await adapter.getSnapshot();
+  assert.equal(snapshot.network, 'local-devnet');
+  assert.equal((await readFairLaunchCatalog(DEFAULT_FAIR_LAUNCH_CATALOG)).length, 4);
+  assert.equal(snapshot.launches.length, 3);
+});
 
 test('validates launch form fields and canonicalizes ticker and image URL', () => {
   const input = validateFairLaunchCreateRequest(validRequest);
