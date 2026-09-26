@@ -1,0 +1,30 @@
+.judge-main { max-width: 960px; }
+.judge-disclosure { margin: -8px 0 22px; padding: 14px 17px; border: 1px solid #51412a; border-radius: 9px; background: #191711; }
+.judge-disclosure strong { color: #eec36d; font-size: 12px; }
+.judge-disclosure p { max-width: 820px; margin: 5px 0 0; color: #c4b89c; font-size: 12px; line-height: 1.55; }
+.judge-grid { display: grid; grid-template-columns: minmax(280px, .86fr) minmax(340px, 1.14fr); gap: 16px; }
+.judge-grid h2 { margin: 0 0 9px; font-size: 20px; font-weight: 580; letter-spacing: -.025em; }
+.judge-help { margin: 0 0 20px; color: #a7b2ab; font-size: 12px; line-height: 1.55; }
+.judge-bid-card .form-field { margin-bottom: 14px; }
+.judge-bid-card .form-field input { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #323c3b; border-radius: 6px; background: #0e1213; color: #f1f4ef; }
+.judge-bid-card .form-field label { display: block; margin-bottom: 7px; color: #c4cec5; font-size: 11px; }
+.judge-button { width: 100%; margin-top: 5px; }
+.judge-sealed { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
+.judge-sealed p { color: #c5d4b2; font-size: 12px; line-height: 1.5; }
+#resetStep { margin-top: 18px; }
+#demoResult { display: grid; gap: 15px; }
+.judge-price { padding: 16px; border: 1px solid #35412d; border-radius: 8px; background: #151d12; }
+.judge-price span { display: block; color: #a7b19e; font-size: 11px; }
+.judge-price strong { display: block; margin-top: 7px; color: var(--accent); font: 500 28px/1 var(--mono); }
+.judge-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.judge-table th, .judge-table td { padding: 10px 5px; border-bottom: 1px solid var(--line-soft); text-align: right; }
+.judge-table th:first-child, .judge-table td:first-child { text-align: left; }
+.judge-table th { color: #87938f; font-weight: 500; }
+.judge-table td { color: #dce4d9; font-family: var(--mono); }
+.judge-table tr.is-you td { color: var(--accent); }
+.judge-summary { color: #a9b7a6; font-size: 12px; line-height: 1.6; }
+.judge-footnote { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 22px; color: #a4afa8; font-size: 11px; }
+.judge-footnote p { flex-basis: 100%; margin: 0 0 5px; line-height: 1.6; }
+.judge-footnote a { color: #c5f275; text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 720px) { .judge-grid { grid-template-columns: 1fr; } .judge-main { padding-top: 30px; } .judge-disclosure { margin-top: 0; } }
+@media (max-width: 520px) { .judge-main { width: calc(100% - 24px); } .judge-table { font-size: 9px; } .judge-table th, .judge-table td { padding-inline: 2px; } }

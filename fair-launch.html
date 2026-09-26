@@ -20,12 +20,24 @@
         <nav class="primary-nav" aria-label="주요 메뉴">
           <a id="navExplore" class="nav-link active" href="#/explore" aria-current="page">Explore</a>
           <a id="navCreate" class="nav-link" href="#/create">Create</a>
+          <a class="nav-link" href="./judge-demo.html">Judge demo</a>
         </nav>
         <div class="topbar-actions">
           <span class="network-pill" id="networkPill"><i aria-hidden="true"></i><span id="networkLabel">기록 데이터 · 읽기 전용</span></span>
+          <button class="wallet-button" id="walletButton" type="button" aria-controls="walletPanel" aria-expanded="false">Connect wallet</button>
+          <button class="locale-toggle" id="localeToggle" type="button" aria-label="Switch to English">EN</button>
           <a class="topbar-create" href="#/create">Create launch</a>
         </div>
       </header>
+      <section id="walletPanel" class="wallet-panel" aria-label="Wallet read-only preview" hidden>
+        <div class="wallet-panel-heading"><strong>Wallet read-only preview</strong><button id="walletClose" type="button">Close</button></div>
+        <p>This connection reads Preprod network and DUST status only. It cannot submit Fair Launch bids or claims yet.</p>
+        <select id="walletProvider" aria-label="Select Midnight wallet" hidden></select>
+        <button id="walletConnect" type="button">Scan again</button>
+        <p id="walletStatus" role="status" aria-live="polite"></p>
+        <div id="walletReadout" hidden><span>Network: <strong id="walletNetwork">—</strong></span><span>DUST: <strong id="walletDust">—</strong></span></div>
+        <a href="https://docs.midnightkorea.org/examples/dapps/leaderboard" target="_blank" rel="noopener noreferrer">Midnight wallet and proof setup ↗</a>
+      </section>
 
       <main id="main" class="main-content">
         <section id="exploreView" class="view" aria-labelledby="exploreTitle">
@@ -49,6 +61,7 @@
               Create test launch
             </a>
           </div>
+          <div class="judge-demo-callout"><div><strong>Try a sealed-bid auction</strong><span>Change your example bid, then see the uniform clearing price. Browser simulation only — no wallet, proof, or new transaction.</span></div><a href="./judge-demo.html">Try judge demo →</a></div>
           <div class="explore-toolbar">
             <div class="filter-row" role="group" aria-label="경매 상태 필터">
               <button class="filter-chip is-selected" type="button" data-filter="all" aria-pressed="true">All</button>

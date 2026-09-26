@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090b0d" />
+    <meta name="description" content="Try the four-slot sealed auction rules in a clearly labeled browser simulation." />
+    <title>Fair Launch · Judge demo</title>
+    <link rel="stylesheet" href="./fair-launch.css" />
+    <link rel="stylesheet" href="./judge-demo.css" />
+    <script type="module" src="./judge-demo.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-copy="skip">Skip to content</a>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./fair-launch.html#/explore"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>FAIR LAUNCH</span></a>
+        <nav class="primary-nav" aria-label="Main navigation"><a class="nav-link" href="./fair-launch.html#/explore" data-copy="explore">Explore</a><span class="nav-link active" aria-current="page" data-copy="demoNav">Judge demo</span></nav>
+        <div class="topbar-actions"><span class="network-pill"><i aria-hidden="true"></i><span data-copy="simBadge">BROWSER SIMULATION</span></span><button class="locale-toggle" id="localeToggle" type="button" aria-label="Change language">한국어</button></div>
+      </header>
+      <main id="main" class="main-content judge-main">
+        <div class="page-heading"><div><p class="eyebrow" data-copy="eyebrow">TRY THE FOUR-SLOT AUCTION</p><h1 data-copy="title">See what a sealed bid changes</h1><p class="page-description" data-copy="intro">Choose your private maximum price and quantity. Then reveal the four example bids to see the uniform-price allocation.</p></div></div>
+        <div class="judge-disclosure" role="note"><strong data-copy="disclosureTitle">Simulation · no chain transaction</strong><p data-copy="disclosure">This page calculates outcomes in your browser. It never connects a wallet, creates a Compact proof, or submits a transaction. The linked Local Devnet receipts are from a separate recorded run.</p></div>
+        <div class="judge-grid">
+          <section class="detail-panel judge-bid-card" aria-labelledby="yourBidTitle">
+            <p class="eyebrow" data-copy="yourSlot">SLOT D · YOUR TEST BID</p><h2 id="yourBidTitle" data-copy="yourBid">Set your maximum</h2>
+            <p class="judge-help" data-copy="fixedRules">Test token: 600 for sale · Reserve: 8 TEST · Fixed deposit: 5,000 TEST for each of four slots.</p>
+            <form id="demoForm" novalidate>
+              <div class="form-field"><label for="demoPrice" data-copy="maxPrice">Maximum TEST per token</label><input id="demoPrice" name="price" type="number" inputmode="numeric" min="8" max="5000" step="1" value="9" required /></div>
+              <div class="form-field"><label for="demoQuantity" data-copy="quantity">Tokens requested</label><input id="demoQuantity" name="quantity" type="number" inputmode="numeric" min="1" max="600" step="1" value="200" required /></div>
+              <p id="demoValidation" class="form-error" role="alert" hidden></p>
+              <button id="sealButton" class="primary-button judge-button" type="submit" data-copy="seal">Seal example bid</button>
+            </form>
+            <div id="sealedStep" class="judge-sealed" hidden><p data-copy="sealedMessage">Your example bid is sealed locally. The other three values are hidden until you reveal them.</p><button id="revealButton" class="primary-button judge-button" type="button" data-copy="reveal">Reveal and calculate</button></div>
+            <div id="resetStep" hidden><button id="resetButton" class="secondary-action judge-button" type="button" data-copy="reset">Try another bid</button></div>
+          </section>
+          <section class="detail-panel judge-outcome-card" aria-labelledby="resultTitle"><p class="eyebrow" data-copy="otherBids">THREE EXAMPLE BIDS + YOUR BID</p><h2 id="resultTitle" data-copy="resultTitle">Auction result</h2><p id="demoStatus" class="judge-help" role="status" aria-live="polite" data-copy="before">Other bids are hidden. Set your bid to start.</p><div id="demoResult" hidden></div></section>
+        </div>
+        <div class="judge-footnote"><p data-copy="boundary">The current contract accepts only four registrations, in arrival order. Its settlement uses one clearing price, but access to a slot is still speed-sensitive. Non-integral pro-rata allocations are rejected by the current contract.</p><a href="./fair-launch.html#/explore" data-copy="returnExplore">Explore recorded launches →</a><a href="./fair-launch-evidence.json" target="_blank" rel="noopener noreferrer" data-copy="evidence">Read the separate Local Devnet evidence ↗</a></div>
+      </main>
+      <footer class="site-footer"><span data-copy="footerLeft">Fair Launch · browser-only judge demo</span><span data-copy="footerRight">No funds · no wallet · no transaction</span></footer>
+    </div>
+  </body>
+</html>
