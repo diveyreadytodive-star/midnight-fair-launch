@@ -2,7 +2,7 @@
 
 A sealed-bid, uniform-price first sale for valueless test tokens on Midnight. The idea is to replace public first-come buying with a short auction: admitted bidders commit to a maximum price and quantity, then the Compact contract checks one clearing price, allocations, refunds, and claims.
 
-**Current network evidence is Local Devnet only. This is not a live token market, investment service, bonding curve, or production launchpad.**
+**Current evidence includes a completed Local Devnet auction and a separately verified, operator-signed Preprod setup. There is no verified browser-wallet bid or Preprod settlement. This is not a live token market, investment service, bonding curve, or production launchpad.**
 
 [Public Explore](https://diveyreadytodive-star.github.io/midnight-fair-launch/) · [Browser-only judge demo](https://diveyreadytodive-star.github.io/midnight-fair-launch/judge-demo.html) · [Judge guide (English)](docs/JUDGE-GUIDE.en.md) · [심사위원 안내 (한국어)](docs/JUDGE-GUIDE.ko.md)
 
@@ -10,8 +10,9 @@ A sealed-bid, uniform-price first sale for valueless test tokens on Midnight. Th
 
 | On the public site | Evidence level |
 | --- | --- |
-| Browse three distinct test launch contracts and their deployment/mint/funding records | Saved Local Devnet receipts and catalog; not a live public-network indexer |
+| Browse four test launches: three Local Devnet records and one Preprod setup | Saved receipt-verified catalog. The Preprod card has [three confirmed setup transactions](docs/evidence/preprod-launch-2026-09-27.md); its live bidding phase is deliberately not inferred from a browser clock |
 | Inspect one completed four-slot auction: 600 units, clearing price 10 TEST, allocations 300/300/0/0, refunds 2000/2000/5000/5000 | [20 confirmed Local Devnet receipts](spikes/fair-launch/docs/evidence/local-devnet-fair-launch.json), blocks 9380–9493, plus separate wallet readback |
+| Inspect `Fair Launch Preprod Test` and its contract address, three receipts, inventory, and test-only metadata | Operator-signed deploy/mint/fund on Preprod, independently re-queried from the indexer and contract ledger; no Preprod bid, settlement, or claim |
 | Change an example bid and reveal uniform-price allocations | **Browser simulation:** no wallet, proof, new transaction, or asset transfer |
 | Switch between Korean and English | Browser preference stored locally |
 | Open the Preprod wallet panel | Read-only connector UI; real Lace/1AM permission and balance responses are **not yet runtime-verified**; bids and claims are not connected |
@@ -53,6 +54,6 @@ Open `http://127.0.0.1:3081/fair-launch.html`. The catalog and past evidence rem
 
 ## Submission boundary and next integration gate
 
-The public site is not yet a fully transacting DApp. The next gate is a **public-origin, user-wallet-signed Fair Launch contract call** with confirmed receipt and contract/wallet readback. It requires browser-compatible Compact artifacts and providers, a compatible wallet/prover, a test payment coin, durable bid-opening recovery, and a settlement operator that receives all registered openings. A connected wallet alone does not pass that gate. The development wallet's [Preprod DUST registration transaction](docs/evidence/preprod-dust-registration-2026-09-27.md) is confirmed, but its fresh tDUST balance readback and an external-network Fair Launch transaction have not yet been verified. An isolated [browser client preflight](docs/evidence/browser-client-preflight-2026-09-27.md) builds and queried the Preprod indexer, but was not linked into the public site or tested with a real extension. The [browser transaction design gates](docs/fair-launch-browser-transaction-design.md) spell out the exact first write and remaining lifecycle work.
+The public site is not yet a fully transacting DApp. The next gate is a **public-origin, user-wallet-signed Fair Launch contract call** with confirmed receipt and contract/wallet readback. It requires browser-compatible Compact artifacts and providers, a compatible wallet/prover, a test payment coin, durable bid-opening recovery, and a settlement operator that receives all registered openings. A connected wallet alone does not pass that gate. The development wallet's [Preprod DUST registration transaction](docs/evidence/preprod-dust-registration-2026-09-27.md) is confirmed, and its positive tDUST readback enabled the [separately verified Preprod deploy/mint/fund sequence](docs/evidence/preprod-launch-2026-09-27.md). Those three **operator-signed** transactions do not prove user-wallet bidding. An isolated [browser client preflight](docs/evidence/browser-client-preflight-2026-09-27.md) builds, queried the Preprod indexer, and locally loaded matching ZK assets, but was not linked into the public site or tested with a real extension. The [browser transaction design gates](docs/fair-launch-browser-transaction-design.md) spell out the exact first write and remaining lifecycle work.
 
 The [pitch fact-check](docs/pitch-fact-check-2026-09-27.md) lists copy that must change before presentation. The supplied PPTX and video are not edited by this repository work. The inherited SILENCE and VeilIntent code remains as research under `contracts/`, `src/`, `spikes/`, and the old web files; it is not Fair Launch completion evidence.

@@ -1,4 +1,4 @@
-import { createLocaleController, translateText } from './fair-launch-locale.js?v=2';
+import { createLocaleController, translateText } from './fair-launch-locale.js?v=4';
 import { initFairLaunchWallet } from './fair-launch-wallet.js?v=5';
 
 const LAUNCHES_URL = '/api/fair-launch/launches';
@@ -97,7 +97,15 @@ export function isVerifiedLaunch(launch) {
   const address = launch.contractAddress;
   const receipts = launch.receipts;
   const config = launch.config;
+  const preprod = launch.network === 'preprod';
   return nonEmpty(address) &&
+    (launch.network == null || launch.network === 'local-devnet' || launch.network === 'preprod') &&
+    (!preprod || (launch.metadataAnchored === true &&
+      launch.evidenceSource === 'verified-preprod-create' &&
+      /^[0-9a-f]{64}$/i.test(String(launch.metadataCommitmentHex ?? '')) &&
+      Number.isSafeInteger(Number(launch.commitDeadlineUnixSeconds)) &&
+      Number.isSafeInteger(Number(launch.openDeadlineUnixSeconds)) &&
+      Number(launch.openDeadlineUnixSeconds) > Number(launch.commitDeadlineUnixSeconds))) &&
     (!launch.id || launch.id === address) &&
     ALLOWED_PHASES.has(launch.phase) &&
     typeof launch.metadataAnchored === 'boolean' &&
@@ -164,9 +172,13 @@ export function phaseLabel(phase) {
     settling: 'Settlement pending',
     settled: 'Auction settled',
     cancelled: 'Cancelled',
-    unknown: 'Final status not recorded',
+    unknown: 'Current status not verified',
   };
   return labels[phase] ?? 'Status unavailable';
+}
+
+export function launchNetwork(launch) {
+  return launch?.network === 'preprod' ? 'preprod' : 'local-devnet';
 }
 
 function formatInteger(value) {
@@ -177,6 +189,7 @@ function formatInteger(value) {
 function formatWindowSeconds(value) {
   if (!Number.isSafeInteger(Number(value)) || Number(value) <= 0) return 'Not in record';
   const seconds = Number(value);
+  if (seconds >= 7_200 && seconds % 3_600 === 0) return (seconds / 3_600) + ' hr';
   return seconds % 60 === 0 ? (seconds / 60) + ' min' : seconds + ' sec';
 }
 
@@ -196,20 +209,29 @@ function safeImageUrl(value) {
 }
 
 function sameLaunch(left, right) {
-  return left.contractAddress.toLowerCase() === right.contractAddress.toLowerCase();
+  return launchNetwork(left) === launchNetwork(right) &&
+    left.contractAddress.toLowerCase() === right.contractAddress.toLowerCase();
 }
 
-function mergeLaunches(recorded, catalog) {
+function launchKey(launch) {
+  return launchNetwork(launch) + ':' + launch.contractAddress.toLowerCase();
+}
+
+export function mergeLaunches(recorded, catalog) {
   const byAddress = new Map();
-  for (const launch of recorded) byAddress.set(launch.contractAddress.toLowerCase(), launch);
+  for (const launch of recorded) byAddress.set(launchKey(launch), launch);
   for (const launch of catalog) {
-    const key = launch.contractAddress.toLowerCase();
+    const key = launchKey(launch);
     const existing = byAddress.get(key);
     byAddress.set(key, existing
       ? { ...existing, ...launch, settlement: launch.settlement ?? existing.settlement, receiptCount: existing.receiptCount ?? launch.receiptCount, blockRange: existing.blockRange ?? launch.blockRange, sourceKind: existing.sourceKind === 'recorded-evidence' ? 'recorded-evidence' : launch.sourceKind ?? existing.sourceKind }
       : launch);
   }
   return [...byAddress.values()].sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
+}
+
+function launchRouteId(launch) {
+  return launchNetwork(launch) === 'preprod' ? 'preprod:' + launch.contractAddress : (launch.id || launch.contractAddress);
 }
 
 function launchLabel(launch) {
@@ -233,8 +255,11 @@ function appendMetric(parent, label, value) {
   parent.append(cell);
 }
 
-function verifiedCatalogEntry(entry) {
+export function verifiedCatalogEntry(entry) {
   if (!isVerifiedLaunch(entry)) return null;
+  if (launchNetwork(entry) === 'preprod') {
+    return { ...entry, phase: 'unknown', settlement: null, registeredBidCount: null, sourceKind: 'catalog' };
+  }
   if (entry.phase === 'settled' || entry.phase === 'cancelled') return { ...entry, sourceKind: 'catalog' };
   const commit = Number(entry.commitDeadlineUnixSeconds);
   const open = Number(entry.openDeadlineUnixSeconds);
@@ -290,7 +315,7 @@ function initializePage() {
     const article = makeElement('article', 'launch-card');
     article.setAttribute('role', 'listitem');
     const link = makeElement('a', 'launch-card-link');
-    link.href = '#/token/' + encodeURIComponent(launch.id || launch.contractAddress);
+    link.href = '#/token/' + encodeURIComponent(launchRouteId(launch));
     link.setAttribute('aria-label', translateText(launchLabel(launch), locale.language) + ', ' + translateText(phaseLabel(launch.phase), locale.language) + ', ' + shortAddress(launch.contractAddress));
 
     const art = makeElement('div', 'launch-card-art');
@@ -312,7 +337,9 @@ function initializePage() {
     const body = makeElement('div', 'launch-card-body');
     const top = makeElement('div', 'launch-card-top');
     const phase = makeElement('span', 'phase-chip is-' + launch.phase, phaseLabel(launch.phase));
-    const network = makeElement('span', 'launch-network', launch.sourceKind === 'recorded-evidence' ? 'RECORDED LOCAL DEVNET' : 'LOCAL DEVNET');
+    const network = makeElement('span', 'launch-network', launchNetwork(launch) === 'preprod'
+      ? 'PREPROD · SETUP VERIFIED'
+      : launch.sourceKind === 'recorded-evidence' ? 'RECORDED LOCAL DEVNET' : 'LOCAL DEVNET');
     top.append(phase, network);
 
     const nameRow = makeElement('div', 'launch-name-row');
@@ -361,7 +388,7 @@ function initializePage() {
     const query = searchInput.value.trim().toLocaleLowerCase();
     const visible = launches.filter((launch) => {
       if (!matchesFilter(launch)) return false;
-      const searchText = [launchLabel(launch), launchTicker(launch), launch.contractAddress, phaseLabel(launch.phase), 'local devnet'].join(' ').toLocaleLowerCase();
+      const searchText = [launchLabel(launch), launchTicker(launch), launch.contractAddress, phaseLabel(launch.phase), launchNetwork(launch)].join(' ').toLocaleLowerCase();
       return !query || searchText.includes(query);
     });
 
@@ -383,9 +410,9 @@ function initializePage() {
       const phaseMessage = noResults
         ? '검색어나 계약 주소와 일치하는 검증된 출시가 없습니다.'
         : activeFilter === 'live'
-          ? '현재 입찰이 진행 중인 것으로 검증된 Local Devnet 경매가 없습니다.'
+          ? '현재 입찰이 진행 중인 것으로 검증된 테스트넷 경매가 없습니다.'
           : activeFilter === 'upcoming'
-            ? '현재 입찰 예정 상태로 검증된 Local Devnet 경매가 없습니다.'
+            ? '현재 입찰 예정 상태로 검증된 테스트넷 경매가 없습니다.'
             : '선택한 조건에 맞는 영수증 검증 경매가 없습니다.';
       setEmptyState(noResults ? '검색 결과가 없습니다' : phaseTitle, phaseMessage, activeFilter !== 'all' || noResults);
       return;
@@ -393,6 +420,10 @@ function initializePage() {
 
     emptyState.hidden = true;
     for (const launch of visible) listingGrid.append(renderCard(launch));
+    if (visible.some((launch) => launchNetwork(launch) === 'preprod')) {
+      setCatalogMessage(visible.length + ' verified test launches · Preprod setup only, current status unverified · public writes unavailable', 'warning');
+      return;
+    }
     const kind = capabilityEnvelope ? 'live verified catalog' : 'recorded evidence';
     setCatalogMessage(visible.length + (visible.length === 1 ? ' verified launch' : ' verified launches') + ' · ' + kind + ' · read-only unless Create API is enabled');
   }
@@ -497,16 +528,24 @@ function initializePage() {
   }
 
   function renderDetail(id) {
-    const launch = launches.find((item) => item.id === id || item.contractAddress.toLowerCase() === String(id).toLowerCase());
+    const exact = launches.find((item) => launchRouteId(item).toLowerCase() === String(id).toLowerCase());
+    const matches = launches.filter((item) => item.contractAddress.toLowerCase() === String(id).toLowerCase());
+    const launch = exact ?? (matches.length === 1 ? matches[0] : null);
     $('#detailContent').hidden = !launch;
     $('#detailMissing').hidden = Boolean(launch);
     if (!launch) return;
 
     const metadataName = nonEmpty(launch.metadata?.name) ? launch.metadata.name : 'Unlabeled test token';
     $('#detailTitle').textContent = metadataName;
-    $('#detailEyebrow').textContent = launch.sourceKind === 'recorded-evidence'
-      ? 'RECORDED MIDNIGHT LOCAL DEVNET LAUNCH'
-      : 'VERIFIED MIDNIGHT LOCAL DEVNET LAUNCH';
+    $('#detailEyebrow').textContent = launchNetwork(launch) === 'preprod'
+      ? 'MIDNIGHT PREPROD · SETUP VERIFIED'
+      : launch.sourceKind === 'recorded-evidence'
+        ? 'RECORDED MIDNIGHT LOCAL DEVNET LAUNCH'
+        : 'VERIFIED MIDNIGHT LOCAL DEVNET LAUNCH';
+    $('#detailEvidenceTitle').textContent = launchNetwork(launch) === 'preprod' ? 'Preprod setup receipts' : 'Local Devnet record';
+    $('#detailPrivacyNetwork').textContent = launchNetwork(launch) === 'preprod'
+      ? '이 토큰은 가치가 없는 Preprod 테스트 자산입니다. 이 MVP에는 본딩커브, DEX/LP 거래, 시가총액, 프로덕션 토큰이 없습니다.'
+      : '모든 자산은 가치가 없는 Local Devnet 테스트 자산입니다. 이 MVP에는 bonding curve, DEX/LP 거래, 시장가치, production token이 없습니다.';
     $('#detailContract').textContent = shortAddress(launch.contractAddress);
     $('#detailContract').title = launch.contractAddress;
     $('#metadataNote').textContent = launch.metadataAnchored
@@ -523,12 +562,15 @@ function initializePage() {
     $('#detailRecordTag').textContent = launch.sourceKind === 'recorded-evidence' ? 'RECORDED' : 'VERIFIED';
     $('#detailClearingPrice').textContent = hasSettlement
       ? formatInteger(launch.settlement.clearingPriceAtoms) + ' TEST'
-      : launch.phase === 'cancelled' ? 'Cancelled' : 'Not settled';
+      : launch.phase === 'cancelled' ? 'Cancelled'
+        : launchNetwork(launch) === 'preprod' ? 'Not live-verified' : 'Not settled';
     $('#detailInventory').textContent = formatInteger(config.inventoryAtoms) + ' units';
     $('#detailReserve').textContent = formatInteger(config.reservePriceAtoms) + ' TEST';
     $('#detailDeposit').textContent = formatInteger(config.depositLotAtoms) + ' TEST';
     const slotCount = launch.registeredBidCount ?? (launch.settlement?.allocationsAtoms?.length ?? null);
-    $('#detailSlots').textContent = slotCount == null ? 'Not in catalog' : formatInteger(slotCount);
+    $('#detailSlots').textContent = slotCount == null
+      ? launchNetwork(launch) === 'preprod' ? 'Not live-verified' : 'Not in catalog'
+      : formatInteger(slotCount);
     $('#detailCommitWindow').textContent = formatWindowSeconds(config.commitWindowSeconds);
     $('#detailOpenWindow').textContent = formatWindowSeconds(config.openWindowSeconds);
     const receiptCount = launch.receiptCount ?? 3;
@@ -556,7 +598,9 @@ function initializePage() {
     }
     $('#detailPanelNote').textContent = allocations && refunds
       ? 'Slot outcomes are public settlement data for this completed auction.'
-      : 'Settlement has not been recorded for this launch; no clearing price or slot outcome is shown.';
+      : launchNetwork(launch) === 'preprod'
+        ? 'Preprod setup receipts are verified. Current auction phase and slot state need live chain readback.'
+        : 'Settlement has not been recorded for this launch; no clearing price or slot outcome is shown.';
 
     const isSettled = launch.phase === 'settled' || launch.phase === 'cancelled';
     $('#detailBidButton').textContent = launch.phase === 'settled'
@@ -570,6 +614,8 @@ function initializePage() {
             : 'Bid · wallet unavailable';
     $('#actionExplanation').textContent = isSettled
       ? '이 경매는 종료되었습니다. 이 페이지는 개인 지갑 상태를 조회하지 않는 기록용 화면입니다.'
+      : launchNetwork(launch) === 'preprod'
+        ? 'Preprod 경매의 설치 영수증만 확인되었습니다. 현재 체인 상태와 사용자 지갑 서명 경로가 검증될 때까지 입찰·청구를 사용할 수 없습니다.'
       : '경매 상태는 검증된 카탈로그에서 읽었습니다. Preprod 지갑 연결은 읽기 전용이며 이 Local Devnet 경매에 입찰을 제출할 수 없습니다.';
     $('#detailTokenClaimButton').disabled = true;
     $('#detailRefundClaimButton').disabled = true;

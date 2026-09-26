@@ -7,7 +7,7 @@
     <meta name="description" content="Explore verified test-token fair launches on Midnight Local Devnet." />
     <title>Fair Launch · Explore</title>
     <link rel="stylesheet" href="./fair-launch.css?v=4" />
-    <script type="module" src="./fair-launch.js?v=11"></script>
+    <script type="module" src="./fair-launch.js?v=13"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -248,8 +248,8 @@
                   </div>
                   <p class="action-note">실제 개인 입찰·청구는 검증된 브라우저 지갑 어댑터가 준비된 뒤에만 활성화됩니다.</p>
                 </section>
-                <section class="detail-panel evidence-panel" aria-labelledby="evidenceTitle">
-                  <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2 id="evidenceTitle">Local Devnet record</h2></div><span class="evidence-count" id="detailReceiptCount">20 tx</span></div>
+                <section class="detail-panel evidence-panel" aria-labelledby="detailEvidenceTitle">
+                  <div class="panel-heading"><div><p class="eyebrow">EVIDENCE</p><h2 id="detailEvidenceTitle">Local Devnet record</h2></div><span class="evidence-count" id="detailReceiptCount">20 tx</span></div>
                   <p id="detailEvidenceNote">저장된 실행 결과를 읽기 전용으로 표시합니다.</p>
                   <a id="detailEvidenceLink" class="evidence-button" href="./fair-launch-evidence.json" target="_blank" rel="noopener noreferrer">Read recorded evidence <span aria-hidden="true">↗</span></a>
                 </section>
@@ -261,8 +261,8 @@
               <div class="disclosure-copy">
                 <p>등록 슬롯, commitment hash, 고정 deposit은 공개됩니다. 정산 뒤에는 clearing price, 슬롯별 allocation/refund와 claim 상태도 공개되며, 고정 deposit으로부터 charge와 수량을 추론할 수 있습니다.</p>
                 <p>정산 운영자는 등록된 모든 입찰의 opening을 받아야 하므로 최대가격·수량·수취인·salt를 볼 수 있습니다. 네 개 슬롯은 등록 순서대로 채워집니다.</p>
-                <p>기록된 실행은 raw transaction encoding을 검사하지 않았습니다. 최대 입찰가, 수량, salt, 수취 주소가 원시 거래에서 숨겨진다는 증거는 없습니다.</p>
-                <p>모든 자산은 가치가 없는 Local Devnet 테스트 자산입니다. 이 MVP에는 bonding curve, DEX/LP 거래, 시장가치, production token이 없습니다.</p>
+                <p>Local Devnet 기록 거래 20건의 제한적 원시 패턴 검사에서는 salt·수취인 키의 직접 일치를 찾지 못했습니다. 다른 인코딩이나 간접 추론을 배제하지 않으며 Preprod 거래는 아직 검사하지 않았습니다.</p>
+                <p id="detailPrivacyNetwork">모든 자산은 가치가 없는 Local Devnet 테스트 자산입니다. 이 MVP에는 bonding curve, DEX/LP 거래, 시장가치, production token이 없습니다.</p>
               </div>
             </details>
           </div>
@@ -274,7 +274,7 @@
           </section>
         </section>
       </main>
-      <footer class="site-footer"><span>Fair Launch · Local Devnet test experience</span><span>Not a live market or production token launch</span></footer>
+      <footer class="site-footer"><span>Fair Launch · Test network experience</span><span>Not a live market or production token launch</span></footer>
     </div>
   </body>
 </html>

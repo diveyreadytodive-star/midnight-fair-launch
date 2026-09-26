@@ -42,13 +42,13 @@ The Create endpoint is opt-in (`FAIR_LAUNCH_CREATE_ENABLED=1`), bound to a loopb
 
 ## Preprod receipt recheck
 
-The separate guarded Preprod deploy runner produces `confirmed-public-evidence.json` only after its deploy, mint, fund, wallet, and ledger checks succeed. When that file exists, recheck it independently with:
+The separate guarded Preprod deploy runner produced [public evidence](../../docs/evidence/preprod-launch-2026-09-27.md) for contract `ef7cb50ea29a2ab3501dac80d3fa9f05f570294a2fc0107ad0fc5b76cefe3921` only after deploy, mint, fund, wallet, and ledger checks succeeded. The deployment is **operator-signed** and uses valueless test assets. Recheck the sanitized evidence file independently with:
 
 ```sh
-npm run verify:preprod-launch -- /absolute/path/to/confirmed-public-evidence.json
+npm run verify:preprod-launch -- docs/evidence/preprod-launch-2026-09-27.json
 ```
 
-The read-only verifier checks RPC network identity, the local Compact source and metadata hashes, each transaction's Preprod `SUCCESS` status and expected contract action, plus current funded ledger state. It accepts no seed and submits no transaction. At this writing, the Preprod runner is still syncing its wallet before any deployment transaction; a verifier script or an unconfirmed transaction ID is **not** Preprod launch evidence.
+The read-only verifier checks RPC network identity, the local Compact source and metadata hashes, each transaction's Preprod `SUCCESS` status and expected contract action, plus current funded ledger state. It accepts no seed and submits no transaction. It passed independently for the three setup receipts at blocks 2,723,525/529/537. No Preprod bid, settlement, or claim has been verified; the completed Local Devnet auction belongs to a different contract.
 
 ## Contract and evidence boundaries
 
