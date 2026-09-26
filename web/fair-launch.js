@@ -1,4 +1,4 @@
-import { createLocaleController, translateText } from './fair-launch-locale.js?v=6';
+import { createLocaleController, translateText } from './fair-launch-locale.js?v=7';
 import { initFairLaunchWallet } from './fair-launch-wallet.js?v=5';
 
 const LAUNCHES_URL = '/api/fair-launch/launches';
