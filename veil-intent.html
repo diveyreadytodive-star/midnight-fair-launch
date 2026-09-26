@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090b0d" />
+    <meta name="description" content="VeilIntent recorded payment evidence and a local-only private policy checker." />
+    <title>VeilIntent · Private Execution</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23080a0b'/%3E%3Cpath d='M9 29 16 11h4l-7 18zm10 0 7-18h4l-7 18zm10 0 4-11h3l-4 11z' fill='%23baf273'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./veil-intent.css" />
+    <script type="module" src="./veil-intent.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to VeilIntent demo</a>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#main" aria-label="VeilIntent home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-name">VEIL<span>INTENT</span></span>
+          <span class="brand-divider" aria-hidden="true"></span>
+          <span class="brand-product">PRIVATE EXECUTION</span>
+        </a>
+
+        <nav class="view-tabs" role="tablist" aria-label="VeilIntent demo views">
+          <button class="view-tab is-active" id="tab-agent" type="button" role="tab" aria-selected="true" aria-controls="panel-agent" tabindex="0">Agent console</button>
+          <button class="view-tab" id="tab-seller" type="button" role="tab" aria-selected="false" aria-controls="panel-seller" tabindex="-1">Seller quote</button>
+          <button class="view-tab" id="tab-observer" type="button" role="tab" aria-selected="false" aria-controls="panel-observer" tabindex="-1">Public observer</button>
+        </nav>
+
+        <div class="topbar-status" aria-label="Environment status">
+          <span class="recorded-pill"><span class="status-dot"></span> RECORDED LOCAL DEVNET</span>
+          <span class="live-state"><span class="quiet-dot"></span> NO LIVE SESSION</span>
+        </div>
+      </header>
+
+      <main id="main" class="main-content">
+        <section class="intro-row" aria-labelledby="page-title">
+          <div class="intro-copy-block">
+            <p class="eyebrow">PRIVATE SPENDING MANDATE <span>·</span> ONE-TO-ONE PAYMENT</p>
+            <h1 id="page-title">Intent, within your limits.</h1>
+            <p class="intro-copy">An agent-compatible policy rail: private price caps, verified quotes, and a recorded shielded test payment.</p>
+          </div>
+          <div class="run-stamp" aria-label="This page shows recorded static evidence, not live network data">
+            <span class="stamp-icon" aria-hidden="true">↗</span>
+            <span><strong>STATIC RECORD</strong><small id="recorded-date">Loading receipt record…</small></span>
+          </div>
+        </section>
+
+        <div class="evidence-ribbon" role="note">
+          <span class="ribbon-led" aria-hidden="true"></span>
+          <strong>TEST TOKENS ONLY</strong>
+          <span class="ribbon-separator" aria-hidden="true"></span>
+          <span>Buyer escrow lot is public</span>
+          <span class="ribbon-separator" aria-hidden="true"></span>
+          <span>Quote details are public</span>
+          <span class="ribbon-spacer"></span>
+          <span id="record-status" class="record-status">Loading evidence</span>
+        </div>
+
+        <div class="flow-rail" aria-label="Recorded intent flow">
+          <div class="flow-step"><span class="step-number">01</span><span>Private intent</span></div>
+          <span class="flow-line" aria-hidden="true"></span>
+          <div class="flow-step"><span class="step-number">02</span><span>Seller quote</span></div>
+          <span class="flow-line" aria-hidden="true"></span>
+          <div class="flow-step"><span class="step-number">03</span><span>Policy proof</span></div>
+          <span class="flow-line" aria-hidden="true"></span>
+          <div class="flow-step"><span class="step-number">04</span><span>Payment claim</span></div>
+        </div>
+
+        <section class="view-panel" id="panel-agent" role="tabpanel" aria-labelledby="tab-agent" tabindex="0">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">01 / PRIVATE INPUT</p>
+              <h2>Agent console <span class="heading-slash">/</span> per-intent policy</h2>
+            </div>
+            <span class="panel-index">BUYER SIDE</span>
+          </div>
+
+          <div class="agent-grid">
+            <article class="panel policy-panel">
+              <div class="panel-topline">
+                <div>
+                  <p class="eyebrow">MANDATE WITNESS</p>
+                  <h3>Set the private ceiling</h3>
+                </div>
+                <span class="privacy-tag"><span aria-hidden="true">◉</span> LOCAL INPUT</span>
+              </div>
+              <p class="panel-copy">These limits stay in this browser tab. The checker below is a local simulation: it creates no proof and sends no transaction.</p>
+
+              <form id="policy-checker" novalidate>
+                <div class="public-intent-row">
+                  <span class="field-label">RECORDED ORDER</span>
+                  <strong id="agent-order-summary">Waiting for evidence</strong>
+                  <span class="public-mini-tag">PUBLIC QUOTE</span>
+                </div>
+                <div class="field-grid">
+                  <div class="field-wrap">
+                    <label for="max-unit-price">Private max unit price <span>TEST UNITS</span></label>
+                    <div class="input-shell">
+                      <span class="currency-mark">$</span>
+                      <input id="max-unit-price" name="maxUnitPrice" type="number" inputmode="decimal" min="0.000001" step="0.000001" placeholder="Enter a private cap" autocomplete="off" aria-describedby="unit-price-help" required />
+                      <span class="input-suffix">/ ITEM</span>
+                    </div>
+                    <small class="field-help" id="unit-price-help">Exact cap is not written into this page's public evidence.</small>
+                  </div>
+                  <div class="field-wrap">
+                    <label for="max-total">Private total budget <span>TEST UNITS</span></label>
+                    <div class="input-shell">
+                      <span class="currency-mark">≋</span>
+                      <input id="max-total" name="maxTotal" type="number" inputmode="decimal" min="0.000001" step="0.000001" placeholder="Enter a private budget" autocomplete="off" aria-describedby="total-help" required />
+                      <span class="input-suffix">MAX</span>
+                    </div>
+                    <small class="field-help" id="total-help">The public escrow lot is larger than the per-intent budget.</small>
+                  </div>
+                </div>
+                <div class="form-footer">
+                  <span class="simulation-label"><span class="simulation-dot"></span> LOCAL SIMULATION ONLY</span>
+                  <button class="primary-button" id="check-policy" type="submit" disabled>
+                    <span>Check recorded quote</span><span aria-hidden="true">↗</span>
+                  </button>
+                </div>
+                <p class="policy-result" id="policy-result" role="status" aria-live="polite" hidden></p>
+              </form>
+            </article>
+
+            <aside class="panel mandate-card" aria-labelledby="mandate-card-title">
+              <div class="card-corner-label">AUTHORIZATION MAP</div>
+              <div class="mandate-icon" aria-hidden="true">
+                <span class="mandate-ring ring-one"></span><span class="mandate-ring ring-two"></span><span class="mandate-core"></span>
+              </div>
+              <p class="eyebrow">ONE INTENT · ONE SELLER</p>
+              <h3 id="mandate-card-title">The agent gets a limit, not a wallet.</h3>
+              <p class="panel-copy">The agent role proves this quote fits one committed intent. It does not receive the buyer's wallet seed or authority to choose another recipient.</p>
+              <div class="mandate-facts">
+                <div><span>AGENT ROLE</span><strong>Test client</strong></div>
+                <div><span>SELLER COUNT</span><strong>One approved</strong></div>
+                <div><span>SPEND SCOPE</span><strong>Per intent only</strong></div>
+              </div>
+              <div class="boundary-note">
+                <span class="boundary-mark" aria-hidden="true">!</span>
+                <p>No autonomous AI integration, daily cap, or cross-intent spending limit is implemented.</p>
+              </div>
+            </aside>
+          </div>
+
+          <div class="footnote-row">
+            <span><strong>PUBLIC ESCROW LOT</strong><b id="agent-escrow">—</b></span>
+            <span><strong>INTENT TYPE</strong><b>Private one-way payment</b></span>
+            <span><strong>CHECK MODE</strong><b>Browser-only · no signing</b></span>
+          </div>
+        </section>
+
+        <section class="view-panel" id="panel-seller" role="tabpanel" aria-labelledby="tab-seller" tabindex="0" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">02 / PUBLIC OFFER</p>
+              <h2>Seller quote <span class="heading-slash">/</span> payment request</h2>
+            </div>
+            <span class="panel-index">QUOTE RECORDED</span>
+          </div>
+
+          <div class="seller-layout">
+            <article class="panel quote-panel">
+              <div class="quote-panel-header">
+                <div class="seller-avatar" aria-hidden="true">S<span></span></div>
+                <div class="seller-id"><p class="eyebrow">APPROVED SELLER</p><h3>Seller · Local Devnet</h3><span class="seller-key" id="seller-commitment">Identity commitment recorded</span></div>
+                <span class="verified-badge"><span aria-hidden="true">✓</span> AUTHENTICATED</span>
+              </div>
+              <div class="quote-number-row">
+                <div><span class="field-label">PUBLIC QUANTITY</span><strong id="quote-quantity">—</strong><small>items</small></div>
+                <div class="quote-multiply" aria-hidden="true">×</div>
+                <div><span class="field-label">UNIT PRICE</span><strong id="quote-unit-price">—</strong><small>test units / item</small></div>
+                <div class="quote-equals" aria-hidden="true">=</div>
+                <div class="quote-total"><span class="field-label">PUBLIC TOTAL</span><strong id="quote-total">—</strong><small>test units</small></div>
+              </div>
+              <div class="quote-status-row">
+                <div class="quote-status-icon" aria-hidden="true">✓</div>
+                <div><strong>Agent policy proof accepted</strong><p>Recorded state transition. This page is not submitting or replaying it.</p></div>
+                <span class="status-chip settled-chip">SETTLED</span>
+              </div>
+            </article>
+
+            <aside class="panel seller-payment-card">
+              <p class="eyebrow">SELLER WALLET RECEIPT</p>
+              <div class="payout-amount"><span>+</span><strong id="seller-payout">—</strong></div>
+              <p class="panel-copy">The seller's own wallet discovered the shielded payment after its claim transaction.</p>
+              <div class="receipt-line"><span>NETWORK</span><strong>Local Devnet</strong></div>
+              <div class="receipt-line"><span>PAYMENT ASSET</span><strong>Valueless test token</strong></div>
+              <div class="receipt-line"><span>ASSET SWAP</span><strong>No seller asset in escrow</strong></div>
+              <span class="static-stamp">RECORDED · NOT LIVE</span>
+            </aside>
+          </div>
+
+          <div class="settlement-strip">
+            <div class="settlement-copy"><span class="eyebrow">TWO RECIPIENTS · TWO WALLET READBACKS</span><strong>Payment to seller. Change back to buyer.</strong></div>
+            <div class="split-amount seller-split"><span>SELLER</span><strong id="seller-balance">—</strong></div>
+            <span class="split-plus" aria-hidden="true">+</span>
+            <div class="split-amount buyer-split"><span>BUYER CHANGE</span><strong id="buyer-balance">—</strong></div>
+          </div>
+        </section>
+
+        <section class="view-panel" id="panel-observer" role="tabpanel" aria-labelledby="tab-observer" tabindex="0" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">03 / PUBLIC LEDGER VIEW</p>
+              <h2>What the chain reveals <span class="heading-slash">/</span> what the record proves</h2>
+            </div>
+            <span class="panel-index observer-index"><span class="observer-dot"></span> OBSERVER</span>
+          </div>
+
+          <div class="observer-top-grid">
+            <article class="panel observer-ledger-card">
+              <div class="card-heading">
+                <div><p class="eyebrow">PUBLIC LEDGER FIELDS</p><h3>Execution is visible. Maxima are not.</h3></div>
+                <span class="public-badge">PUBLIC</span>
+              </div>
+              <div class="ledger-metrics">
+                <div><span>ESCROW LOT</span><strong id="observer-escrow">—</strong><small>public by design</small></div>
+                <div><span>SELLER QUOTE</span><strong id="observer-quote">—</strong><small>unit price × quantity</small></div>
+                <div><span>INTENT STATE</span><strong class="state-complete">EXECUTED</strong><small>settled once</small></div>
+                <div><span>BLOCK WINDOW</span><strong id="observer-block-range">—</strong><small>recorded receipts</small></div>
+              </div>
+              <div class="contract-address-row">
+                <span class="field-label">CONTRACT ADDRESS</span>
+                <code id="contract-address">Loading…</code>
+                <button class="copy-button" id="copy-address" type="button" aria-label="Copy contract address" disabled>Copy</button>
+              </div>
+            </article>
+
+            <article class="panel hidden-boundary-card">
+              <div class="boundary-graphic" aria-hidden="true"><span class="orbit orbit-a"></span><span class="orbit orbit-b"></span><span class="orbit-dot"></span><span class="orbit-core">V</span></div>
+              <p class="eyebrow">PRIVATE WITNESS</p>
+              <h3>Limits are absent from this view.</h3>
+              <ul class="hidden-list">
+                <li><span aria-hidden="true">—</span> Maximum unit price</li>
+                <li><span aria-hidden="true">—</span> Maximum total budget</li>
+                <li><span aria-hidden="true">—</span> Agent capability secret</li>
+                <li><span aria-hidden="true">—</span> Buyer recipient opening</li>
+              </ul>
+              <p class="privacy-caveat">The public lot and actual quote still bound the possible maximum. This is scoped field evidence, not full privacy.</p>
+            </article>
+          </div>
+
+          <section class="panel receipt-panel" aria-labelledby="receipt-title">
+            <div class="receipt-heading">
+              <div><p class="eyebrow">STATIC RECEIPT LEDGER</p><h3 id="receipt-title">Seven verified Local Devnet steps</h3></div>
+              <span class="recorded-range" id="receipt-range">Loading…</span>
+            </div>
+            <ol class="receipt-timeline" id="receipt-timeline" aria-label="Recorded Local Devnet receipt timeline">
+              <li class="loading-row">Reading the sanitized receipt record…</li>
+            </ol>
+            <p class="receipt-note">Receipt hashes and blocks are recorded evidence. This page does not connect to an indexer, wallet extension, or transaction submitter.</p>
+          </section>
+
+          <section class="panel wallet-readback-panel" aria-label="Private wallet readback evidence">
+            <div class="readback-heading"><span class="readback-icon" aria-hidden="true">↳</span><div><p class="eyebrow">SEPARATE WALLET READBACK</p><strong>Balances confirmed from the buyer and seller wallets</strong></div><span class="not-public-tag">NOT PUBLIC LEDGER FIELDS</span></div>
+            <div class="readback-values"><div><span>SELLER WALLET</span><strong id="observer-seller-balance">—</strong></div><span class="readback-plus" aria-hidden="true">+</span><div><span>BUYER WALLET</span><strong id="observer-buyer-balance">—</strong></div><span class="change-index">CHANGE COIN INDEX <b id="change-index">—</b></span></div>
+          </section>
+        </section>
+
+        <footer class="page-footer">
+          <span><strong>VEILINTENT</strong> · AGENT-COMPATIBLE POLICY RAIL</span>
+          <span>ONE BUYER · ONE SELLER · ONE PER-INTENT POLICY</span>
+          <span class="footer-limits">NO LIVE WALLET · NO AUTONOMOUS AI · NO ASSET SWAP</span>
+          <a class="source-link" href="https://github.com/diveyreadytodive-star/veil-intent" target="_blank" rel="noreferrer">Source repository ↗</a>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

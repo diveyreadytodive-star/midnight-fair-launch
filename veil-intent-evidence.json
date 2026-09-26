@@ -1,0 +1,74 @@
+{
+  "kind": "recorded-static-evidence",
+  "recordedAt": "2026-09-26T03:52:02.249Z",
+  "network": "Midnight Local Devnet",
+  "contractAddress": "a96ec2306695563975e5073019dd4049f18dcc68bf6556edf3c705c2da5db138",
+  "asset": "Valueless shielded Local Devnet test payment token",
+  "scope": "One buyer, one approved seller, one per-intent policy; one-way payment only, not an atomic asset swap.",
+  "publicEscrowAtoms": "150",
+  "publicQuote": {
+    "quantity": "50",
+    "unitPriceTicks": "2000000",
+    "totalAtoms": "100"
+  },
+  "finalReadback": {
+    "intentExecuted": true,
+    "buyerRemainderClaimable": false,
+    "sellerShieldedBalanceAtoms": "100",
+    "buyerShieldedBalanceAtoms": "50",
+    "buyerChangeCoinMtIndexBeforeClaim": "103"
+  },
+  "blockRange": {
+    "first": 4222,
+    "last": 4246
+  },
+  "receipts": [
+    {
+      "stage": "deploy",
+      "txId": "00178f7327f9538d25b38d7fba2bac1994e6bb24cb0c4dd72051665beed70f17c0",
+      "transactionHash": "22a23a406acd8a9dda7c379b2cedc6e0a952d54cbd3f47059f60332b1304fb97",
+      "blockHeight": 4222
+    },
+    {
+      "stage": "mintTestCoin",
+      "txId": "00cfdb49c5bff4d3a1ae569f981793f32a14a1ff8a8c997a3ad20dca399a839bdd",
+      "transactionHash": "6fe352d52bed6d0a4343c14fea24ccb69da78e20982bf7ee467e10157b36e4d3",
+      "blockHeight": 4225
+    },
+    {
+      "stage": "createIntent",
+      "txId": "00af1dc1ff96dcb993048f77d87d4379781431cd0ca635485a09712dda5f4e496b",
+      "transactionHash": "1d89891f7ca4e53962e1c598ef649c2682af3b4d4a271b74751682771b368af2",
+      "blockHeight": 4230
+    },
+    {
+      "stage": "submitQuote",
+      "txId": "00d4a4ea1d8f2abd5d6484653c1de937168b28e9de10f6ca86a9a392d8e32db16f",
+      "transactionHash": "a2b91a1117a31597cba199591a32cf04cfde419c94508d85e2bce89664b676d1",
+      "blockHeight": 4234
+    },
+    {
+      "stage": "approveQuote",
+      "txId": "005b15a984a0d2fbe6a9cd34390c9bf8091438032479a07603fdc2932f6e307732",
+      "transactionHash": "43f651c0da5f5894978bce2ad2a3f2acfa440da40f908f2313627a8f59ad7e33",
+      "blockHeight": 4238
+    },
+    {
+      "stage": "sellerClaimPayout",
+      "txId": "00180fa036ca3e5d167565f8a5a10a4c2d8ecc4d9e7b33d3bc9d02610661bb38b7",
+      "transactionHash": "e30795202011b6800babdd4bf8e197d5e252a2a9e297ec70b24b17e67fa713ec",
+      "blockHeight": 4242
+    },
+    {
+      "stage": "claimBuyerRemainder",
+      "txId": "00c6d05945ef250a586c5608c7b130c171f9f12b03ceb4769d3bdef796f60278ad",
+      "transactionHash": "a8c30ea33d2e32075ec12dcf90d0212faed453041ab3f449fa4387a41eeea89c",
+      "blockHeight": 4246
+    }
+  ],
+  "privacyLimits": [
+    "Actual escrow lot, seller quote, amount, deadline, commitments, and status are public.",
+    "Exact randomized max price and budget were stored only in the protected local recovery manifest and are omitted here.",
+    "This record does not establish raw-transaction, timing, or recipient privacy, independent agent-service isolation, or production asset settlement."
+  ]
+}
