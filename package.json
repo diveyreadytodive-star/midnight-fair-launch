@@ -11,6 +11,7 @@
     "setup:compiler": "node scripts/setup-compiler.mjs",
     "typecheck": "node scripts/typecheck.mjs && npm --prefix spikes/fair-launch run typecheck && npm --prefix spikes/veil-intent run typecheck",
     "test:contract": "node --import tsx --test tests/contract/*.test.ts",
+    "build:browser": "vite build --config vite.browser.config.ts",
     "test": "npm run compile && npm run typecheck && node scripts/run-tests.mjs && node --import tsx --test spikes/fair-launch/tests/*.test.ts && node --import tsx --test spikes/veil-intent/tests/*.test.ts",
     "test:fair-launch:chain": "npm --prefix spikes/fair-launch run test:chain --",
     "chain:up": "docker compose up -d --wait",
@@ -19,7 +20,10 @@
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/dapp-connector-api": "4.0.1",
     "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
+    "@midnight-ntwrk/midnight-js-dapp-connector-proof-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "4.1.1",
     "@midnight-ntwrk/midnight-js-http-client-proof-provider": "4.1.1",
     "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.1.1",
     "@midnight-ntwrk/midnight-js-level-private-state-provider": "4.1.1",
@@ -30,6 +34,7 @@
     "@midnight-ntwrk/midnight-js-utils": "4.1.1",
     "@midnight-ntwrk/wallet-sdk": "1.2.0",
     "@scure/bip39": "2.2.0",
+    "buffer": "6.0.3",
     "rxjs": "^7.8.2",
     "ws": "^8.21.1"
   },
@@ -37,6 +42,8 @@
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.23.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "7.3.6",
+    "vite-plugin-wasm": "3.5.0"
   }
 }

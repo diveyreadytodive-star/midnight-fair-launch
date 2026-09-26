@@ -27,6 +27,12 @@ export function dustLabel(balance, language = 'en') {
   return `${new Intl.NumberFormat(language === 'ko' ? 'ko-KR' : 'en-US').format(whole)}${fraction ? `.${fraction}` : ''} tDUST`;
 }
 
+export function dustBalanceValue(report) {
+  const balance = report && typeof report === 'object' ? report.balance : report;
+  if (typeof balance !== 'bigint' || balance < 0n) throw new TypeError('Invalid DUST balance report');
+  return balance;
+}
+
 export function assessWalletNetwork(configuration, connection) {
   if (connection?.status !== 'connected') return { status: 'disconnected', network: '' };
   const configured = String(configuration?.networkId ?? '').toLowerCase();
@@ -121,7 +127,7 @@ export function initFairLaunchWallet(doc = document, browser = window) {
           state.status = network.status;
           return;
         }
-        state.dust = await state.api.getDustBalance();
+        state.dust = dustBalanceValue(await state.api.getDustBalance());
         dustLabel(state.dust);
         state.status = BigInt(state.dust) === 0n ? 'noDust' : 'ready';
       } catch { state.dust = null; state.status = 'unavailable'; }
@@ -146,7 +152,7 @@ export function initFairLaunchWallet(doc = document, browser = window) {
       else {
         state.api = api;
         try {
-          state.dust = await api.getDustBalance();
+          state.dust = dustBalanceValue(await api.getDustBalance());
           dustLabel(state.dust);
           state.status = BigInt(state.dust) === 0n ? 'noDust' : 'ready';
         } catch { state.status = 'unavailable'; }
