@@ -159,7 +159,7 @@ export function phaseLabel(phase) {
     settling: 'Settlement pending',
     settled: 'Auction settled',
     cancelled: 'Cancelled',
-    unknown: 'Status unavailable',
+    unknown: 'Final status not recorded',
   };
   return labels[phase] ?? 'Status unavailable';
 }
