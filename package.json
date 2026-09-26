@@ -1,5 +1,5 @@
 {
-  "name": "silence-private-perps",
+  "name": "veil-intent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,11 +7,11 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "compile": "node scripts/compile.mjs",
+    "compile": "node scripts/compile.mjs && npm --prefix spikes/veil-intent run compile",
     "setup:compiler": "node scripts/setup-compiler.mjs",
-    "typecheck": "node scripts/typecheck.mjs",
+    "typecheck": "node scripts/typecheck.mjs && npm --prefix spikes/veil-intent run typecheck",
     "test:contract": "node --import tsx --test tests/contract/*.test.ts",
-    "test": "node scripts/run-tests.mjs",
+    "test": "npm run compile && npm run typecheck && node scripts/run-tests.mjs && node --import tsx --test spikes/veil-intent/tests/*.test.ts",
     "chain:up": "docker compose up -d --wait",
     "chain:down": "docker compose down",
     "test:chain": "node --import tsx scripts/test-local-chain.ts"

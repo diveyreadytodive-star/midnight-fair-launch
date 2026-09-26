@@ -9,11 +9,10 @@ From a fresh checkout, run:
 ```sh
 npm ci
 npm run setup:compiler
-cd spikes/veil-intent
 npm test
 ```
 
-This compiles and tests the VeilIntent contract. The recorded Local Devnet receipts can be inspected without any wallet seed. Re-running the acceptance transaction requires a separate funded **valueless Local Devnet-only** test seed and a new protected recovery bundle; it is not part of the public quick start. The historical root `npm run compile`/`npm test` commands below validate SILENCE, not VeilIntent.
+The root test command compiles both VeilIntent's seven circuits and the preserved SILENCE contract, typechecks both, then runs the VeilIntent simulator and repository/web tests. The recorded Local Devnet receipts can be inspected without any wallet seed. Re-running the acceptance transaction requires a separate funded **valueless Local Devnet-only** test seed and a new protected recovery bundle; it is not part of the public quick start.
 
 For the read-only web demo, run `node --import tsx src/server.ts` from the repository root and open `http://127.0.0.1:3000/`. The private-limit checker on that page is **browser-only simulation**; the receipts are recorded Local Devnet evidence. This page does not connect a wallet or submit a new proof/transaction.
 
@@ -50,9 +49,9 @@ The [deadline milestones and Go/No-Go gates](docs/milestones-to-submission-2026-
 - The historical SILENCE [web trading UI](https://github.com/diveyreadytodive-star/silence/blob/main/web/index.html) was a presentation layer with no fabricated quote, balance or transaction. It remains in the original SILENCE repository; this pivot checkout serves the VeilIntent evidence page at `/`.
 - [Preprod faucet evidence](docs/evidence/preprod-faucet.md) confirms an on-chain 5,000 tNIGHT output to the separate development address. DUST registration and an external-network product transaction remain unverified.
 
-## Run from a fresh checkout
+## Archived SILENCE build notes
 
-Requires Node.js 22 or newer and network access for the pinned dependencies and official Compact installer. These commands passed in an isolated temporary copy without BlindAid, local wallet files, generated artifacts, or a preinstalled compiler:
+Requires Node.js 22 or newer and network access for the pinned dependencies and official Compact installer. The following root commands now also compile/typecheck/test VeilIntent; the archived SILENCE contract remains part of the same repository:
 
 ```sh
 npm ci
