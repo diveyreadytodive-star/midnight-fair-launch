@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090b0d" />
+    <meta name="description" content="SILENCE is a private perpetuals prototype on Midnight." />
+    <title>SILENCE · Private Perps</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to trading panel</a>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#main" aria-label="SILENCE home">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="brand-name">SILENCE</span>
+          <span class="brand-divider" aria-hidden="true"></span>
+          <span class="brand-product">PRIVATE PERPS</span>
+        </a>
+        <nav class="primary-nav" aria-label="Main navigation">
+          <a class="nav-link active" href="#main" aria-current="page">Trade</a>
+          <a class="nav-link" href="#how-it-works">How it works</a>
+        </nav>
+        <div class="topbar-actions">
+          <span class="network-pill"><span class="network-dot"></span> WALLET: PREPROD · TRADING OFFLINE</span>
+          <button class="wallet-button" id="walletStatus" type="button" aria-controls="walletPanel" aria-expanded="false">
+            <span class="wallet-dot" aria-hidden="true"></span>
+            <span id="walletLabel">Connect test wallet</span>
+          </button>
+        </div>
+      </header>
+
+      <main id="main" class="main-content">
+        <section class="intro-row" aria-label="Product status">
+          <div>
+            <p class="eyebrow">MIDNIGHT · SINGLE MARKET PROTOTYPE</p>
+            <h1>Perpetual trading, with the trust boundary in view.</h1>
+            <p class="intro-copy">A Midnight prototype for a private BTC perpetuals market.</p>
+          </div>
+          <div class="view-switch" role="group" aria-label="Choose trading or observer view">
+            <button class="view-option selected" id="traderViewButton" type="button" aria-pressed="true">Trader view</button>
+            <button class="view-option" id="observerViewButton" type="button" aria-pressed="false">Public observer</button>
+          </div>
+        </section>
+
+        <div class="status-ribbon" id="statusRibbon" role="status" aria-live="polite">
+          <span class="status-light" aria-hidden="true"></span>
+          <span id="serviceStatus">Connecting to SILENCE API…</span>
+          <span class="ribbon-separator" aria-hidden="true"></span>
+          <span class="test-only-label">TRADING OFFLINE · TEST ONLY</span>
+          <span class="ribbon-separator collateral-separator" aria-hidden="true"></span>
+          <span class="collateral-warning">FIXED 1,000 TEST COLLATERAL · PUBLIC</span>
+          <span class="ribbon-spacer"></span>
+          <span class="oracle-status" id="oracleStatus">Oracle status unavailable</span>
+        </div>
+
+        <section class="panel wallet-panel" id="walletPanel" aria-labelledby="walletPanelTitle" hidden>
+          <div class="wallet-panel-heading">
+            <div>
+              <p class="eyebrow">READ-ONLY WALLET CONNECTOR · PREPROD</p>
+              <h2 id="walletPanelTitle">Wallet overview</h2>
+            </div>
+            <span class="network-pill"><span class="network-dot"></span> TARGET: PREPROD</span>
+          </div>
+          <div class="wallet-connect-row">
+            <label class="input-label" id="walletProviderLabel" for="walletProviderSelect" hidden>Detected wallet</label>
+            <select id="walletProviderSelect" aria-describedby="walletConnectHelp" hidden></select>
+            <button class="connect-wallet-button" id="connectWalletButton" type="button" disabled>Scanning wallets…</button>
+            <button class="refresh-wallet-button" id="refreshWalletData" type="button" disabled hidden>Refresh read-only data</button>
+            <button class="refresh-wallet-button" id="clearWalletView" type="button" hidden title="Clears this page's display. It does not revoke permission in the wallet extension.">Clear local view</button>
+          </div>
+          <p class="wallet-status-message" id="walletConnectionStatus" role="status" aria-live="polite">Checking for compatible Lace or 1AM wallet…</p>
+          <p class="wallet-error-message" id="walletConnectionError" role="alert" hidden></p>
+          <div class="wallet-readout" id="walletReadout" hidden>
+            <div class="wallet-facts">
+              <div><span class="field-label">PROVIDER</span><strong id="connectedWalletName">—</strong></div>
+              <div><span class="field-label">API VERSION</span><strong id="connectedWalletVersion">—</strong></div>
+              <div><span class="field-label">NETWORK</span><strong id="connectedWalletNetwork">—</strong></div>
+              <div><span class="field-label">DUST BALANCE</span><strong id="connectedWalletDust">—</strong><small id="connectedWalletDustRaw"></small></div>
+            </div>
+            <div class="wallet-address-grid">
+              <div class="wallet-address-cell"><span class="field-label">UNSHIELDED ADDRESS</span><code id="connectedUnshieldedAddress">—</code></div>
+              <div class="wallet-address-cell"><span class="field-label">DUST ADDRESS</span><code id="connectedDustAddress">—</code></div>
+            </div>
+          </div>
+          <p class="wallet-connect-help" id="walletConnectHelp">This permission lets this page read the unshielded address, DUST address and DUST balance only. It does not create a SILENCE server session or authorize trades. SILENCE does not request a seed phrase, message signature, or transaction approval here.</p>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="market-column" aria-label="BTC perpetual market">
+            <article class="panel market-panel">
+              <div class="market-heading">
+                <div class="market-title-wrap">
+                  <div class="asset-icon" aria-hidden="true">₿</div>
+                  <div>
+                    <div class="market-title-line">
+                      <h2>BTC-USD</h2>
+                      <span class="perp-tag">PERP</span>
+                    </div>
+                    <p class="market-subtitle">Bitcoin · US dollar index</p>
+                  </div>
+                </div>
+                <div class="market-controls">
+                  <span class="oracle-badge" id="oracleBadge"><span class="badge-pulse"></span> DEMO ORACLE</span>
+                  <span class="oracle-age" id="oracleAge">Waiting for feed</span>
+                </div>
+              </div>
+              <div class="quote-row">
+                <div class="mark-price-block">
+                  <span class="field-label">MARK PRICE</span>
+                  <strong class="mark-price" id="markPrice">—</strong>
+                  <span class="price-source" id="priceSource">No oracle data</span>
+                </div>
+                <div class="market-stat">
+                  <span class="field-label">24H CHANGE</span>
+                  <strong class="stat-value muted" id="dayChange">—</strong>
+                </div>
+                <div class="market-stat">
+                  <span class="field-label">FUNDING</span>
+                  <strong class="stat-value muted" id="fundingRate">—</strong>
+                </div>
+                <div class="market-stat observer-aware-stat">
+                  <span class="field-label">OPEN INTEREST</span>
+                  <strong class="stat-value muted" id="openInterest">Private</strong>
+                </div>
+              </div>
+
+              <div class="chart-toolbar">
+                <div class="chart-title">
+                  <span>Price history</span>
+                  <span class="chart-hint" id="chartHint">Oracle history only</span>
+                </div>
+                <div class="timeframes" role="group" aria-label="Chart interval">
+                  <button type="button" class="timeframe" data-interval="15m" aria-pressed="false" disabled>15m</button>
+                  <button type="button" class="timeframe" data-interval="1h" aria-pressed="true" disabled>1h</button>
+                  <button type="button" class="timeframe" data-interval="4h" aria-pressed="false" disabled>4h</button>
+                  <button type="button" class="timeframe" data-interval="1d" aria-pressed="false" disabled>1d</button>
+                </div>
+              </div>
+              <div class="chart-frame">
+                <canvas id="priceChart" role="img" aria-label="BTC-USD oracle price history. No data is available yet."></canvas>
+                <div class="chart-empty" id="chartEmpty">
+                  <span class="empty-chart-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                  <strong>No oracle history yet</strong>
+                  <p>Price candles will appear here when the connected oracle publishes them.</p>
+                </div>
+                <div class="chart-watermark" aria-hidden="true">SILENCE</div>
+              </div>
+              <div class="chart-footer">
+                <span>Source <strong id="chartSource">Awaiting connected oracle</strong></span>
+                <span>Market <strong>BTC/USD · INDEX</strong></span>
+                <span id="chartSequence">Sequence —</span>
+              </div>
+            </article>
+
+            <section class="positions-section" id="privatePanel" aria-labelledby="positionsTitle">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">VISIBLE TO YOU AND THE RISK ENGINE</p>
+                  <h2 id="positionsTitle">Your position</h2>
+                </div>
+                <span class="private-pill privacy-pending"><span aria-hidden="true">◉</span> INTENDED PRIVATE · UNVERIFIED</span>
+              </div>
+              <div class="panel position-panel" id="positionsContent">
+                <div class="empty-position">
+                  <div class="lock-illustration" aria-hidden="true"><span></span></div>
+                  <div>
+                    <strong id="positionEmptyTitle">Connect a test wallet to view positions</strong>
+                    <p id="positionEmptyCopy">Private position details are never shown in the public observer view.</p>
+                  </div>
+                </div>
+                <div class="position-list" id="positionList" hidden></div>
+                <div class="position-panel-note" id="walletHelp">Wallet connection and private position reads are awaiting the app API.</div>
+              </div>
+            </section>
+
+            <section class="observer-section" id="observerPanel" aria-labelledby="observerTitle" hidden>
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">PUBLICLY OBSERVABLE</p>
+                  <h2 id="observerTitle">What the market can see</h2>
+                </div>
+                <span class="public-pill"><span class="public-dot"></span> PUBLIC VIEW</span>
+              </div>
+              <div class="panel observer-panel">
+                <div class="observer-grid">
+                  <div class="observer-cell">
+                    <span class="field-label">ORACLE PRICE</span>
+                    <strong id="observerPrice">—</strong>
+                    <span id="observerPriceMeta">Waiting for feed</span>
+                  </div>
+                  <div class="observer-cell">
+                    <span class="field-label">RISK POLICY</span>
+                    <strong id="observerPolicy">—</strong>
+                    <span>Policy version from API</span>
+                  </div>
+                  <div class="observer-cell">
+                    <span class="field-label">FIXED RISK SLOTS</span>
+                    <strong id="observerSlots">—</strong>
+                    <span>Aggregate count only</span>
+                  </div>
+                  <div class="observer-cell">
+                    <span class="field-label">COLLATERAL LOT</span>
+                    <strong id="observerCollateralLot">—</strong>
+                    <span>Fixed and public</span>
+                  </div>
+                </div>
+                <div class="privacy-boundary">
+                  <div class="boundary-icon" aria-hidden="true">◌</div>
+                  <div>
+                    <strong>Direction, size and guard target are intended private</strong>
+                    <p>They carry an unverified badge until raw proof and ledger checks confirm the privacy boundary. The 1,000-unit collateral lot is public by design.</p>
+                  </div>
+                  <span class="privacy-audit-tag">UNVERIFIED</span>
+                </div>
+                <p class="observer-caveat">Transaction timing and published oracle prices may still reveal an entry-price range. Public visibility is not complete anonymity.</p>
+              </div>
+            </section>
+          </section>
+
+          <aside class="order-column" id="orderPanel" aria-label="Place a private BTC order">
+            <section class="panel order-panel">
+              <div class="order-head">
+                <div>
+                  <p class="eyebrow">BTC · ISOLATED MARGIN</p>
+                  <h2>New position</h2>
+                </div>
+                <span class="margin-chip">ISOLATED</span>
+              </div>
+
+              <div class="side-switch" role="group" aria-label="Position direction">
+                <button type="button" class="side-option long selected" id="longButton" aria-pressed="true">Long</button>
+                <button type="button" class="side-option short" id="shortButton" aria-pressed="false">Short</button>
+              </div>
+
+              <form id="orderForm" novalidate>
+                <p class="input-label">Fixed public collateral lot <span>TEST COLLATERAL · PUBLIC</span></p>
+                <div class="amount-input-wrap public-lot-wrap" role="group" aria-label="Fixed public collateral lot: 1,000 valueless test units">
+                  <strong id="collateralLotValue">1,000</strong>
+                  <span class="input-unit">tUSD</span>
+                  <span class="lot-public-tag">PUBLIC</span>
+                </div>
+                <div class="input-help" id="collateralHelp">Every position uses exactly 1,000 valueless test units. The amount is public by design.</div>
+
+                <div class="leverage-label-row">
+                  <label class="input-label" for="leverageInput">Leverage</label>
+                  <output id="leverageOutput" for="leverageInput">—</output>
+                </div>
+                <input class="leverage-range" type="range" id="leverageInput" name="leverage" min="1" max="3" step="0.1" value="1" aria-label="Leverage multiplier" disabled />
+                <div class="range-scale"><span>1×</span><span id="maxLeverageLabel">Policy unavailable</span></div>
+
+                <div class="summary-line notional-line"><span>Estimated notional</span><strong id="notionalEstimate">—</strong></div>
+
+                <div class="field-divider"></div>
+                <div class="guard-heading">
+                  <div>
+                    <label class="input-label" for="guardInput">Protection buffer <span>INTENDED PRIVATE · UNVERIFIED</span></label>
+                    <p>Requests a reduce-only close before maintenance margin.</p>
+                  </div>
+                  <span class="guard-lock" aria-label="Shared with operator; ledger privacy unverified">◉</span>
+                </div>
+                <div class="amount-input-wrap compact">
+                  <input id="guardInput" name="guardBuffer" inputmode="decimal" autocomplete="off" placeholder="Set buffer" aria-describedby="guardHelp" disabled />
+                  <span class="input-unit">tUSD</span>
+                </div>
+                <div class="input-help" id="guardHelp">Shared with the operator engine · public-ledger privacy is not yet verified</div>
+
+                <div class="risk-notice">
+                  <span class="notice-icon" aria-hidden="true">!</span>
+                  <p>Oracle gaps, proof delays or service outages can prevent a protective close. Liquidation may still occur.</p>
+                </div>
+
+                <button class="submit-button" id="submitOrder" type="submit" disabled>
+                  <span>Open private position</span>
+                  <span aria-hidden="true">↗</span>
+                </button>
+                <p class="submit-help" id="submitHelp">Connect the app API and a test wallet to enable trading.</p>
+              </form>
+            </section>
+
+            <section class="panel operation-panel" id="operationPanel" aria-labelledby="operationTitle">
+              <div class="operation-heading">
+                <span class="operation-icon" aria-hidden="true">↗</span>
+                <div><p class="eyebrow">TRANSACTION STATUS</p><h2 id="operationTitle">No active request</h2></div>
+              </div>
+              <p class="operation-copy" id="operationCopy">Proof and chain confirmation appear here when a real request is submitted.</p>
+              <div class="operation-stepper" id="operationStepper" aria-label="Transaction progress">
+                <span class="step active" data-state="pending"><i></i> Pending</span>
+                <span class="step" data-state="proving"><i></i> Proving</span>
+                <span class="step" data-state="submitted"><i></i> Submitted</span>
+                <span class="step" data-state="confirmed"><i></i> Confirmed</span>
+              </div>
+              <a class="operation-tx" id="operationTx" href="#" target="_blank" rel="noreferrer" hidden>View confirmed transaction <span aria-hidden="true">↗</span></a>
+            </section>
+
+            <section class="panel trust-panel" aria-label="Privacy and operator disclosure">
+              <div class="trust-heading"><span class="trust-symbol" aria-hidden="true">◒</span><strong>Your privacy boundary</strong></div>
+              <p><strong>The SILENCE risk engine can see position details</strong> to monitor protection and liquidation rules. The fixed 1,000-unit test collateral lot is public by design; direction, size and guard target remain unverified privacy targets.</p>
+              <a href="#how-it-works">Read the trust model <span aria-hidden="true">↗</span></a>
+            </section>
+          </aside>
+        </div>
+
+        <section id="how-it-works" class="how-section" aria-labelledby="howTitle">
+          <div class="how-copy">
+            <p class="eyebrow">BUILT AROUND A CLEAR TRUST BOUNDARY</p>
+            <h2 id="howTitle">Intended to be private.<br />Visible to the risk engine.</h2>
+              <p>SILENCE is designed to use Midnight proofs for constrained position rules. A separate service is designed to watch oracle updates and attempt a protective close while your browser is away.</p>
+          </div>
+          <div class="trust-flow" aria-label="Information visibility">
+            <div class="flow-row user-flow"><span class="flow-icon">01</span><div><strong>You</strong><p>See your full position and health.</p></div><span class="flow-state private-state">PRIVATE</span></div>
+            <div class="flow-connector" aria-hidden="true"></div>
+            <div class="flow-row engine-flow"><span class="flow-icon">02</span><div><strong>Risk engine</strong><p>Can read position data and attempt rule-bound actions.</p></div><span class="flow-state operator-state">OPERATOR</span></div>
+            <div class="flow-connector" aria-hidden="true"></div>
+            <div class="flow-row public-flow"><span class="flow-icon">03</span><div><strong>Public observers</strong><p>See oracle, aggregate policy and the same fixed 1,000-unit collateral lot.</p></div><span class="flow-state public-state">PUBLIC</span></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <a class="footer-brand" href="#main">SILENCE</a>
+        <span>Private Perps on Midnight</span>
+        <span class="footer-separator" aria-hidden="true">·</span>
+        <span>Prototype · Test assets only</span>
+        <a class="footer-docs" href="./API.md">API contract</a>
+      </footer>
+    </div>
+  </body>
+</html>
