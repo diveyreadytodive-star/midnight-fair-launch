@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#090b0d" />
-    <meta name="description" content="VeilIntent recorded payment evidence and a local-only private policy checker." />
+    <meta name="description" content="VeilIntent checks a public seller quote against a buyer's private ceiling, then records seller payment and buyer change." />
     <title>VeilIntent · Private Execution</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23080a0b'/%3E%3Cpath d='M9 29 16 11h4l-7 18zm10 0 7-18h4l-7 18zm10 0 4-11h3l-4 11z' fill='%23baf273'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,9 +39,9 @@
       <main id="main" class="main-content">
         <section class="intro-row" aria-labelledby="page-title">
           <div class="intro-copy-block">
-            <p class="eyebrow">PRIVATE SPENDING MANDATE <span>·</span> ONE-TO-ONE PAYMENT</p>
-            <h1 id="page-title">Intent, within your limits.</h1>
-            <p class="intro-copy">An agent-compatible policy rail: private price caps, verified quotes, and a recorded shielded test payment.</p>
+            <p class="eyebrow">PUBLIC SELLER QUOTE <span>·</span> PRIVATE BUYER CEILING</p>
+            <h1 id="page-title">A public quote. A private ceiling.</h1>
+            <p class="intro-copy">Midnight checks a seller's public price against a buyer's hidden per-intent limits, then pays the seller and returns the remainder to the buyer.</p>
           </div>
           <div class="run-stamp" aria-label="This page shows recorded static evidence, not live network data">
             <span class="stamp-icon" aria-hidden="true">↗</span>
@@ -132,8 +132,8 @@
                 <span class="mandate-ring ring-one"></span><span class="mandate-ring ring-two"></span><span class="mandate-core"></span>
               </div>
               <p class="eyebrow">ONE INTENT · ONE SELLER</p>
-              <h3 id="mandate-card-title">The agent gets a limit, not a wallet.</h3>
-              <p class="panel-copy">The agent role proves this quote fits one committed intent. It does not receive the buyer's wallet seed or authority to choose another recipient.</p>
+              <h3 id="mandate-card-title">A quote clears the ceiling before funds move.</h3>
+              <p class="panel-copy">The agent test client checks this public quote against the buyer's private max unit price and budget. The seller can claim only to its committed recipient; unused escrow returns to the buyer.</p>
               <div class="mandate-facts">
                 <div><span>AGENT ROLE</span><strong>Test client</strong></div>
                 <div><span>SELLER COUNT</span><strong>One approved</strong></div>
