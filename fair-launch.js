@@ -1,6 +1,7 @@
 const LAUNCHES_URL = '/api/fair-launch/launches';
 const CREATE_URL = '/api/fair-launch/create';
 const RECORDED_EVIDENCE_URL = './fair-launch-evidence.json';
+const RECORDED_CATALOG_URL = './fair-launch-catalog.json';
 const CREATE_MODE = 'local-devnet-operator-demo';
 const ALLOWED_PHASES = new Set(['upcoming', 'commit', 'open', 'settling', 'settled', 'cancelled', 'unknown']);
 
@@ -228,7 +229,16 @@ function appendMetric(parent, label, value) {
 }
 
 function verifiedCatalogEntry(entry) {
-  return isVerifiedLaunch(entry) ? { ...entry, sourceKind: 'catalog' } : null;
+  if (!isVerifiedLaunch(entry)) return null;
+  if (entry.phase === 'settled' || entry.phase === 'cancelled') return { ...entry, sourceKind: 'catalog' };
+  const commit = Number(entry.commitDeadlineUnixSeconds);
+  const open = Number(entry.openDeadlineUnixSeconds);
+  if (!Number.isSafeInteger(commit) || !Number.isSafeInteger(open) || commit >= open) {
+    return { ...entry, sourceKind: 'catalog' };
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const phase = now < commit ? 'commit' : now < open ? 'open' : 'unknown';
+  return { ...entry, phase, sourceKind: 'catalog' };
 }
 
 function initializePage() {
@@ -420,9 +430,10 @@ function initializePage() {
 
   async function loadLaunches() {
     setCatalogMessage('Loading receipt-verified launches…');
-    const [evidenceResult, catalogResult] = await Promise.allSettled([
+    const [evidenceResult, catalogResult, staticCatalogResult] = await Promise.allSettled([
       readJson(RECORDED_EVIDENCE_URL),
       readJson(LAUNCHES_URL),
+      readJson(RECORDED_CATALOG_URL),
     ]);
 
     const recorded = evidenceResult.status === 'fulfilled' ? deriveRecordedLaunch(evidenceResult.value) : null;
@@ -433,14 +444,19 @@ function initializePage() {
       envelope.network === 'local-devnet' &&
       Array.isArray(envelope.launches),
     );
+    const staticCatalog = staticCatalogResult.status === 'fulfilled' && staticCatalogResult.value?.version === 1 && Array.isArray(staticCatalogResult.value.launches)
+      ? staticCatalogResult.value.launches.map(verifiedCatalogEntry).filter(Boolean)
+      : [];
     const catalog = apiReady
       ? envelope.launches.map(verifiedCatalogEntry).filter(Boolean)
-      : [];
+      : staticCatalog;
     launches = mergeLaunches(recorded ? [recorded] : [], catalog);
     setCreateAvailability(apiReady ? envelope : null);
 
-    if (!apiReady && recorded) {
-      setCatalogMessage('Showing the single recorded Local Devnet launch. No live catalog or write API is connected.', 'warning');
+    if (!apiReady && catalog.length > 0) {
+      setCatalogMessage('Showing ' + launches.length + ' recorded Local Devnet launches. Create requires the local operator API.', 'warning');
+    } else if (!apiReady && recorded) {
+      setCatalogMessage('Showing one recorded Local Devnet launch. No write API is connected.', 'warning');
     } else if (!apiReady && !recorded) {
       setCatalogMessage('Launch data could not be loaded. No unverified cards are shown.', 'error');
     } else if (apiReady && catalog.length !== envelope.launches.length) {
