@@ -25,7 +25,7 @@ type Setup = { network: 'preprod'; contractAddress: string; sourceHash: string; 
 type AuctionEvidence = {
   network: 'preprod'; testAssetsOnly: true; operatorSignedAllActions: true;
   contractAddress: string; sourceHash: string;
-  fixture: { inventoryAtoms: string; depositLotAtoms: string; registeredBidCount: number; clearingPriceAtoms: string;
+  fixture: { inventoryAtoms: string; depositLotAtoms: string; registeredBidCount: number; bidCommitments: string[]; clearingPriceAtoms: string;
     allocationsAtoms: string[]; refundsAtoms: string[]; totalDepositedAtoms: string; totalProceedsAtoms: string;
     finalPaymentWalletAtoms: string; finalSaleWalletAtoms: string };
   readback: { settled: boolean; cancelled: boolean; refundClaimed: boolean[]; proceedsClaimed: boolean[]; tokenClaimed: boolean[] };
@@ -84,6 +84,8 @@ async function main(): Promise<void> {
   assert.equal(auction.fixture.inventoryAtoms, setup.config.inventoryAtoms);
   assert.equal(auction.fixture.depositLotAtoms, setup.config.depositLotAtoms);
   assert.equal(auction.fixture.registeredBidCount, 4);
+  assert.equal(auction.fixture.bidCommitments.length, 4);
+  for (const commitment of auction.fixture.bidCommitments) assert.match(commitment, /^[0-9a-f]{64}$/i);
   assert.equal(auction.fixture.clearingPriceAtoms, '10');
   assert.equal(auction.fixture.totalDepositedAtoms, '20000');
   assert.equal(auction.fixture.totalProceedsAtoms, '6000');
@@ -114,6 +116,8 @@ async function main(): Promise<void> {
   assert.equal(ledger.commitDeadline, BigInt(setup.commitDeadline));
   assert.equal(ledger.openDeadline, BigInt(setup.openDeadline));
   assert.equal(ledger.registeredBidCount, 4n);
+  assert.deepEqual([ledger.slot0Commitment, ledger.slot1Commitment, ledger.slot2Commitment, ledger.slot3Commitment]
+    .map((value) => Buffer.from(value).toString('hex')), auction.fixture.bidCommitments);
   assert.equal(ledger.settled, true);
   assert.equal(ledger.cancelled, false);
   assert.equal(ledger.clearingPrice, 10n);

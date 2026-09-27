@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fair Launch · On-chain proof</title>
+    <link rel="stylesheet" href="./fair-launch.css" />
+    <link rel="stylesheet" href="./onchain-demo.css" />
+    <script type="module" src="./onchain-demo.js?v=1"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main" id="skipLink">Skip to content</a>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./fair-launch.html#/explore"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>FAIR LAUNCH</span></a>
+        <nav class="primary-nav" aria-label="Main navigation"><a class="nav-link" href="./fair-launch.html#/explore" id="exploreLink">Explore</a><a class="nav-link" href="./judge-demo.html" id="judgeLink">Judge demo</a><span class="nav-link active" aria-current="page" id="proofNav">On-chain proof</span></nav>
+        <div class="topbar-actions"><span class="network-pill"><i aria-hidden="true"></i><span id="networkBadge">RECORDED EXECUTION</span></span><button class="locale-toggle" id="localeToggle" type="button" aria-label="Change language">한국어</button></div>
+      </header>
+      <main id="main" class="main-content proof-main">
+        <div class="page-heading"><div><p class="eyebrow" id="eyebrow">MIDNIGHT · TRANSACTION EVIDENCE</p><h1 id="title">The auction ran on chain</h1><p class="page-description" id="intro">Follow the contract calls behind a sealed bid, uniform-price settlement, and claims.</p></div></div>
+        <div class="proof-disclosure" role="note"><strong id="disclosureTitle">Recorded execution · no new transaction</strong><p id="disclosure">This page reads saved receipts. The operator signed the test transactions. Your browser does not connect a wallet or submit a bid.</p></div>
+        <section class="proof-result" aria-labelledby="resultTitle"><p class="eyebrow" id="resultEyebrow">COMPLETED TEST AUCTION</p><h2 id="resultTitle">Verified result</h2><div class="proof-result-grid"><div><span id="networkLabel">Network</span><strong id="resultNetwork">—</strong></div><div><span id="transactionsLabel">Transactions</span><strong id="resultCount">—</strong></div><div><span id="priceLabel">Clearing price</span><strong id="resultPrice">—</strong></div><div><span id="allocationLabel">Allocations</span><strong id="resultAllocations">—</strong></div></div><p class="proof-boundary" id="resultBoundary"></p></section>
+        <section class="proof-steps" aria-labelledby="stepsTitle"><div class="proof-section-heading"><p class="eyebrow" id="stepsEyebrow">FROM CONTRACT TO CLAIM</p><h2 id="stepsTitle">Four steps, real receipts</h2></div><div id="steps" class="proof-step-list" aria-live="polite"><p id="loading">Loading saved evidence…</p></div></section>
+        <section class="proof-setup" aria-labelledby="setupTitle"><div class="proof-section-heading"><p class="eyebrow" id="setupEyebrow">PUBLIC TESTNET</p><h2 id="setupTitle">Preprod setup</h2></div><p id="setupDescription">A separate Preprod contract was deployed, its valueless token minted, and inventory funded. These three transactions do not establish a completed Preprod auction.</p><div id="setupReceipts" class="proof-receipts"></div><a id="setupEvidenceLink" href="./preprod-launch-evidence.json" target="_blank" rel="noopener noreferrer">Open Preprod setup evidence ↗</a></section>
+        <p class="proof-footer-note" id="footerNote">The recorded four-slot run used an operator-controlled Local Devnet. It proves the contract flow, not independent public-wallet participation, resistance to slot sniping, production liquidity, or a raw-transaction privacy audit.</p>
+      </main>
+      <footer class="site-footer"><span>Fair Launch · Midnight test assets</span><a href="https://github.com/diveyreadytodive-star/midnight-fair-launch" target="_blank" rel="noopener noreferrer">Source and verifier ↗</a></footer>
+    </div>
+  </body>
+</html>

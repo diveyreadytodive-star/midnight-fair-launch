@@ -47,7 +47,7 @@ type Manifest = {
   failureClass?: string;
   pending?: { stage: string; txId?: string; startedAt: string };
   privateStoragePassword: string; paymentCoins: Array<Coin | null>;
-  openings: StoredOpening[]; receipts: Record<string, Receipt>;
+  openings: StoredOpening[]; bidCommitments: string[]; receipts: Record<string, Receipt>;
 };
 
 const execute = process.argv.includes('--execute');
@@ -103,7 +103,13 @@ async function discoverDemo(): Promise<{ evidence: Evidence; evidencePath: strin
     assert.match(protectedState.saleCoin?.colorHex ?? '', /^[0-9a-f]{64}$/i);
     matches.push({ evidence, evidencePath, saleColorHex: protectedState.saleCoin!.colorHex });
   }
-  assert.equal(matches.length, 1, 'Exactly one completed 3-hour Preprod launch is required.');
+  assert.ok(matches.length > 0, 'A completed 3-hour Preprod launch is required.');
+  matches.sort((left, right) => {
+    const delta = BigInt(right.evidence.commitDeadline) - BigInt(left.evidence.commitDeadline);
+    return delta > 0n ? 1 : delta < 0n ? -1 : 0;
+  });
+  assert.notEqual(matches[0].evidence.commitDeadline, matches[1]?.evidence.commitDeadline,
+    'Two 3-hour Preprod launches share the latest deadline.');
   const selected = matches[0];
   const { evidence } = selected;
   assert.equal(evidence.testAssetsOnly, true);
@@ -229,6 +235,7 @@ async function main(): Promise<void> {
       paymentCoins: [null, null, null, null],
       openings: bids.map((bid) => ({ maxPrice: String(bid.maxPrice), quantity: String(bid.quantity), recipientHex,
         saltHex: randomBytes(32).toString('hex') })),
+      bidCommitments: [],
       receipts: {},
     };
     await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
@@ -292,6 +299,8 @@ async function main(): Promise<void> {
       assert.equal(registered.registeredBidCount, BigInt(slot + 1));
       assert.equal(vectors(registered).slotFunded[slot], true);
       assert.equal(hex(vectors(registered).commitments[slot]), hex(commitment));
+      manifest!.bidCommitments[slot] = hex(commitment);
+      await saveManifest();
       const afterBid = await wallet.wallet.waitForSyncedState();
       assert.equal(afterBid.shielded.balances[paymentColorHex] ?? 0n, 0n);
     }
@@ -346,6 +355,7 @@ async function main(): Promise<void> {
       contractAddress: address, sourceHash: evidence.sourceHash,
       setupEvidencePath: 'docs/evidence/preprod-launch-3h-setup.json',
       fixture: { inventoryAtoms: '600', depositLotAtoms: '5000', registeredBidCount: 4,
+        bidCommitments: manifest!.bidCommitments,
         clearingPriceAtoms: '10', allocationsAtoms: expectedAllocations.map(String),
         refundsAtoms: expectedRefunds.map(String), totalDepositedAtoms: '20000',
         totalProceedsAtoms: '6000', finalPaymentWalletAtoms: String(proceedsTotal), finalSaleWalletAtoms: String(claimedSale) },

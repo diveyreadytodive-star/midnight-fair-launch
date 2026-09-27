@@ -2,7 +2,7 @@ import { DemoInputError, simulateFourSlotAuction } from './fair-launch-demo.js';
 
 const translations = {
   en: {
-    skip: 'Skip to content', explore: 'Explore', demoNav: 'Judge demo', simBadge: 'BROWSER SIMULATION',
+    skip: 'Skip to content', explore: 'Explore', demoNav: 'Judge demo', proofNav: 'On-chain proof', simBadge: 'BROWSER SIMULATION',
     eyebrow: 'TRY THE FOUR-SLOT AUCTION', title: 'See what a sealed bid changes',
     intro: 'Choose your private maximum price and quantity. Then reveal the four example bids to see the uniform-price allocation.',
     disclosureTitle: 'Simulation · no chain transaction',
@@ -25,7 +25,7 @@ const translations = {
     validation: 'Enter whole numbers: price at least 8, quantity at least 1, and price × quantity at most 5,000 TEST.',
   },
   ko: {
-    skip: '본문으로 건너뛰기', explore: '탐색', demoNav: '심사위원 체험', simBadge: '브라우저 시뮬레이션',
+    skip: '본문으로 건너뛰기', explore: '탐색', demoNav: '심사위원 체험', proofNav: '온체인 증거', simBadge: '브라우저 시뮬레이션',
     eyebrow: '4인 봉인 경매 체험', title: '봉인 입찰의 결과를 직접 확인하세요',
     intro: '나의 최대 매수가와 희망 수량을 정한 뒤 예시 입찰 네 개를 공개해 동일가격 배정 결과를 확인합니다.',
     disclosureTitle: '시뮬레이션 · 새 체인 거래 없음',

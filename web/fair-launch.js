@@ -1,4 +1,4 @@
-import { createLocaleController, translateText } from './fair-launch-locale.js?v=7';
+import { createLocaleController, translateText } from './fair-launch-locale.js?v=8';
 import { initFairLaunchWallet } from './fair-launch-wallet.js?v=5';
 
 const LAUNCHES_URL = '/api/fair-launch/launches';
@@ -665,7 +665,7 @@ function initializePage() {
           ? 'Bid closed · opening window'
           : launch.phase === 'upcoming'
             ? 'Bid · not open yet'
-            : 'Bid · wallet unavailable';
+            : 'Bid · Soon';
     $('#actionExplanation').textContent = isSettled
       ? '이 경매는 종료되었습니다. 이 페이지는 개인 지갑 상태를 조회하지 않는 기록용 화면입니다.'
       : launch.chainReadback
