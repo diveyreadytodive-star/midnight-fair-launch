@@ -1,6 +1,6 @@
 # Midnight Korea Hackathon 제출폼 초안 — Fair Launch
 
-수정한 6장 PPTX는 `Midnight-Fair-Launch-Submission-v6.pptx`로 별도 저장했다. 필수 Google Slides 공유 링크와 선택 항목인 영상 링크는 아직 비어 있다. 이 문서는 제출 완료 기록이 아니다.
+수정한 6장 PPTX는 `Midnight-Fair-Launch-Submission-v7.pptx`로 별도 저장했다. 필수 Google Slides 공유 링크와 선택 항목인 영상 링크는 아직 비어 있다. 이 문서는 제출 완료 기록이 아니다.
 
 | 항목 | 입력 초안 |
 |---|---|
@@ -10,16 +10,16 @@
 | 대표자 연락처 | Email 또는 Discord Handle 직접 입력 |
 | Github Repository | https://github.com/diveyreadytodive-star/midnight-fair-launch |
 | `midnightntwrk` 토픽 | 새 저장소에서 추가·확인 완료 |
-| Project Deck | PPTX v6 준비 완료. Google Slides에 업로드하고 보기 권한을 설정한 공유 링크는 아직 미작성 |
+| Project Deck | PPTX v7 준비 완료. Google Slides에 업로드하고 보기 권한을 설정한 공유 링크는 아직 미작성 |
 | Demo Video | 선택 항목. 미작성 |
 | Demo URL | https://diveyreadytodive-star.github.io/midnight-fair-launch/ |
 | Academy 증명서 | 보유 중이라고 사용자가 보고함. 제출 시 Explorer/Scholar 파일을 각각 확인해 첨부 |
 
 ## 프로젝트 소개
 
-Fair Launch는 새 테스트 밈토큰의 첫 판매를 **봉인 입찰·동일가격 정산**으로 진행하는 Midnight DApp MVP입니다. 제품 흐름에서는 창작자가 토큰 이름과 경매 재고·최저가격·예치액·입찰 시간을 정하도록 설계했고, 현재 MVP의 실제 배포는 운영자 데모로 진행합니다. Explore에는 배포·발행·재고 예치가 확인된 출시만 표시하며, 토큰 상세에서 경매 규칙과 결과를 봅니다. 계약은 최대 네 개의 도착순 슬롯에서 최대 단가와 희망 수량의 봉인 입찰을 받고, 마감 뒤 등록된 입찰을 같은 가격 규칙으로 처리합니다. 네 슬롯 자체는 도착 순서대로 채워지므로 참여 기회까지 속도 중립적인 것은 아닙니다. 낙찰자는 토큰을, 낙찰자와 탈락자는 미사용 결제 자산을 각각 청구합니다.
+Midnight Fair Launch는 누구나 토큰을 출시하고 누구나 첫 판매에 참여할 수 있는 공개형 런치패드를 지향합니다. 출시 직후의 선착순 매수 대신 일정 시간 입찰을 봉인해 수요를 모으고, 마감 후 낙찰자 모두에게 하나의 청산가격을 적용합니다. 장기적으로는 이 첫 배분 이후 본딩커브 거래로 이어지는 구조를 목표로 합니다.
 
-가치 없는 Local Devnet 자산으로 4인 경매의 **배포→입찰 4건→청산가 10 정산→환불 4건→판매대금 2건→토큰 2건**을 포함한 20개 거래를 확정했습니다. 판매량 600개는 300/300/0/0개로 배정됐고, 각 지갑의 환불·토큰 잔고와 판매자 대금 6,000 TEST를 확인했습니다. 별도의 두 Local Devnet 테스트 토큰도 운영자 서명 Create 흐름으로 배포·발행·예치했습니다. **Preprod에서는 별도 계약의 [배포·발행·예치와 입찰 4건](evidence/preprod-four-bids-2026-09-27.json)이 확인됐지만 정산·청구는 완료되지 않았습니다.** 공개 웹은 KO/EN 전환, 네 개 출시의 검색·상세, Create 초안 미리보기, 입찰값을 바꿔 결과를 계산하는 심사위원 체험, 실제 거래 영수증 안내를 제공합니다. **체험 모드는 브라우저 계산이며 새 거래나 증명이 아닙니다.** 공개 사이트의 Preprod 지갑 패널은 읽기 전용이며 실제 Lace/1AM 연결은 아직 검증하지 못했습니다. 실제 Create는 로컬 운영자 데모 서버에서만 작동합니다.
+이를 위해 Midnight의 Compact·영지식 증명으로 최대 매수가와 희망 수량을 공개하지 않은 채 입찰 조건, 예치액, 배정·환불 규칙을 검증합니다. 공개 원장에는 입찰 commitment와 검증된 정산 결과를 남기고, shielded 자산으로 토큰과 환불을 청구하는 구조입니다. **현재 4개 슬롯은 계약 흐름을 검증하기 위한 데모 제한**이며, 제품 목표는 참가자를 4명으로 고정하지 않는 공개 참여형 경매입니다.
 
 ## Midnight 구현 포인트
 

@@ -1,6 +1,8 @@
 # Midnight Fair Launch
 
-A sealed-bid, uniform-price first sale for valueless test tokens on Midnight. The idea is to replace public first-come buying with a short auction: admitted bidders commit to a maximum price and quantity, then the Compact contract checks one clearing price, allocations, refunds, and claims.
+A public token launchpad vision: anyone should be able to create a token and participate in its first sale without a fixed four-bidder cap. Instead of a public first-come purchase, bids would be sealed for a fixed period and winning participants would pay one clearing price. A later bonding-curve market is part of the product direction, not this submission's implementation.
+
+The current Midnight prototype tests that auction mechanism with valueless assets. Its Compact contract has **four static registration slots only for the demo**; that limit and its arrival-order admission are not the intended participation model of the eventual public launchpad.
 
 **Current evidence includes a completed Local Devnet auction and a separate operator-signed Preprod test with four registered bids. Preprod settlement and claims are unfinished, and no browser-wallet bid is verified. This is not a live token market, investment service, bonding curve, or production launchpad.**
 
