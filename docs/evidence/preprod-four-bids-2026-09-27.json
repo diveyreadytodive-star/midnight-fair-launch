@@ -1,0 +1,80 @@
+{
+  "network": "preprod",
+  "testAssetsOnly": true,
+  "operatorSignedFixture": true,
+  "contractAddress": "17fb770db123cade4e5fcca567b2df64f078c0b11bdfcb31a6b9dd9e101e70d0",
+  "sourceHash": "6730a2f36f90394c6a2b5038bf25d26d249c67c830864f2f0dfa057084b4148b",
+  "setupEvidencePath": "docs/evidence/preprod-auction-setup-2026-09-27.json",
+  "checkedAt": "2026-09-27T08:17:48.770Z",
+  "readback": {
+    "registeredBidCount": 4,
+    "settled": false,
+    "cancelled": false,
+    "saleInventoryFunded": true,
+    "commitments": [
+      "441cb6b166453d5e33e887266eb9b0f5d9067b898f162469736c4bbe63ff5171",
+      "f7994351f82ad8a4b1f6a1d9174044a1fc118f75b2490869f2b35821ff22efc2",
+      "ef1c35300e998ec51bcdb5ad2e89581b5ace4da14ff68ad9b35aad01730fcbe1",
+      "60180c1a640d4b0ea16051ce08660a694d9f45aaac869fe6ba1369b8cadf9260"
+    ]
+  },
+  "receipts": [
+    {
+      "stage": "mint-payment-0",
+      "txId": "0037d7abdbe8f72e6d7fdbfa71aede84d56001ca939b286414c9945c6cbeea430f",
+      "transactionHash": "fe62f3f4904219b90a9eb174f3f6fdefeba7b87734e7214d468a5f2d9972e5d5",
+      "blockHeight": 2727901,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "register-bid-0",
+      "txId": "00200d8bdb79523a9e3a97eda9fb2fc748a5c9a6ec21db08a88a42b5743378ee0c",
+      "transactionHash": "2424b4af83a7b2a2b9c4d9972abee15804dde7fe5fe9da5b2099f90d072808e9",
+      "blockHeight": 2727907,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "mint-payment-1",
+      "txId": "00b19d2591558f93d399d352a4b5f295f3f9edb3bce3669201c72abf1101b4ff63",
+      "transactionHash": "ee6a27d5e8c8a5be64d2f4f4fefa8ef7c05cff97c8854fd3bfed8c2219783ddb",
+      "blockHeight": 2727911,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "register-bid-1",
+      "txId": "0053cf302cfb008e4bb92f5711ca62374495d49722ff9c16050fec03495ce91b6e",
+      "transactionHash": "0fd70244d33c3d83cdf7719d61b9e88dad26236e255cdeb901167dc5109c8a9d",
+      "blockHeight": 2727916,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "mint-payment-2",
+      "txId": "00993c8b12b755f89fc3335b75a05ffb43561cd14b7b974b6b8d0a259369a8ea37",
+      "transactionHash": "619101dd1d43dba1ce3bd61e2693b638a4e0e41ab178e17bb62f068c0070603d",
+      "blockHeight": 2727920,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "register-bid-2",
+      "txId": "00716a74783e52d179f5d8cddb273762566080b1aed5ddad9c8eef200cd22a5bd7",
+      "transactionHash": "a1c83e5b86a4c2f6f2c763e78bbf53f2cf5bd90c0d7457e81a535dc461600379",
+      "blockHeight": 2727925,
+      "entryPoint": "registerBid"
+    },
+    {
+      "stage": "mint-payment-3",
+      "txId": "00afb4b03581f2cc2bc784c308db51cf1a38c7f844de61b957c47011e55bb41f0e",
+      "transactionHash": "62fc8227b3bc5c3e2ca3e51185ba4947af4a00fe4af55bf727e3f5d0bfb6a50c",
+      "blockHeight": 2727929,
+      "entryPoint": "mintTestPaymentCoin"
+    },
+    {
+      "stage": "register-bid-3",
+      "txId": "003d4e2d790c2289e07148393b8f754de7b68cc5379364377f446d2b5d1eb25ca4",
+      "transactionHash": "70ea9711bf1deefc4237e5368c08dd80966a0dd8638eb54c3208a3fdd66df67e",
+      "blockHeight": 2727936,
+      "entryPoint": "registerBid"
+    }
+  ],
+  "limitation": "Operator-signed bids only. The settlement attempt stopped before a recorded transaction ID; no Preprod clearing price, claims, or refunds are claimed."
+}
