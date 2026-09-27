@@ -353,7 +353,7 @@ async function main(): Promise<void> {
     const publicEvidence = {
       network: 'preprod', testAssetsOnly: true, operatorSignedAllActions: true,
       contractAddress: address, sourceHash: evidence.sourceHash,
-      setupEvidencePath: 'docs/evidence/preprod-launch-3h-setup.json',
+      setupEvidencePath: 'docs/evidence/preprod-auction-setup-2026-09-27.json',
       fixture: { inventoryAtoms: '600', depositLotAtoms: '5000', registeredBidCount: 4,
         bidCommitments: manifest!.bidCommitments,
         clearingPriceAtoms: '10', allocationsAtoms: expectedAllocations.map(String),

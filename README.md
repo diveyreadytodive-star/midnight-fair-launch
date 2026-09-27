@@ -4,7 +4,7 @@ A sealed-bid, uniform-price first sale for valueless test tokens on Midnight. Th
 
 **Current evidence includes a completed Local Devnet auction and a separately verified, operator-signed Preprod setup. There is no verified browser-wallet bid or Preprod settlement. This is not a live token market, investment service, bonding curve, or production launchpad.**
 
-[Public Explore](https://diveyreadytodive-star.github.io/midnight-fair-launch/) · [Browser-only judge demo](https://diveyreadytodive-star.github.io/midnight-fair-launch/judge-demo.html) · [Judge guide (English)](docs/JUDGE-GUIDE.en.md) · [심사위원 안내 (한국어)](docs/JUDGE-GUIDE.ko.md)
+[Public Explore](https://diveyreadytodive-star.github.io/midnight-fair-launch/) · [On-chain evidence walkthrough](https://diveyreadytodive-star.github.io/midnight-fair-launch/onchain-demo.html) · [Browser-only judge demo](https://diveyreadytodive-star.github.io/midnight-fair-launch/judge-demo.html) · [Judge guide (English)](docs/JUDGE-GUIDE.en.md) · [심사위원 안내 (한국어)](docs/JUDGE-GUIDE.ko.md)
 
 ## What a judge can do now
 
@@ -12,6 +12,7 @@ A sealed-bid, uniform-price first sale for valueless test tokens on Midnight. Th
 | --- | --- |
 | Browse four test launches: three Local Devnet records and one Preprod setup | Saved receipt-verified catalog. The Preprod card has [three confirmed setup transactions](docs/evidence/preprod-launch-2026-09-27.md) and a separate [public HTTPS read-only chain status](docs/evidence/preprod-browser-readback-2026-09-27.md), derived from indexer block time rather than a browser clock |
 | Inspect one completed four-slot auction: 600 units, clearing price 10 TEST, allocations 300/300/0/0, refunds 2000/2000/5000/5000 | [20 confirmed Local Devnet receipts](spikes/fair-launch/docs/evidence/local-devnet-fair-launch.json), blocks 9380–9493, plus separate wallet readback |
+| Follow the four transaction stages in the [on-chain evidence walkthrough](https://diveyreadytodive-star.github.io/midnight-fair-launch/onchain-demo.html) | Recorded execution with transaction identifiers and block heights, distinct from the browser simulation; no new transaction is submitted by viewing it |
 | Inspect `Fair Launch Preprod Test` and its contract address, three receipts, inventory, and test-only metadata | Operator-signed deploy/mint/fund on Preprod, independently re-queried from the indexer and contract ledger; no Preprod bid, settlement, or claim |
 | Change an example bid and reveal uniform-price allocations | **Browser simulation:** no wallet, proof, new transaction, or asset transfer |
 | Switch between Korean and English | Browser preference stored locally |
